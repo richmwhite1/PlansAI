@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                String               @id @default(cuid())
+  clerkId           String               @unique
+  email             String?              @unique
+  displayName       String?
+  avatarUrl         String?
+  phone             String?
+  homeLatitude      Float?
+  homeLongitude     Float?
+  homeCity          String?
+  homeState         String?
+  travelRadiusMiles Int                  @default(25)
+  preferences       Json                 @default("{}")
+  vibeHistory       Json                 @default("[]")
+  trustScore        Float                @default(0.5)
+  hangoutCount      Int                  @default(0)
+  lastActiveAt      DateTime             @default(now())
+  
+  // New Profile Fields
+  bio                 String?
+  personalityType     String?
+  dietaryPreferences  String[]
+  interests           String[]
+  socialBattery       SocialBattery  @default(MEDIUM)
+  scheduleFlexibility String?
+
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  friendshipsA      Friendship[]         @relation("FriendA")
+  friendshipsB      Friendship[]         @relation("FriendB")
+  hangoutsCreated   Hangout[]            @relation("HangoutCreator")
+  feedbacks         HangoutFeedback[]
+  participants      HangoutParticipant[]
+  photos            HangoutPhoto[]
+  templates         HangoutTemplate[]
+  messages          Message[]
+  notifications     Notification[]
+  timeVotes         TimeVote[]
+  votes             Vote[]
+
+  @@index([clerkId])
+  @@index([homeLatitude, homeLongitude])
+}
+
+model GuestProfile {
+  id                   String               @id @default(cuid())
+  token                String               @unique @default(cuid())
+  displayName          String
+  phone                String?
+  email                String?
+  convertedToProfileId String?
+  createdAt            DateTime             @default(now())
+  expiresAt            DateTime
+  participants         HangoutParticipant[]
+  votes                Vote[]
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Friendship {
+  id                 String           @id @default(cuid())
+  profileAId         String
+  profileBId         String
+  sharedHangoutCount Int              @default(0)
+  createdAt          DateTime         @default(now())
+  status             FriendshipStatus @default(PENDING)
+  profileA           Profile          @relation("FriendA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileB           Profile          @relation("FriendB", fields: [profileBId], references: [id], onDelete: Cascade)
+
+  @@unique([profileAId, profileBId])
+  @@index([profileAId])
+  @@index([profileBId])
+}
+
+model Hangout {
+  id                String                  @id @default(cuid())
+  slug              String                  @unique @default(cuid())
+  title             String
+  description       String?
+  type              HangoutType             @default(CASUAL)
+  status            HangoutStatus           @default(PLANNING)
+  creatorId         String
+  finalActivityId   String?
+  finalDateTime     DateTime?
+  midpointLat       Float?
+  midpointLng       Float?
+  searchRadiusMiles Int                     @default(10)
+  summary           String?
+  vibeScore         String?
+  votingEndsAt      DateTime?
+  allowGuestVotes   Boolean                 @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  scheduledFor      DateTime?
+  expiresAt         DateTime?
+  inviteToken       String?                 @unique
+  visibility        HangoutVisibility       @default(PRIVATE)
+  discoverable      DiscoverableHangout?
+  creator           Profile                 @relation("HangoutCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  finalActivity     CachedEvent?            @relation(fields: [finalActivityId], references: [id])
+  activityOptions   HangoutActivityOption[]
+  feedbacks         HangoutFeedback[]
+  participants      HangoutParticipant[]
+  photos            HangoutPhoto[]
+  timeOptions       HangoutTimeOption[]
+  messages          Message[]
+  votes             Vote[]
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([slug])
+  @@index([midpointLat, midpointLng])
+}
+
+model HangoutParticipant {
+  id          String          @id @default(cuid())
+  hangoutId   String
+  profileId   String?
+  guestId     String?
+  role        ParticipantRole @default(MEMBER)
+  rsvpStatus  RsvpStatus      @default(PENDING)
+  latitude    Float?
+  longitude   Float?
+  invitedAt   DateTime        @default(now())
+  respondedAt DateTime?
+  guest       GuestProfile?   @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  hangout     Hangout         @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  profile     Profile?        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([hangoutId, profileId])
+  @@unique([hangoutId, guestId])
+  @@index([hangoutId])
+  @@index([profileId])
+}
+
+model CachedEvent {
+  id              String                  @id @default(cuid())
+  googlePlaceId   String?                 @unique
+  externalId      String?
+  source          EventSource             @default(GOOGLE_PLACES)
+  name            String
+  description     String?
+  category        String
+  subcategory     String?
+  address         String?
+  city            String?
+  state           String?
+  latitude        Float
+  longitude       Float
+  priceLevel      Int?
+  rating          Float?
+  reviewCount     Int?
+  imageUrl        String?
+  websiteUrl      String?
+  phoneNumber     String?
+  isTimeBound     Boolean                 @default(false)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  operatingHours  Json?
+  vibes           String[]
+  suitableFor     String[]
+  fetchedAt       DateTime                @default(now())
+  expiresAt       DateTime
+  staleAt         DateTime
+  localTrustScore Float                   @default(0.5)
+  timesSelected   Int                     @default(0)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  hangouts        Hangout[]
+  activityOptions HangoutActivityOption[]
+  templates       HangoutTemplate[]
+
+  @@index([latitude, longitude])
+  @@index([category])
+  @@index([expiresAt])
+  @@index([city, state])
+  @@index([vibes])
+}
+
+model HangoutActivityOption {
+  id              String      @id @default(cuid())
+  hangoutId       String
+  cachedEventId   String
+  groupTrustScore Float       @default(0.5)
+  displayOrder    Int         @default(0)
+  createdAt       DateTime    @default(now())
+  cachedEvent     CachedEvent @relation(fields: [cachedEventId], references: [id])
+  hangout         Hangout     @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  votes           Vote[]      @relation("ActivityVotes")
+
+  @@unique([hangoutId, cachedEventId])
+  @@index([hangoutId])
+}
+
+model HangoutTimeOption {
+  id        String     @id @default(cuid())
+  hangoutId String
+  createdAt DateTime   @default(now())
+  endTime   DateTime?
+  startTime DateTime
+  hangout   Hangout    @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  votes     TimeVote[]
+
+  @@index([hangoutId])
+}
+
+model Vote {
+  id               String                 @id @default(cuid())
+  hangoutId        String
+  profileId        String?
+  guestId          String?
+  activityOptionId String?
+  value            Int                    @default(1)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  activityOption   HangoutActivityOption? @relation("ActivityVotes", fields: [activityOptionId], references: [id], onDelete: Cascade)
+  guest            GuestProfile?          @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  hangout          Hangout                @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  profile          Profile?               @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([hangoutId, profileId, activityOptionId])
+  @@unique([hangoutId, guestId, activityOptionId])
+  @@index([hangoutId])
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  hangoutId String
+  authorId  String
+  content   String
+  type      MessageType @default(TEXT)
+  createdAt DateTime    @default(now())
+  author    Profile     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  hangout   Hangout     @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId, createdAt])
+}
+
+model HangoutPhoto {
+  id         String   @id @default(cuid())
+  hangoutId  String
+  uploaderId String
+  url        String
+  caption    String?
+  createdAt  DateTime @default(now())
+  hangout    Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  uploader   Profile  @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+}
+
+model DiscoverableHangout {
+  id          String   @id @default(cuid())
+  hangoutId   String   @unique
+  isPublic    Boolean  @default(false)
+  maxGuests   Int?
+  latitude    Float
+  longitude   Float
+  city        String
+  happeningAt DateTime
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  hangout     Hangout  @relation(fields: [hangoutId], references: [id])
+
+  @@index([latitude, longitude])
+  @@index([city])
+  @@index([happeningAt])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType @default(SYSTEM)
+  content   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model HangoutFeedback {
+  id                String   @id @default(cuid())
+  hangoutId         String
+  profileId         String
+  reflection        String
+  rating            Int?
+  extractedVibes    Json?
+  extractedKeywords Json?
+  createdAt         DateTime @default(now())
+  hangout           Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+  @@index([profileId])
+}
+
+model HangoutTemplate {
+  id         String       @id @default(cuid())
+  name       String
+  type       HangoutType  @default(CASUAL)
+  creatorId  String
+  activityId String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  activity   CachedEvent? @relation(fields: [activityId], references: [id])
+  creator    Profile      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+}
+
+model TimeVote {
+  id           String            @id @default(cuid())
+  timeOptionId String
+  profileId    String
+  value        Int               @default(1)
+  profile      Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  timeOption   HangoutTimeOption @relation(fields: [timeOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([timeOptionId, profileId])
+  @@index([profileId])
+}
+
+enum HangoutType {
+  DATE
+  GROUP_DINNER
+  ACTIVITY
+  TRIP
+  PARTY
+  CASUAL
+  CUSTOM
+}
+
+enum HangoutStatus {
+  PLANNING
+  VOTING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  CREATOR
+  ORGANIZER
+  MEMBER
+}
+
+enum RsvpStatus {
+  PENDING
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
+enum EventSource {
+  GOOGLE_PLACES
+  GOOGLE_EVENTS
+  EVENTBRITE
+  YELP
+  USER_SUBMITTED
+  AI_GENERATED
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  AI
+}
+
+enum HangoutVisibility {
+  PRIVATE
+  FRIENDS_ONLY
+  PUBLIC
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  HANGOUT_INVITE
+  HANGOUT_UPDATE
+  HANGOUT_REMINDER
+  SYSTEM
+}
+
+enum SocialBattery {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+
