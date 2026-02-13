@@ -80,7 +80,7 @@ export function ProfileHero({ profile, isOwner, onEdit, onMessage }: ProfileHero
                     {/* Key Stats Row - Gold Accents */}
                     <div className="flex flex-wrap gap-6 justify-center md:justify-start pt-4">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs text-slate-500 uppercase tracking-wider">Location</span>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Base</span>
                             <div className="flex items-center gap-2 text-slate-200">
                                 <MapPin className="w-4 h-4 text-primary" />
                                 <span className="font-serif italic">{locationString}</span>
@@ -88,7 +88,7 @@ export function ProfileHero({ profile, isOwner, onEdit, onMessage }: ProfileHero
                         </div>
                         <div className="w-px h-10 bg-white/5 hidden md:block" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs text-slate-500 uppercase tracking-wider">Experience</span>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Experiences</span>
                             <div className="flex items-center gap-2 text-slate-200">
                                 <Activity className="w-4 h-4 text-primary" />
                                 <span className="font-serif italic">{experienceCount} Plans</span>
@@ -96,7 +96,7 @@ export function ProfileHero({ profile, isOwner, onEdit, onMessage }: ProfileHero
                         </div>
                         <div className="w-px h-10 bg-white/5 hidden md:block" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs text-slate-500 uppercase tracking-wider">Network</span>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Network</span>
                             <div className="flex items-center gap-2 text-slate-200">
                                 <ShieldCheck className="w-4 h-4 text-primary" />
                                 <span className="font-serif italic">{friendCount} Friends</span>

@@ -25,15 +25,30 @@ export default async function HangoutsPage() {
         );
     }
 
-    // Get all hangouts where user is a participant
+    // Get all hangouts where user is a participant (as Profile OR as Guest matching email/phone)
     const participations = await prisma.hangoutParticipant.findMany({
-        where: { profileId: profile.id },
+        where: {
+            OR: [
+                { profileId: profile.id },
+                {
+                    guest: {
+                        OR: [
+                            profile.email ? { email: profile.email } : {},
+                            profile.phone ? { phone: profile.phone } : {}
+                        ].filter(cond => Object.keys(cond).length > 0)
+                    }
+                }
+            ]
+        },
         include: {
             hangout: {
                 include: {
                     creator: true,
                     participants: {
-                        include: { profile: true },
+                        include: {
+                            profile: true,
+                            guest: true
+                        },
                         take: 5
                     },
                     finalActivity: true
@@ -42,10 +57,12 @@ export default async function HangoutsPage() {
         }
     });
 
+    // Extract hangouts and add metadata
     const hangouts = participations.map((p: any) => ({
         ...p.hangout,
         myRole: p.role,
-        myRsvp: p.rsvpStatus
+        myRsvp: p.rsvpStatus,
+        isCreator: p.hangout.creatorId === profile.id
     }));
 
     // Categorize hangouts with robust date handling

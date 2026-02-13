@@ -103,127 +103,181 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     onEdit={() => setIsEditing(true)}
                 />
 
-                {/* Data Grid / Spec Sheet */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Summary Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                    {/* Column 1: Core Logistics */}
-                    <div className="space-y-6">
-                        <section>
-                            <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-border pb-2">
-                                Logistics Profile
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">Transport Mode</span>
-                                    <span className="text-sm font-bold text-foreground">{initialData.transportMode || "Not Specified"}</span>
+                    {/* About & Personality */}
+                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-8">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-violet-500/10 rounded-xl">
+                                    <Zap className="w-5 h-5 text-violet-400" />
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">Social Battery</span>
-                                    <span className="text-sm font-bold text-foreground">{ENERGY_LABELS[Math.max(0, (initialData.socialEnergy || 3) - 1)]?.split(" ")[0]} ({initialData.socialEnergy}/5)</span>
+                                <h3 className="text-xl font-serif font-bold text-white">Personality</h3>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-slate-800/30 rounded-2xl p-4 border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">MBTI</span>
+                                    <span className="text-lg font-bold text-white tracking-wide">{initialData.mbti || "—"}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">Budget Tier</span>
-                                    <span className="text-sm font-bold text-foreground">{BUDGET_LABELS[Math.max(0, (initialData.budgetComfort || 2) - 1)]?.split(" ")[0]}</span>
+                                <div className="bg-slate-800/30 rounded-2xl p-4 border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Zodiac</span>
+                                    <span className="text-lg font-bold text-white tracking-wide">{initialData.zodiac || "—"}</span>
                                 </div>
-                                <div className="py-2">
-                                    <span className="text-sm font-medium text-muted-foreground block mb-2">Availability</span>
-                                    <div className="flex flex-wrap gap-2">
-                                        {initialData.availabilityWindows?.length ? (
-                                            initialData.availabilityWindows.map(w => (
-                                                <span key={w} className="px-2 py-1 bg-muted/50 border border-border rounded text-xs font-mono text-foreground">
-                                                    {w}
-                                                </span>
-                                            ))
-                                        ) : <span className="text-sm text-foreground/50 italic">Unspecified</span>}
-                                    </div>
+                                <div className="col-span-2 bg-slate-800/30 rounded-2xl p-4 border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Enneagram</span>
+                                    <span className="text-lg font-bold text-white tracking-wide">{initialData.enneagram || "—"}</span>
                                 </div>
                             </div>
-                        </section>
+                        </div>
 
-                        <section>
-                            <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-border pb-2">
-                                Planning Priorities
-                            </h3>
+                        <div className="space-y-4 pt-4 border-t border-white/5">
+                            <span className="text-sm font-medium text-slate-400 block">Planning Priorities</span>
                             <div className="flex flex-wrap gap-2">
                                 {initialData.vibeTags?.length ? (
                                     initialData.vibeTags.map(tag => (
-                                        <span key={tag} className="px-3 py-1 bg-foreground text-background text-xs font-bold uppercase tracking-wide rounded-sm">
+                                        <span key={tag} className="px-3 py-1.5 bg-white text-black text-xs font-bold uppercase tracking-wide rounded-lg shadow-lg shadow-white/10">
                                             {tag}
                                         </span>
                                     ))
-                                ) : <span className="text-sm text-foreground/50 italic">No priorities set</span>}
+                                ) : <span className="text-sm text-slate-600 italic">No priorities set</span>}
                             </div>
-                        </section>
-                    </div>
-
-                    {/* Column 2: Personal Preferences */}
-                    <div className="space-y-6">
-                        <section>
-                            <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-border pb-2">
-                                Personal Data
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">MBTI</span>
-                                    <span className="text-sm font-mono text-foreground">{initialData.mbti || "—"}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">Zodiac</span>
-                                    <span className="text-sm font-mono text-foreground">{initialData.zodiac || "—"}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                    <span className="text-sm font-medium text-muted-foreground">Enneagram</span>
-                                    <span className="text-sm font-mono text-foreground">{initialData.enneagram?.split("-")[0].trim() || "—"}</span>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section>
-                            <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest mb-4 border-b border-border pb-2">
-                                Preferences
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Cuisines</h4>
-                                    <div className="flex flex-wrap gap-1">
-                                        {initialData.cuisinePreferences?.length ? (
-                                            initialData.cuisinePreferences.map(c => <span key={c} className="text-xs text-foreground bg-muted/30 px-1.5 py-0.5 rounded-sm border border-border/50">{c}</span>)
-                                        ) : <span className="text-xs text-muted-foreground">–</span>}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Drinks</h4>
-                                    <div className="flex flex-wrap gap-1">
-                                        {initialData.drinkPreferences?.length ? (
-                                            initialData.drinkPreferences.map(d => <span key={d} className="text-xs text-foreground bg-muted/30 px-1.5 py-0.5 rounded-sm border border-border/50">{d}</span>)
-                                        ) : <span className="text-xs text-muted-foreground">–</span>}
-                                    </div>
-                                </div>
-                                <div className="col-span-2">
-                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Interests</h4>
-                                    <div className="flex flex-wrap gap-1">
-                                        {initialData.interests?.length ? (
-                                            initialData.interests.map(i => <span key={i} className="text-xs text-foreground bg-muted/30 px-1.5 py-0.5 rounded-sm border border-border/50">{i}</span>)
-                                        ) : <span className="text-xs text-muted-foreground">–</span>}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-
-                {/* Dealbreakers Alert */}
-                {initialData.dealbreakers && initialData.dealbreakers.length > 0 && (
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 flex items-start gap-3">
-                        <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                        <div>
-                            <h3 className="text-sm font-bold text-red-500 uppercase tracking-wide mb-1">Negative Constraints</h3>
-                            <p className="text-sm text-foreground/80 leading-relaxed">
-                                {initialData.dealbreakers.join(", ")}
-                            </p>
                         </div>
                     </div>
-                )}
+
+                    {/* Logistics & Vibe */}
+                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-xl">
+                                <MapPin className="w-5 h-5 text-primary" />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold text-white">Vibe & Velocity</h3>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center group">
+                                <span className="text-sm font-medium text-slate-500 group-hover:text-slate-400 transition-colors">On the Move</span>
+                                <span className="text-base font-bold text-slate-200">{initialData.transportMode || "Not Specified"}</span>
+                            </div>
+                            <div className="w-full h-px bg-white/5" />
+
+                            <div className="flex justify-between items-center group">
+                                <span className="text-sm font-medium text-slate-500 group-hover:text-slate-400 transition-colors">Social Battery</span>
+                                <div className="text-right">
+                                    <span className="block text-base font-bold text-slate-200">{ENERGY_LABELS[Math.max(0, (initialData.socialEnergy || 3) - 1)]?.split(" ").slice(1).join(" ")}</span>
+                                    <div className="flex gap-1 mt-1 justify-end">
+                                        {[1, 2, 3, 4, 5].map((level) => (
+                                            <div
+                                                key={level}
+                                                className={cn(
+                                                    "w-1.5 h-1.5 rounded-full transition-all duration-500",
+                                                    (initialData.socialEnergy || 3) >= level ? "bg-primary" : "bg-slate-800"
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="w-full h-px bg-white/5" />
+
+                            <div className="flex justify-between items-center group">
+                                <span className="text-sm font-medium text-slate-500 group-hover:text-slate-400 transition-colors">Budget Vibe</span>
+                                <span className="text-base font-bold text-primary font-serif italic">{BUDGET_LABELS[Math.max(0, (initialData.budgetComfort || 2) - 1)]?.split(" ").slice(1).join(" ")}</span>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/5">
+                                <span className="text-sm font-medium text-slate-400 block mb-3">Usually Free...</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {initialData.availabilityWindows?.length ? (
+                                        initialData.availabilityWindows.map(w => (
+                                            <span key={w} className="px-3 py-1.5 bg-slate-800/50 border border-white/5 rounded-lg text-xs font-medium text-slate-300">
+                                                {w}
+                                            </span>
+                                        ))
+                                    ) : <span className="text-sm text-slate-600 italic">Unspecified</span>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Fun Facts (Full Width) */}
+                    {(initialData.funFacts?.length ?? 0) > 0 && (
+                        <div className="md:col-span-2 bg-primary/5 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-500/10 rounded-xl">
+                                    <MessageCircle className="w-5 h-5 text-amber-400" />
+                                </div>
+                                <h3 className="text-xl font-serif font-bold text-white">A Little Extra</h3>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {initialData.funFacts?.map((fact, i) => (
+                                    <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 text-slate-200 text-sm leading-relaxed">
+                                        {fact}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Preferences Card (Full Width) */}
+                    <div className="md:col-span-2 bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                <Utensils className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold text-white">The Menu</h3>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-8">
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cuisines</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {initialData.cuisinePreferences?.length ? (
+                                        initialData.cuisinePreferences.map(c => (
+                                            <span key={c} className="text-sm text-slate-300 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10">{c}</span>
+                                        ))
+                                    ) : <span className="text-sm text-slate-600 italic">–</span>}
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Drinks</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {initialData.drinkPreferences?.length ? (
+                                        initialData.drinkPreferences.map(d => (
+                                            <span key={d} className="text-sm text-slate-300 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10">{d}</span>
+                                        ))
+                                    ) : <span className="text-sm text-slate-600 italic">–</span>}
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Passions</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {initialData.interests?.length ? (
+                                        initialData.interests.map(i => (
+                                            <span key={i} className="text-sm text-slate-300 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10">{i}</span>
+                                        ))
+                                    ) : <span className="text-sm text-slate-600 italic">–</span>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dealbreakers & Notes */}
+                    {(initialData.dealbreakers?.length ?? 0) > 0 && (
+                        <div className="md:col-span-2 bg-red-500/5 border border-red-500/10 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
+                            <div className="p-3 bg-red-500/10 rounded-2xl shrink-0">
+                                <ShieldAlert className="w-6 h-6 text-red-500" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-serif font-bold text-red-200">The Hard Boundaries</h3>
+                                <p className="text-red-200/80 leading-relaxed text-sm">
+                                    {initialData.dealbreakers?.join(", ")}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }

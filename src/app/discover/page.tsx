@@ -6,12 +6,24 @@ import Link from "next/link";
 import {
     ArrowLeft, MapPin, Calendar, Compass, Loader2, Users,
     Search, Sparkles, Filter, Check, Plus, Send, Info, Star,
-    Ticket, ShoppingBag, Utensils, Music, Footprints, Camera
+    Ticket, ShoppingBag, Utensils, Music, Footprints, Camera,
+    UserPlus, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { FriendSelector } from "@/components/dashboard/friend-selector";
+import { InviteModal } from "@/components/dashboard/invite-modal";
+import { toast } from "sonner";
+
+interface Friend {
+    id: string;
+    name: string;
+    avatar: string;
+    phone?: string;
+    isGuest?: boolean;
+}
 
 interface DiscoverableHangout {
     id: string;
@@ -74,6 +86,12 @@ export default function DiscoverPage() {
     const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
     const [isCreating, setIsCreating] = useState(false);
 
+    // People Selection
+    const [selectedFriends, setSelectedFriends] = useState<Friend[]>([]);
+    const [showFriendSelector, setShowFriendSelector] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
+
     const fetcher = (url: string) => fetch(url).then(r => r.json());
 
     const discoverKey = (() => {
@@ -132,20 +150,34 @@ export default function DiscoverPage() {
 
         setIsCreating(true);
         try {
+            const hasGuests = selectedFriends.some(f => f.isGuest);
+
             const res = await fetch("/api/hangouts/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     activityIds: Array.from(selectedActivityIds),
-                    status: selectedActivityIds.size > 1 ? "VOTING" : "PLANNING"
+                    status: selectedActivityIds.size > 1 ? "VOTING" : "PLANNING",
+                    friendIds: selectedFriends.filter(f => !f.isGuest).map(f => f.id),
+                    guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name }))
                 })
             });
             const data = await res.json();
+
             if (data.slug) {
-                router.push(`/hangouts/${data.slug}`);
+                if (hasGuests) {
+                    const inviteUrl = `${window.location.origin}/hangouts/${data.slug}`;
+                    setCreatedHangoutData({ inviteUrl, slug: data.slug });
+                    setShowInviteModal(true);
+                    toast.success("Hangout created! Invite your guests.");
+                } else {
+                    toast.success("Hangout created!");
+                    router.push(`/hangouts/${data.slug}`);
+                }
             }
         } catch (err) {
             console.error("Failed to create hangout:", err);
+            toast.error("Failed to create hangout");
             setIsCreating(false);
         }
     };
@@ -426,11 +458,30 @@ export default function DiscoverPage() {
                     >
                         <div className="container mx-auto max-w-2xl pointer-events-auto">
                             <div className="bg-primary rounded-3xl p-4 shadow-2xl shadow-primary/20 border border-primary/20 flex items-center justify-between gap-4">
-                                <div className="pl-2">
-                                    <p className="text-primary-foreground font-bold text-lg">{selectedActivityIds.size} Selected</p>
-                                    <p className="text-primary-foreground/80 text-xs">
-                                        {selectedActivityIds.size === 1 ? "Start a new plan" : "Start a group vote"}
-                                    </p>
+                                <div className="pl-2 flex items-center gap-4">
+                                    <div>
+                                        <p className="text-primary-foreground font-bold text-lg">{selectedActivityIds.size} Selected</p>
+                                        <p className="text-primary-foreground/80 text-xs">
+                                            {selectedActivityIds.size === 1 ? "Start a new plan" : "Start a group vote"}
+                                        </p>
+                                    </div>
+                                    <div className="h-8 w-px bg-primary-foreground/20 mx-1" />
+                                    <button
+                                        onClick={() => setShowFriendSelector(true)}
+                                        className="flex flex-col items-center gap-0.5 group"
+                                    >
+                                        <div className="relative">
+                                            <div className="w-10 h-10 rounded-full bg-background/20 flex items-center justify-center border border-white/10 group-hover:bg-background/30 transition-colors">
+                                                <UserPlus className="w-5 h-5 text-primary-foreground" />
+                                            </div>
+                                            {selectedFriends.length > 0 && (
+                                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-white text-primary rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-primary">
+                                                    {selectedFriends.length}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-primary-foreground/90 uppercase tracking-tighter">People</span>
+                                    </button>
                                 </div>
                                 <button
                                     onClick={handleCreateHangout}
@@ -449,9 +500,72 @@ export default function DiscoverPage() {
                             </div>
                         </div>
                     </motion.div>
-
                 )}
             </AnimatePresence>
+
+            {/* Friend Selector Drawer/Modal */}
+            <AnimatePresence>
+                {showFriendSelector && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowFriendSelector(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: "100%" }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: "100%" }}
+                            className="fixed bottom-0 left-0 right-0 z-[70] bg-slate-900 border-t border-white/10 rounded-t-[32px] p-6 max-h-[85vh] overflow-y-auto"
+                        >
+                            <div className="max-w-xl mx-auto space-y-6">
+                                <div className="flex items-center justify-between sticky top-0 bg-slate-900 z-10 pb-4">
+                                    <h2 className="text-2xl font-serif font-bold text-white italic">Add People</h2>
+                                    <button
+                                        onClick={() => setShowFriendSelector(false)}
+                                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 transition-colors"
+                                    >
+                                        <X className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <FriendSelector
+                                    selected={selectedFriends}
+                                    onSelect={setSelectedFriends}
+                                />
+
+                                <div className="pt-4 pb-8 sticky bottom-0 bg-slate-900">
+                                    <button
+                                        onClick={() => setShowFriendSelector(false)}
+                                        className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all"
+                                    >
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Invite Modal for Guests */}
+            {createdHangoutData && (
+                <InviteModal
+                    isOpen={showInviteModal}
+                    onClose={() => {
+                        setShowInviteModal(false);
+                        router.push(`/hangouts/${createdHangoutData.slug}`);
+                    }}
+                    onDone={() => {
+                        setShowInviteModal(false);
+                        router.push(`/hangouts/${createdHangoutData.slug}`);
+                    }}
+                    inviteUrl={createdHangoutData.inviteUrl}
+                    guests={selectedFriends.filter(f => f.isGuest)}
+                />
+            )}
         </div>
     );
 }
