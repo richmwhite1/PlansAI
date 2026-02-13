@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import {
     ArrowLeft, MapPin, Calendar, Compass, Loader2, Users,
@@ -57,9 +58,6 @@ const CATEGORIES = [
 
 export default function DiscoverPage() {
     const router = useRouter();
-    const [hangouts, setHangouts] = useState<DiscoverableHangout[]>([]);
-    const [activities, setActivities] = useState<Activity[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"plans" | "explore">("plans");
 
     // Filters & Search
@@ -70,38 +68,30 @@ export default function DiscoverPage() {
     const [aiPrompt, setAiPrompt] = useState("");
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiReasoning, setAiReasoning] = useState<string | null>(null);
+    const [aiActivities, setAiActivities] = useState<Activity[]>([]);
 
     // Selection for Hangout Creation
     const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
     const [isCreating, setIsCreating] = useState(false);
 
-    useEffect(() => {
-        fetchDiscovery();
-    }, [activeTab, selectedCategory]);
+    const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-    const fetchDiscovery = async () => {
-        setIsLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.append("type", activeTab === "plans" ? "hangouts" : "activities");
-            if (activeTab === "explore" && selectedCategory !== "all") {
-                params.append("category", selectedCategory);
-            }
-
-            const res = await fetch(`/api/discover?${params.toString()}`);
-            const data = await res.json();
-
-            if (activeTab === "plans") {
-                setHangouts(data.hangouts || []);
-            } else {
-                setActivities(data.activities || []);
-            }
-        } catch (err) {
-            console.error("Discovery failed:", err);
-        } finally {
-            setIsLoading(false);
+    const discoverKey = (() => {
+        const params = new URLSearchParams();
+        params.append("type", activeTab === "plans" ? "hangouts" : "activities");
+        if (activeTab === "explore" && selectedCategory !== "all") {
+            params.append("category", selectedCategory);
         }
-    };
+        return `/api/discover?${params.toString()}`;
+    })();
+
+    const { data: discoverData, isLoading } = useSWR(discoverKey, fetcher, {
+        revalidateOnFocus: false,
+        dedupingInterval: 30000, // 30s dedup
+    });
+
+    const hangouts: DiscoverableHangout[] = discoverData?.hangouts || [];
+    const activities: Activity[] = aiActivities.length > 0 ? aiActivities : (discoverData?.activities || []);
 
     const handleAiSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,7 +107,7 @@ export default function DiscoverPage() {
             });
             const data = await res.json();
             if (data.suggestions) {
-                setActivities(data.suggestions);
+                setAiActivities(data.suggestions);
                 setAiReasoning(data.reasoning);
             }
         } catch (err) {
@@ -264,9 +254,21 @@ export default function DiscoverPage() {
 
                 {/* Content */}
                 {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
-                        <p className="text-sm text-slate-500 animate-pulse font-medium">Finding the best vibes...</p>
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="rounded-2xl border border-white/5 bg-card/50 overflow-hidden animate-pulse">
+                                <div className="h-32 bg-slate-800" />
+                                <div className="p-4 space-y-3">
+                                    <div className="h-5 bg-slate-800 rounded-lg w-3/4" />
+                                    <div className="h-3 bg-slate-800/60 rounded w-1/2" />
+                                    <div className="h-3 bg-slate-800/40 rounded w-1/3" />
+                                    <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                                        <div className="w-5 h-5 rounded-full bg-slate-800" />
+                                        <div className="h-3 bg-slate-800/40 rounded w-24" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : activeTab === "plans" ? (
                     <div className="space-y-4">
@@ -457,6 +459,6 @@ export default function DiscoverPage() {
 
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }

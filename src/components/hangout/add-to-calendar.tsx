@@ -38,27 +38,45 @@ export function AddToCalendar({
         return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}&location=${loc}`;
     })();
 
-    const handleDownloadIcs = () => {
+    const generateIcsContent = () => {
         const start = format(startTime, "yyyyMMdd'T'HHmmss");
         const end = format(finalEndTime, "yyyyMMdd'T'HHmmss");
         const now = format(new Date(), "yyyyMMdd'T'HHmmss");
 
-        const content = [
+        return [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
             "PRODID:-//Plans AI//Hangouts//EN",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
             "BEGIN:VEVENT",
             `UID:${crypto.randomUUID()}`,
             `DTSTAMP:${now}`,
             `DTSTART:${start}`,
             `DTEND:${end}`,
             `SUMMARY:${title}`,
-            `DESCRIPTION:${description || ""}`,
+            `DESCRIPTION:${(description || "").replace(/\n/g, "\\n")}`,
             `LOCATION:${location || ""}`,
+            "STATUS:CONFIRMED",
             "END:VEVENT",
             "END:VCALENDAR"
         ].join("\r\n");
+    };
 
+    const isAppleDevice = () => {
+        if (typeof navigator === "undefined") return false;
+        return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+    };
+
+    const handleAppleCalendar = () => {
+        const content = generateIcsContent();
+        // On Apple devices, use data URI which triggers Calendar.app directly
+        const dataUri = `data:text/calendar;charset=utf-8,${encodeURIComponent(content)}`;
+        window.open(dataUri, "_blank");
+    };
+
+    const handleDownloadIcs = () => {
+        const content = generateIcsContent();
         const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -67,6 +85,14 @@ export function AddToCalendar({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleCalendarAdd = () => {
+        if (isAppleDevice()) {
+            handleAppleCalendar();
+        } else {
+            handleDownloadIcs();
+        }
     };
 
     if (compact) {
@@ -87,7 +113,7 @@ export function AddToCalendar({
                 </a>
 
                 <button
-                    onClick={handleDownloadIcs}
+                    onClick={handleCalendarAdd}
                     className="flex items-center gap-4 p-3 rounded-2xl bg-card/40 hover:bg-card/60 border border-white/5 hover:border-white/10 transition-all group w-full text-left"
                 >
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 border border-white/5">
@@ -121,7 +147,7 @@ export function AddToCalendar({
             </a>
 
             <button
-                onClick={handleDownloadIcs}
+                onClick={handleCalendarAdd}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-white/5 hover:bg-accent hover:border-white/10 transition-all group"
             >
                 <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
@@ -129,7 +155,7 @@ export function AddToCalendar({
                 </div>
                 <div className="text-left">
                     <div className="text-xs font-semibold text-foreground uppercase tracking-wider">Apple / Outlook</div>
-                    <div className="text-[10px] text-muted-foreground">Download .ics file</div>
+                    <div className="text-[10px] text-muted-foreground">Opens in Calendar app</div>
                 </div>
             </button>
         </div>

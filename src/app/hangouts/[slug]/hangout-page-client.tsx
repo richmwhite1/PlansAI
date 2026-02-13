@@ -18,6 +18,8 @@ import { TimeVoting } from "@/components/hangout/time-voting";
 import { GuestJoinForm } from "@/components/hangout/guest-join-form";
 import { setGuestCookie } from "@/app/actions/guest-actions";
 import { GuestClaimUI } from "@/components/hangout/guest-claim-ui";
+import { HangoutTasks } from "@/components/hangout/hangout-tasks";
+import { HangoutExpenses } from "@/components/hangout/hangout-expenses";
 
 interface HangoutPageClientProps {
     hangout: any;
@@ -474,6 +476,41 @@ export function HangoutPageClient({
                             );
                         })()}
                     </div>
+                )}
+
+                {/* Tasks & Expenses */}
+                {currentUserParticipant && (
+                    <>
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <div className="h-px bg-white/10 flex-1" />
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Coordination</span>
+                                <div className="h-px bg-white/10 flex-1" />
+                            </div>
+                            <HangoutTasks
+                                hangoutId={hangout.id}
+                                participants={hangout.participants
+                                    .filter((p: any) => p.profile)
+                                    .map((p: any) => ({
+                                        id: p.profile.id,
+                                        displayName: p.profile.displayName,
+                                        avatarUrl: p.profile.avatarUrl,
+                                    }))}
+                                isParticipant={!!currentUserParticipant}
+                            />
+                            <HangoutExpenses
+                                hangoutId={hangout.id}
+                                participants={hangout.participants
+                                    .filter((p: any) => p.profile)
+                                    .map((p: any) => ({
+                                        id: p.profile.id,
+                                        displayName: p.profile.displayName,
+                                        avatarUrl: p.profile.avatarUrl,
+                                    }))}
+                                isParticipant={!!currentUserParticipant}
+                            />
+                        </div>
+                    </>
                 )}
 
                 {/* Chat & Comments */}

@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { RegisterSW } from "@/components/register-sw";
 
 export const viewport = {
   themeColor: "#0A0A0A", // Updated to Midnight Carbon
@@ -55,6 +56,7 @@ export default function RootLayout({
         <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground antialiased selection:bg-primary/30 overscroll-none`}>
           {children}
           <BottomNav />
+          <RegisterSW />
           <Toaster richColors position="bottom-center" theme="dark" />
         </body>
       </html>

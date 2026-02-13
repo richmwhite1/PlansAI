@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { searchNearbyPlaces, GooglePlace } from "@/lib/google-places";
-// import { CachedEvent } from "@prisma/client";
-type CachedEvent = any;
+import type { CachedEvent } from "@prisma/client";
 
 export async function getCachedEvents(
     latitude: number,

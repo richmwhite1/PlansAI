@@ -1,21 +1,42 @@
 {
     "name": "Plans - Social Coordination Engine",
     "short_name": "Plans",
+    "description": "AI-powered social gathering coordination",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0f172a",
-    "theme_color": "#0f172a",
+    "background_color": "#0A0A0A",
+    "theme_color": "#0A0A0A",
     "orientation": "portrait",
+    "scope": "/",
+    "categories": [
+        "social",
+        "lifestyle"
+    ],
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Discover Places",
+            "url": "/discover",
+            "description": "Find new activities and hangout spots"
+        },
+        {
+            "name": "My Plans",
+            "url": "/plans",
+            "description": "View your upcoming hangouts"
         }
     ]
 }

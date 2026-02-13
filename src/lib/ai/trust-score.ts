@@ -1,8 +1,5 @@
 import { prisma } from "@/lib/prisma";
-// import type { CachedEvent, Profile, Friendship } from "@prisma/client";
-type CachedEvent = any;
-type Profile = any;
-type Friendship = any;
+import type { CachedEvent, Profile, Friendship } from "@prisma/client";
 
 // Types needed for calculation
 interface ParticipantWithData extends Profile {

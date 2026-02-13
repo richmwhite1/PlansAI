@@ -52,6 +52,9 @@ model Profile {
   notifications     Notification[]
   timeVotes         TimeVote[]
   votes             Vote[]
+  assignedTasks     HangoutTask[]       @relation("TaskAssignee")
+  paidExpenses      HangoutExpense[]    @relation("ExpensePayer")
+  pushSubscriptions PushSubscription[]
 
   @@index([clerkId])
   @@index([homeLatitude, homeLongitude])
@@ -125,6 +128,8 @@ model Hangout {
   timeOptions       HangoutTimeOption[]
   messages          Message[]
   votes             Vote[]
+  tasks             HangoutTask[]
+  expenses          HangoutExpense[]
 
   @@index([creatorId])
   @@index([status])
@@ -413,4 +418,46 @@ enum NotificationType {
   HANGOUT_UPDATE
   HANGOUT_REMINDER
   SYSTEM
+}
+
+model HangoutTask {
+  id         String   @id @default(cuid())
+  hangoutId  String
+  title      String
+  assigneeId String?
+  isComplete Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  hangout    Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  assignee   Profile? @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([hangoutId])
+  @@index([assigneeId])
+}
+
+model HangoutExpense {
+  id          String   @id @default(cuid())
+  hangoutId   String
+  paidById    String
+  amount      Float
+  description String
+  splitAmong  String[] // Profile IDs
+  createdAt   DateTime @default(now())
+  hangout     Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  paidBy      Profile  @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+  @@index([paidById])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  profileId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
 }

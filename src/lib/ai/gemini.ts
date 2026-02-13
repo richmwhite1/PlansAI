@@ -1,8 +1,14 @@
 // ... existing imports
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { prisma } from "@/lib/prisma";
+import * as crypto from "crypto";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+function hashQuery(query: string, lat: number, lng: number): string {
+    return crypto.createHash("md5").update(`${query}:${lat.toFixed(2)}:${lng.toFixed(2)}`).digest("hex");
+}
 
 export async function extractVibesFromReflection(reflection: string) {
     const prompt = `
@@ -31,6 +37,29 @@ export async function extractVibesFromReflection(reflection: string) {
 }
 
 export async function findPlacesWithAI(query: string, lat: number, lng: number): Promise<any[]> {
+    // Check cache first — look for AI-generated results matching this query hash
+    const queryHash = hashQuery(query, lat, lng);
+    const cached = await prisma.cachedEvent.findMany({
+        where: {
+            source: "AI_GENERATED",
+            externalId: queryHash,
+            expiresAt: { gt: new Date() },
+        },
+        take: 5,
+    });
+
+    if (cached.length >= 3) {
+        console.log(`AI cache hit for "${query}" (${cached.length} results)`);
+        return cached.map(c => ({
+            name: c.name,
+            address: c.address || "",
+            description: c.description || "",
+            category: c.category,
+            lat: c.latitude,
+            lng: c.longitude,
+        }));
+    }
+
     const prompt = `
         You are a local expert for the area around Latitude: ${lat}, Longitude: ${lng}.
         The user is searching for: "${query}".
@@ -53,11 +82,38 @@ export async function findPlacesWithAI(query: string, lat: number, lng: number):
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-        console.log("Gemini Raw Output:", text); // Debug log
         const data = JSON.parse(text);
-        return Array.isArray(data) ? data : [];
+        const places = Array.isArray(data) ? data : [];
+
+        // Cache AI results in DB
+        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
+        const staleAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);   // 3 days
+
+        for (const place of places) {
+            try {
+                await prisma.cachedEvent.create({
+                    data: {
+                        name: place.name,
+                        description: place.description || "",
+                        category: place.category || "Other",
+                        address: place.address || "",
+                        latitude: place.lat || lat,
+                        longitude: place.lng || lng,
+                        source: "AI_GENERATED",
+                        externalId: queryHash,
+                        expiresAt,
+                        staleAt,
+                    } as any,
+                });
+            } catch (err) {
+                // Ignore duplicate errors
+            }
+        }
+
+        return places;
     } catch (error) {
         console.error("Gemini place search failed:", error);
         return [];
     }
 }
+
