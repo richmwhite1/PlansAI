@@ -198,19 +198,21 @@ export function DashboardEngine() {
                 {location.permissionStatus !== "granted" && <div className="h-4" />}
 
                 {/* Step 1: WHO */}
-                <div className={cn("space-y-4 transition-all duration-500", currentStep > 1 && "opacity-50 pointer-events-none")}>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block flex items-center gap-2">
-                        1. Who are you with?
-                        {selectedFriends.length > 0 && <span className="text-slate-500 font-normal normal-case">• {selectedFriends.length} friends added</span>}
+                <div className={cn("space-y-6 transition-all duration-500", currentStep > 1 && "opacity-50 pointer-events-none")}>
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
+                            Who's joining you?
+                        </h2>
                         {currentStep > 1 && (
                             <button
                                 onClick={() => setCurrentStep(1)}
-                                className="ml-auto text-[10px] text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline"
+                                className="text-xs font-medium text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline underline-offset-4"
                             >
-                                Edit
+                                Edit Crew
                             </button>
                         )}
-                    </label>
+                    </div>
+
                     <FriendSelector selected={selectedFriends} onSelect={setSelectedFriends} />
 
                     {selectedFriends.length > 0 && currentStep === 1 && (
@@ -218,17 +220,17 @@ export function DashboardEngine() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             onClick={() => setCurrentStep(2)}
-                            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold transition-all flex items-center justify-center gap-2 hover:bg-primary/90"
+                            className="w-full py-4 rounded-2xl bg-white text-black font-bold text-lg shadow-xl shadow-white/10 hover:scale-[1.01] hover:shadow-white/20 transition-all flex items-center justify-center gap-2"
                         >
-                            Continue <ArrowRight className="w-4 h-4" />
+                            Let's Pick a Plan <ArrowRight className="w-5 h-5" />
                         </motion.button>
                     )}
                 </div>
 
                 {/* Divider */}
                 <motion.div
-                    animate={{ height: selectedFriends.length > 0 ? 32 : 0 }}
-                    className="h-8"
+                    animate={{ height: selectedFriends.length > 0 ? 40 : 0 }}
+                    className="h-10"
                 />
 
                 {/* Step 2: WHAT (AI Suggestions) */}
@@ -238,38 +240,41 @@ export function DashboardEngine() {
                             key="step-2"
                             initial={{ opacity: 0, height: 0, y: 20 }}
                             animate={{
-                                opacity: currentStep === 2 ? 1 : 0.5,
+                                opacity: currentStep === 2 ? 1 : 0.4,
                                 height: 'auto',
                                 y: 0,
                                 filter: currentStep > 2 ? 'grayscale(0.5)' : 'none'
                             }}
-                            className={cn("space-y-4 overflow-hidden transition-all", currentStep !== 2 && "pointer-events-none")}
+                            className={cn("space-y-6 overflow-hidden transition-all", currentStep !== 2 && "pointer-events-none")}
                         >
-                            <div className="h-px bg-white/5 mb-6" />
+                            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-semibold text-violet-300 uppercase tracking-wider block flex items-center gap-2">
-                                        2. Pick What to Do
+                                    <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
+                                        What's the vibe?
+                                    </h2>
+
+                                    <div className="flex items-center gap-3">
                                         {currentStep > 2 && (
                                             <button
                                                 onClick={() => setCurrentStep(2)}
-                                                className="ml-auto text-[10px] text-violet-400 hover:text-violet-300 pointer-events-auto cursor-pointer underline"
+                                                className="text-xs font-medium text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline underline-offset-4"
                                             >
-                                                Edit
+                                                Edit Vibe
                                             </button>
                                         )}
-                                    </label>
-                                    <div
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border",
-                                            isVotingEnabled
-                                                ? "bg-primary/20 border-primary/50 text-primary ring-2 ring-primary/20"
-                                                : "bg-white/5 border-white/5 text-slate-500"
-                                        )}
-                                    >
-                                        <Sparkles className={cn("w-3 h-3", isVotingEnabled ? "text-primary" : "text-slate-500")} />
-                                        {isVotingEnabled ? "Voting Enabled" : "Single Choice"}
+                                        <div
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border",
+                                                isVotingEnabled
+                                                    ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+                                                    : "bg-white/5 border-white/5 text-slate-500"
+                                            )}
+                                        >
+                                            <Sparkles className={cn("w-3 h-3", isVotingEnabled ? "text-primary" : "text-slate-500")} />
+                                            {isVotingEnabled ? "Vote Mode" : "Quick Pick"}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -339,19 +344,19 @@ export function DashboardEngine() {
                             </div>
 
                             <div className="space-y-6 pt-4 border-t border-white/5">
-                                <div className="space-y-3">
-                                    <label className="text-xs font-semibold text-violet-300 uppercase tracking-wider block">
-                                        3. When?
-                                    </label>
+                                <div className="space-y-4">
+                                    <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
+                                        When's it happening?
+                                    </h2>
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => handleDateSelect('tonight')}
                                             className={cn(
-                                                "p-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 border",
+                                                "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
                                                 selectionMode === 'tonight'
-                                                    ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_15px_rgba(212,163,115,0.1)]"
-                                                    : "bg-slate-800/40 border-white/5 text-muted-foreground hover:bg-slate-800/60 hover:border-white/10"
+                                                    ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
+                                                    : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
                                             )}
                                         >
                                             <Sparkles className="w-4 h-4" />
@@ -360,10 +365,10 @@ export function DashboardEngine() {
                                         <button
                                             onClick={() => handleDateSelect('tomorrow')}
                                             className={cn(
-                                                "p-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 border",
+                                                "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
                                                 selectionMode === 'tomorrow'
-                                                    ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_15px_rgba(212,163,115,0.1)]"
-                                                    : "bg-slate-800/40 border-white/5 text-muted-foreground hover:bg-slate-800/60 hover:border-white/10"
+                                                    ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
+                                                    : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
                                             )}
                                         >
                                             <Calendar className="w-4 h-4" />
@@ -374,28 +379,28 @@ export function DashboardEngine() {
                                     <div className="relative group">
                                         <input
                                             type="datetime-local"
-                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none transition-colors"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm font-medium text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 appearance-none transition-all"
                                             value={datePickerValue}
                                             onChange={(e) => {
                                                 setDatePickerValue(e.target.value);
                                                 handleDateSelect(e.target.value);
                                             }}
                                         />
-                                        <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-violet-400 transition-colors" />
+                                        <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-primary transition-colors" />
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={handleCreateHangout}
                                     disabled={isCreating}
-                                    className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none group"
+                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-amber-400 text-black font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none group"
                                 >
                                     {isCreating ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                     ) : (
                                         <>
                                             <span>Send Invites</span>
-                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}
                                 </button>

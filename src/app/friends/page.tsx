@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { Search, UserPlus, Loader2, Check, ArrowLeft, Users, Share2 } from "lucide-react";
+import { Search, UserPlus, Loader2, Check, ArrowLeft, Users, Share2, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ interface User {
     bio?: string;
     websiteUrl?: string;
     locationUrl?: string;
+    isClerkDiscovery?: boolean;
 }
 
 interface Friend extends User {
@@ -35,6 +36,7 @@ export default function FriendsPage() {
     const [addedUsers, setAddedUsers] = useState<Set<string>>(new Set());
 
     const [requests, setRequests] = useState<Friend[]>([]);
+    const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
 
     // Fetch friends, requests and discovery
     useEffect(() => {
@@ -65,6 +67,16 @@ export default function FriendsPage() {
                 })
                 .catch(console.error);
 
+            // Fetch sent requests
+            fetch(`/api/friends?type=sent&t=${Date.now()}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.friends) {
+                        setSentRequests(new Set(data.friends.map((f: Friend) => f.id)));
+                    }
+                })
+                .catch(console.error);
+
             // Fetch suggested
             fetch(`/api/users/discovery?t=${Date.now()}`)
                 .then(res => res.json())
@@ -80,6 +92,13 @@ export default function FriendsPage() {
             setIsSuggestedLoading(false);
         }
     }, [isSignedIn]);
+
+    const getRelationshipStatus = (userId: string): "FRIEND" | "SENT" | "RECEIVED" | "NONE" => {
+        if (addedUsers.has(userId)) return "FRIEND";
+        if (sentRequests.has(userId)) return "SENT";
+        if (requests.some(r => r.id === userId)) return "RECEIVED";
+        return "NONE";
+    };
 
     const handleRespond = async (friendId: string, action: "ACCEPT" | "REJECT") => {
         try {
@@ -172,25 +191,32 @@ export default function FriendsPage() {
     const handleAddFriend = async (user: User) => {
         if (addedUsers.has(user.id)) return;
         setAddingUser(user.id);
+
+        const payload = user.isClerkDiscovery
+            ? { clerkId: user.id }
+            : { friendId: user.id };
+
         try {
             const res = await fetch("/api/friends/add", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ friendId: user.id })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                setAddedUsers(prev => {
+                // Update local state to reflect SENT status immediately
+                setSentRequests(prev => {
                     const next = new Set(prev);
                     next.add(user.id);
                     return next;
                 });
+
                 toast.success(`Friend request sent to ${user.name}`);
             } else if (res.status === 409) {
                 // Already sent or already friends
-                setAddedUsers(prev => {
+                setSentRequests(prev => {
                     const next = new Set(prev);
                     next.add(user.id);
                     return next;
@@ -198,7 +224,11 @@ export default function FriendsPage() {
                 toast.info(data.error || "Request already sent");
             } else {
                 console.error("Add friend error:", data);
-                toast.error(data.error || "Failed to add friend");
+                if (res.status === 404 && user.isClerkDiscovery) {
+                    toast.error("User not fully registered yet");
+                } else {
+                    toast.error(data.error || "Failed to add friend");
+                }
             }
         } catch (err) {
             console.error("Add friend failed:", err);
@@ -256,8 +286,6 @@ export default function FriendsPage() {
                     </div>
 
                     {/* Search Results Dropdown */}
-
-                    {/* Search Results Dropdown */}
                     <AnimatePresence>
                         {searchResults.length > 0 && (
                             <motion.div
@@ -267,7 +295,7 @@ export default function FriendsPage() {
                                 className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[60]"
                             >
                                 {searchResults.map(user => {
-                                    const isAdded = addedUsers.has(user.id);
+                                    const status = getRelationshipStatus(user.id);
                                     const isAdding = addingUser === user.id;
 
                                     return (
@@ -294,23 +322,40 @@ export default function FriendsPage() {
                                                 </div>
                                             </Link>
                                             <button
-                                                onClick={() => handleAddFriend(user)}
-                                                disabled={isAdded || isAdding}
+                                                onClick={() => {
+                                                    if (status === "RECEIVED") {
+                                                        handleRespond(user.id, "ACCEPT");
+                                                    } else if (status === "NONE") {
+                                                        handleAddFriend(user);
+                                                    }
+                                                }}
+                                                disabled={status === "FRIEND" || status === "SENT" || isAdding}
                                                 className={cn(
                                                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                                                    isAdded
+                                                    status === "FRIEND"
                                                         ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                                        : "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30",
+                                                        : status === "SENT"
+                                                            ? "bg-slate-800 text-slate-400 border border-white/10"
+                                                            : status === "RECEIVED"
+                                                                ? "bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-500/20"
+                                                                : "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30",
                                                     "disabled:opacity-50"
                                                 )}
                                             >
                                                 {isAdding ? (
                                                     <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : isAdded ? (
+                                                ) : status === "FRIEND" ? (
                                                     <>
                                                         <Check className="w-3 h-3" />
-                                                        Added
+                                                        Friend
                                                     </>
+                                                ) : status === "SENT" ? (
+                                                    <>
+                                                        <Clock className="w-3 h-3" />
+                                                        Requested
+                                                    </>
+                                                ) : status === "RECEIVED" ? (
+                                                    "Accept"
                                                 ) : (
                                                     <>
                                                         <UserPlus className="w-3 h-3" />
@@ -421,7 +466,7 @@ export default function FriendsPage() {
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {suggested.map(user => {
-                                const isAdded = addedUsers.has(user.id);
+                                const status = getRelationshipStatus(user.id);
                                 const isAdding = addingUser === user.id;
 
                                 return (
@@ -441,20 +486,34 @@ export default function FriendsPage() {
                                             </div>
                                         </Link>
                                         <button
-                                            onClick={() => handleAddFriend(user)}
-                                            disabled={isAdded || isAdding}
+                                            onClick={() => {
+                                                if (status === "RECEIVED") {
+                                                    handleRespond(user.id, "ACCEPT");
+                                                } else if (status === "NONE") {
+                                                    handleAddFriend(user);
+                                                }
+                                            }}
+                                            disabled={status === "FRIEND" || status === "SENT" || isAdding}
                                             className={cn(
                                                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                                                isAdded
+                                                status === "FRIEND"
                                                     ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/10",
+                                                    : status === "SENT"
+                                                        ? "bg-slate-800 text-slate-400 border border-white/10"
+                                                        : status === "RECEIVED"
+                                                            ? "bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-500/20"
+                                                            : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/10",
                                                 "disabled:opacity-50 disabled:bg-slate-800 disabled:text-muted-foreground disabled:shadow-none"
                                             )}
                                         >
                                             {isAdding ? (
                                                 <Loader2 className="w-3 h-3 animate-spin" />
-                                            ) : isAdded ? (
-                                                "Sent"
+                                            ) : status === "FRIEND" ? (
+                                                "Friend"
+                                            ) : status === "SENT" ? (
+                                                "Requested"
+                                            ) : status === "RECEIVED" ? (
+                                                "Accept"
                                             ) : (
                                                 "Add Friend"
                                             )}

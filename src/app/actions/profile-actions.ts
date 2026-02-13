@@ -42,6 +42,11 @@ export async function updateProfile(formData: FormData) {
     const cuisinePreferences = parseArray("cuisinePreferences");
     const drinkPreferences = parseArray("drinkPreferences");
 
+    // Location Fields
+    const homeCity = formData.get("homeCity") as string;
+    const homeState = formData.get("homeState") as string;
+    const homeZipcode = formData.get("homeZipcode") as string;
+
     try {
         const existingProfile = await prisma.profile.findUnique({
             where: { clerkId: userId }
@@ -65,6 +70,9 @@ export async function updateProfile(formData: FormData) {
             transportMode,
             cuisinePreferences,
             drinkPreferences,
+            homeCity,
+            homeState,
+            homeZipcode,
         };
 
         if (existingProfile) {

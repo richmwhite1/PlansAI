@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { ProfileViewer } from "@/components/profile/ProfileViewer";
-import { getOrCreateProfile, getProfileById } from "@/lib/profile-utils";
+import { getOrCreateProfile, getProfileById, ExtendedProfile } from "@/lib/profile-utils";
 import { redirect, notFound } from "next/navigation";
 
 export default async function ProfilePage(props: { params: Promise<{ rest?: string[] }> }) {
@@ -49,7 +49,7 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
         return (
             <div className="min-h-screen p-4 pb-24 max-w-4xl mx-auto">
                 <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <ProfileViewer profile={targetProfile} />
+                    <ProfileViewer profile={targetProfile as ExtendedProfile} />
                 </section>
             </div>
         );
@@ -66,6 +66,9 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
                         displayName: myProfile.displayName,
                         avatarUrl: myProfile.avatarUrl,
                         bio: myProfile.bio,
+                        homeCity: myProfile.homeCity,
+                        homeState: myProfile.homeState,
+                        homeZipcode: myProfile.homeZipcode,
                         mbti: myProfile.mbti,
                         enneagram: myProfile.enneagram,
                         zodiac: myProfile.zodiac,
@@ -81,6 +84,7 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
                         transportMode: myProfile.transportMode,
                         cuisinePreferences: myProfile.cuisinePreferences,
                         drinkPreferences: myProfile.drinkPreferences,
+                        _count: myProfile._count,
                     }}
                 />
             </section>

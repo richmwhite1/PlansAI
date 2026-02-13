@@ -14,6 +14,9 @@ interface ProfileEditorProps {
         displayName: string | null;
         avatarUrl: string | null;
         bio?: string | null;
+        homeCity?: string | null;
+        homeState?: string | null;
+        homeZipcode?: string | null;
         mbti?: string | null;
         enneagram?: string | null;
         zodiac?: string | null;
@@ -29,6 +32,12 @@ interface ProfileEditorProps {
         transportMode?: string | null;
         cuisinePreferences?: string[];
         drinkPreferences?: string[];
+        _count?: {
+            friendshipsA: number;
+            friendshipsB: number;
+            hangoutsCreated: number;
+            participants: number;
+        };
     };
 }
 
@@ -445,6 +454,43 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                                 }
                             }}
                         />
+                    </div>
+                </div>
+
+                {/* New Section for Location */}
+                <div className="space-y-4">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Home Base
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-slate-400">City</label>
+                            <input
+                                name="homeCity"
+                                defaultValue={initialData.homeCity || ""}
+                                placeholder="e.g. Austin"
+                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-slate-400">State</label>
+                            <input
+                                name="homeState"
+                                defaultValue={initialData.homeState || ""}
+                                placeholder="e.g. TX"
+                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2 col-span-2 md:col-span-1">
+                            <label className="text-xs font-medium text-slate-400">Zip Code</label>
+                            <input
+                                name="homeZipcode"
+                                defaultValue={initialData.homeZipcode || ""}
+                                placeholder="e.g. 78701"
+                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
                     </div>
                 </div>
 

@@ -32,7 +32,11 @@ export default function Home() {
             className="text-center space-y-2"
           >
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">
-              Gather better.
+              Gather
+              <span className="bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
+                {" "}better
+              </span>
+              .
             </h2>
             <p className="text-slate-400 text-lg">
               Coordinate plans without the group chat chaos.

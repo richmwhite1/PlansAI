@@ -10,10 +10,18 @@ interface ProfileHeroProps {
         displayName: string | null;
         avatarUrl: string | null;
         bio?: string | null;
-        city?: string | null;
+        homeCity?: string | null;
+        homeState?: string | null;
+        homeZipcode?: string | null;
         travelRadiusMiles?: number | null;
-        hangoutCount?: number | null;
-        trustScore?: number | null;
+        hangoutCount?: number;
+        trustScore?: number;
+        _count?: {
+            friendshipsA: number;
+            friendshipsB: number;
+            hangoutsCreated: number;
+            participants: number;
+        };
     };
     isOwner: boolean;
     onEdit?: () => void;
@@ -21,78 +29,98 @@ interface ProfileHeroProps {
 }
 
 export function ProfileHero({ profile, isOwner, onEdit, onMessage }: ProfileHeroProps) {
-    return (
-        <div className="w-full bg-card border border-border rounded-xl osverflow-hidden shadow-sm">
-            <div className="p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
+    // Calculate Stats
+    const friendCount = (profile._count?.friendshipsA || 0) + (profile._count?.friendshipsB || 0);
+    const experienceCount = (profile._count?.hangoutsCreated || 0) + (profile._count?.participants || 0); // Created + Attended
 
-                {/* Avatar - Strict Square/Circle */}
-                <div className="shrink-0">
+    // Format Location
+    const locationString = profile.homeCity && profile.homeState
+        ? `${profile.homeCity}, ${profile.homeState}`
+        : (profile.homeZipcode ? `Zip: ${profile.homeZipcode}` : "Location Unset");
+
+    return (
+        <div className="w-full relative overflow-hidden rounded-3xl bg-slate-900/40 border border-white/10 shadow-2xl">
+            {/* Ambient Background */}
+            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="relative p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8">
+                {/* Avatar - Premium & Full Color */}
+                <div className="shrink-0 relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-amber-400/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     <img
                         src={profile.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png"}
                         alt={profile.displayName || "User"}
-                        className="w-24 h-24 md:w-32 md:h-32 rounded-lg object-cover grayscale-[0.2] border border-border"
+                        className="relative w-28 h-28 md:w-36 md:h-36 rounded-2xl object-cover border-2 border-white/10 shadow-xl"
                     />
+                    {isOwner && (
+                        <button
+                            onClick={onEdit}
+                            className="absolute -bottom-2 -right-2 p-2 bg-slate-900 border border-white/10 rounded-xl text-primary hover:text-white hover:bg-primary/20 transition-colors shadow-lg"
+                        >
+                            <Edit3 className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Main Info */}
-                <div className="flex-1 text-center md:text-left space-y-3">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground uppercase">
+                <div className="flex-1 text-center md:text-left space-y-4">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight">
                             {profile.displayName || "Unknown Subject"}
                         </h1>
-                        <p className="text-sm font-mono text-muted-foreground mt-1 uppercase tracking-wider flex items-center justify-center md:justify-start gap-2">
-                            User Dossier <span className="text-xs opacity-50">#{profile.id.slice(-6)}</span>
+                        <p className="text-sm font-medium text-primary uppercase tracking-widest flex items-center justify-center md:justify-start gap-2">
+                            Member <span className="text-white/20">|</span> Since 2024
                         </p>
                     </div>
 
-                    <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                        {profile.bio || "No summary available."}
+                    <p className="text-lg text-slate-300 font-light leading-relaxed max-w-2xl">
+                        {profile.bio || "Crafting the perfect plans, one invite at a time."}
                     </p>
 
-                    {/* Key Stats Row */}
-                    <div className="flex flex-wrap gap-4 md:gap-8 justify-center md:justify-start pt-2">
-                        <div className="flex items-center gap-2 text-sm text-foreground/80">
-                            <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span>Radius: {profile.travelRadiusMiles || 25} mi</span>
+                    {/* Key Stats Row - Gold Accents */}
+                    <div className="flex flex-wrap gap-6 justify-center md:justify-start pt-4">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-slate-500 uppercase tracking-wider">Location</span>
+                            <div className="flex items-center gap-2 text-slate-200">
+                                <MapPin className="w-4 h-4 text-primary" />
+                                <span className="font-serif italic">{locationString}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-foreground/80">
-                            <Activity className="w-4 h-4 text-muted-foreground" />
-                            <span>Activity: {profile.hangoutCount || 0} events</span>
+                        <div className="w-px h-10 bg-white/5 hidden md:block" />
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-slate-500 uppercase tracking-wider">Experience</span>
+                            <div className="flex items-center gap-2 text-slate-200">
+                                <Activity className="w-4 h-4 text-primary" />
+                                <span className="font-serif italic">{experienceCount} Plans</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-foreground/80">
-                            <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                            <span>Trust: {Math.round((profile.trustScore || 0.5) * 100)}/100</span>
+                        <div className="w-px h-10 bg-white/5 hidden md:block" />
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-slate-500 uppercase tracking-wider">Network</span>
+                            <div className="flex items-center gap-2 text-slate-200">
+                                <ShieldCheck className="w-4 h-4 text-primary" />
+                                <span className="font-serif italic">{friendCount} Friends</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col gap-2 shrink-0">
-                    {isOwner ? (
-                        <button
-                            onClick={onEdit}
-                            className="flex items-center gap-2 px-5 py-2 bg-foreground text-background text-sm font-medium uppercase tracking-wide rounded-md hover:opacity-90 transition-opacity"
-                        >
-                            <Edit3 className="w-4 h-4" />
-                            Update Record
-                        </button>
-                    ) : (
+                <div className="flex flex-col gap-3 shrink-0 pt-2">
+                    {!isOwner && (
                         <button
                             onClick={onMessage}
-                            className="flex items-center gap-2 px-5 py-2 bg-foreground text-background text-sm font-medium uppercase tracking-wide rounded-md hover:opacity-90 transition-opacity"
+                            className="flex items-center gap-2 px-6 py-3 bg-white text-black text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg shadow-white/5"
                         >
                             <MessageCircle className="w-4 h-4" />
-                            Contact
+                            Send Message
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Technical Detail Bar */}
-            <div className="bg-muted/50 px-6 py-2 border-t border-border flex justify-between items-center text-[10px] md:text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                <span>Status: Active</span>
-                <span>Verified: Yes</span>
-            </div>
+            {/* Decorative Gold Line */}
+            <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-30" />
         </div>
     );
 }
