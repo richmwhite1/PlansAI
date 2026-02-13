@@ -28,7 +28,7 @@ export async function generateMetadata(props: HangoutPageProps): Promise<Metadat
 
     const title = hangout.title;
     const description = hangout.description || `Join ${hangout.creator.displayName}'s plan on Plans.`;
-    const imageUrl = hangout.finalActivity?.imageUrl || "https://plans.ai/og-default.jpg"; // Replace with actual default
+    const imageUrl = hangout.finalActivity?.imageUrl || "/og-invite.png";
 
     return {
         title: title,

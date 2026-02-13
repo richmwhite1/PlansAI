@@ -32,28 +32,31 @@ export function ShareButton({ hangoutId }: ShareButtonProps) {
         }
 
         if (urlToShare) {
-            const message = `You're invited! Join my plan: ${urlToShare}`;
+            const title = "Plans Invite";
+            const message = "You're invited! Join my plan on Plans:";
+            const fullMessage = `${message} ${urlToShare}`;
+
             try {
                 if (typeof navigator !== "undefined" && navigator.share) {
                     await navigator.share({
-                        title: "Plans Invite",
+                        title: title,
                         text: message,
                         url: urlToShare
                     });
                     toast.success("Opened share menu!");
                 } else {
-                    await navigator.clipboard.writeText(message);
+                    await navigator.clipboard.writeText(fullMessage);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                     toast.success("Invite copied to clipboard!");
                 }
             } catch (err) {
-                console.error('Failed to share/copy: ', err);
-                // Fallback to just copying URL if message fails? strict copy logic
-                try {
-                    await navigator.clipboard.writeText(urlToShare);
-                    toast.success("Link copied!");
-                } catch (e) { }
+                if ((err as Error).name !== 'AbortError') {
+                    try {
+                        await navigator.clipboard.writeText(fullMessage);
+                        toast.success("Invite copied to clipboard!");
+                    } catch (e) { }
+                }
             }
         }
     };

@@ -9,9 +9,12 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://plans.app"),
-  title: "Plans - Social Coordination Engine",
-  description: "AI-first social gathering app.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://plans.app"),
+  title: {
+    default: "Plans - Social Coordination Engine",
+    template: "%s | Plans"
+  },
+  description: "Coordinate plans without the group chat chaos. Gather better.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -19,10 +22,18 @@ export const metadata: Metadata = {
     title: "Plans",
   },
   openGraph: {
+    type: "website",
+    siteName: "Plans",
     title: "Plans - Social Coordination Engine",
-    description: "AI-first social gathering app.",
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "Plans App" }],
+    description: "You're invited to gather better. Coordinate plans without the group chat chaos.",
+    images: [{ url: "/og-invite.png", width: 1200, height: 630, alt: "Plans App" }],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Plans - Social Coordination Engine",
+    description: "You're invited to gather better. Coordinate plans without the group chat chaos.",
+    images: ["/og-invite.png"],
+  }
 };
 
 import { BottomNav } from "@/components/layout/bottom-nav";

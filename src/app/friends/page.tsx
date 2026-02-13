@@ -161,30 +161,30 @@ export default function FriendsPage() {
     }, [searchQuery]);
 
     const handleInvite = async () => {
-        const title = 'Plans - Social Coordination Engine';
-        const text = 'Check out how easy it is to coordinate get togethers now with this app called Plans';
+        const title = 'Plans - Gather Better';
+        const text = 'I\'m using Plans to coordinate get-togethers. Join me!';
         const url = window.location.origin;
-        const fullMessage = `${text}: ${url}`;
+        const fullMessage = `${text} ${url}`;
 
         if (navigator.share) {
             try {
+                // Try sharing with both text and URL
                 await navigator.share({
                     title,
-                    text: fullMessage,
+                    text,
                     url,
                 });
             } catch (err) {
-                console.error('Error sharing:', err);
-                // If sharing failed but it wasn't a cancellation, try fallback
                 if ((err as Error).name !== 'AbortError') {
-                    navigator.clipboard.writeText(fullMessage);
-                    toast.success("Link copied to clipboard");
+                    // Fallback to clipboard if share failed for other reasons
+                    await navigator.clipboard.writeText(fullMessage);
+                    toast.success("Link & message copied to clipboard");
                 }
             }
         } else {
             // Fallback for browsers that don't support share API
-            navigator.clipboard.writeText(fullMessage);
-            toast.success("Link copied to clipboard");
+            await navigator.clipboard.writeText(fullMessage);
+            toast.success("Link & message copied to clipboard");
         }
     };
 
