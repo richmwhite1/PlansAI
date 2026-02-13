@@ -1,47 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { getOrCreateProfile, ensureProfileByClerkId } from "@/lib/profile-utils";
 
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await auth();
-        const user = await currentUser();
 
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await req.json();
-        const { email, phone, friendId } = body;
+        const { email, phone, friendId, clerkId } = body;
 
-        if (!email && !phone && !friendId) {
-            return NextResponse.json({ error: "Email, phone or friendId required" }, { status: 400 });
+        if (!email && !phone && !friendId && !clerkId) {
+            return NextResponse.json({ error: "Email, phone, friendId or clerkId required" }, { status: 400 });
         }
 
         // Get or Create user profile
         console.log("AddFriend: Fetching user info for", userId);
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
-        console.log("AddFriend: User email is", userEmail);
-        const currentProfile = await prisma.profile.upsert({
-            where: { clerkId: userId },
-            update: {},
-            create: {
-                clerkId: userId,
-                email: userEmail,
-                displayName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : userEmail,
-                avatarUrl: user?.imageUrl
-            }
-        });
+        const currentProfile = await getOrCreateProfile(userId);
 
-        // Find friend by email, phone, or ID
-        console.log("AddFriend: Searching for friend with", { email, phone, friendId });
-        const friendProfile = await prisma.profile.findFirst({
-            where: friendId
-                ? { id: friendId }
-                : email
-                    ? { email: { equals: email, mode: 'insensitive' } }
-                    : { phone }
-        });
+        if (!currentProfile) {
+            return NextResponse.json({ error: "Failed to create user profile" }, { status: 500 });
+        }
+
+        // Find friend by email, phone, Profile ID, or Clerk ID
+        console.log("AddFriend: Searching for friend with", { email, phone, friendId, clerkId });
+
+        let friendProfile = null;
+        if (friendId) {
+            friendProfile = await prisma.profile.findUnique({ where: { id: friendId } });
+        } else if (clerkId) {
+            friendProfile = await ensureProfileByClerkId(clerkId);
+        } else if (email) {
+            friendProfile = await prisma.profile.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } });
+        } else if (phone) {
+            friendProfile = await prisma.profile.findFirst({ where: { phone } });
+        }
 
         if (!friendProfile) {
             // Friend not on platform yet - could send invite

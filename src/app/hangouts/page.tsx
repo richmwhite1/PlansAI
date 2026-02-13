@@ -5,6 +5,7 @@ import { isPast, isFuture } from "date-fns";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { HangoutTabs } from "@/components/hangout/hangout-tabs";
+import { getOrCreateProfile } from "@/lib/profile-utils";
 
 export default async function HangoutsPage() {
     const { userId } = await auth();
@@ -14,18 +15,15 @@ export default async function HangoutsPage() {
     }
 
     // Get or Create user profile
-    const user = await currentUser();
-    const email = user?.emailAddresses[0]?.emailAddress;
-    const profile = await prisma.profile.upsert({
-        where: { clerkId: userId },
-        update: {},
-        create: {
-            clerkId: userId,
-            email: email,
-            displayName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : email,
-            avatarUrl: user?.imageUrl
-        }
-    });
+    const profile = await getOrCreateProfile(userId);
+
+    if (!profile) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <p className="text-muted-foreground">Failed to load profile. Please try again.</p>
+            </div>
+        );
+    }
 
     // Get all hangouts where user is a participant
     const participations = await prisma.hangoutParticipant.findMany({

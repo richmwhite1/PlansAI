@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { getOrCreateProfile } from "@/lib/profile-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,10 +17,8 @@ export async function GET(req: NextRequest) {
         }
 
         // Get user profile
-        console.log("Friends API: Fetching profile for clerkId:", userId);
-        const profile = await prisma.profile.findUnique({
-            where: { clerkId: userId },
-        });
+        console.log("Friends API: Ensuring profile for clerkId:", userId);
+        const profile = await getOrCreateProfile(userId);
 
         if (!profile) {
             console.log("Friends API: Profile not found, returning empty list");

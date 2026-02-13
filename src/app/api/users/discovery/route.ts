@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth, createClerkClient } from "@clerk/nextjs/server";
+import { getOrCreateProfile } from "@/lib/profile-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +15,7 @@ export async function GET(req: NextRequest) {
         }
 
         // 1. Get current user profile (if exists)
-        const currentProfile = await prisma.profile.findUnique({
-            where: { clerkId: clerkUserId }
-        });
+        const currentProfile = await getOrCreateProfile(clerkUserId);
 
         const excludedClerkIds = new Set<string>();
         excludedClerkIds.add(clerkUserId);

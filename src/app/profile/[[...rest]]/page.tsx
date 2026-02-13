@@ -3,6 +3,7 @@ import { dark } from "@clerk/themes";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
+import { getOrCreateProfile } from "@/lib/profile-utils";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage(props: { params: Promise<{ rest?: string[] }> }) {
@@ -12,9 +13,7 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
         redirect("/sign-in");
     }
 
-    const profile = await prisma.profile.findUnique({
-        where: { clerkId: userId },
-    });
+    const profile = await getOrCreateProfile(userId);
 
     return (
         <div className="min-h-screen p-4 pb-24 space-y-12 max-w-4xl mx-auto">
