@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { TopHeader } from "@/components/layout/top-header";
 import { RegisterSW } from "@/components/register-sw";
 
 export const viewport = {
@@ -54,6 +55,7 @@ export default function RootLayout({
     >
       <html lang="en" className="dark" suppressHydrationWarning>
         <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground antialiased selection:bg-primary/30 overscroll-none`}>
+          <TopHeader />
           {children}
           <BottomNav />
           <RegisterSW />

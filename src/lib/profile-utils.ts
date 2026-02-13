@@ -41,10 +41,15 @@ export async function getOrCreateProfile(clerkUserId: string) {
     }
 }
 
-/**
- * Creates a skeleton profile for a user using their Clerk ID.
- * Useful when a user wants to interact with another user who hasn't logged into the app yet.
- */
 export async function ensureProfileByClerkId(clerkUserId: string) {
     return getOrCreateProfile(clerkUserId);
+}
+
+/**
+ * Fetches a profile by its internal ID (not Clerk ID).
+ */
+export async function getProfileById(profileId: string) {
+    return prisma.profile.findUnique({
+        where: { id: profileId },
+    });
 }

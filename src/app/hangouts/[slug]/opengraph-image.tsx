@@ -32,7 +32,7 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
             (
                 <div
                     style={{
-                        background: 'linear-gradient(to bottom right, #0F172A, #1E293B)',
+                        background: 'linear-gradient(135deg, #4C1D95 0%, #0F172A 100%)',
                         width: '100%',
                         height: '100%',
                         display: 'flex',
@@ -42,8 +42,19 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
                         color: 'white',
                     }}
                 >
-                    <div style={{ fontSize: 60, fontWeight: 'bold' }}>Plans AI</div>
-                    <div style={{ fontSize: 30, marginTop: 20, color: '#94A3B8' }}>Social Coordination Engine</div>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        padding: '40px 80px',
+                        borderRadius: 32,
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{ fontSize: 80, fontWeight: 'bold', marginBottom: 20 }}>Plans AI</div>
+                        <div style={{ fontSize: 30, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Social Coordination Engine</div>
+                    </div>
                 </div>
             ),
             { ...size }

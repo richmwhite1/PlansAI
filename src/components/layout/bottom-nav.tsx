@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Compass, Calendar, Sparkles, Users, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
     const pathname = usePathname();
+    const { isSignedIn, isLoaded } = useUser();
+
+    // Hide bottom nav for unauthenticated users
+    if (!isLoaded || !isSignedIn) return null;
 
     const tabs = [
         {

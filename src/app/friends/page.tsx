@@ -142,19 +142,29 @@ export default function FriendsPage() {
     }, [searchQuery]);
 
     const handleInvite = async () => {
+        const title = 'Plans - Social Coordination Engine';
+        const text = 'Check out how easy it is to coordinate get togethers now with this app called Plans';
+        const url = window.location.origin;
+        const fullMessage = `${text}: ${url}`;
+
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Plans - Social Coordination Engine',
-                    text: 'Check out how easy it is to coordinate get togethers now with this app called Plans',
-                    url: window.location.origin,
+                    title,
+                    text: fullMessage,
+                    url,
                 });
             } catch (err) {
                 console.error('Error sharing:', err);
+                // If sharing failed but it wasn't a cancellation, try fallback
+                if ((err as Error).name !== 'AbortError') {
+                    navigator.clipboard.writeText(fullMessage);
+                    toast.success("Link copied to clipboard");
+                }
             }
         } else {
             // Fallback for browsers that don't support share API
-            navigator.clipboard.writeText(`Check out how easy it is to coordinate get togethers now with this app called Plans: ${window.location.origin}`);
+            navigator.clipboard.writeText(fullMessage);
             toast.success("Link copied to clipboard");
         }
     };
@@ -223,16 +233,6 @@ export default function FriendsPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
-                <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center gap-4">
-                    <Link href="/" className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition-colors">
-                        <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-                    </Link>
-                    <h1 className="text-lg font-bold text-foreground">Friends</h1>
-                </div>
-            </header>
-
             <main className="container mx-auto max-w-2xl px-6 py-8 space-y-8">
                 {/* Search & Advanced Search */}
                 <div className="relative space-y-4">
@@ -275,22 +275,24 @@ export default function FriendsPage() {
                                             key={user.id}
                                             className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
                                         >
-                                            <img
-                                                src={user.avatar}
-                                                alt={user.name}
-                                                className="w-10 h-10 rounded-full bg-slate-800"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-slate-200 truncate">{user.name}</p>
-                                                {user.bio && (
-                                                    <p className="text-xs text-slate-400 truncate">{user.bio}</p>
-                                                )}
-                                                {(user.websiteUrl || user.email) && (
-                                                    <p className="text-[10px] text-slate-500 truncate">
-                                                        {user.websiteUrl || user.email}
-                                                    </p>
-                                                )}
-                                            </div>
+                                            <Link href={`/profile/${user.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                                                <img
+                                                    src={user.avatar}
+                                                    alt={user.name}
+                                                    className="w-10 h-10 rounded-full bg-slate-800"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-slate-200 truncate">{user.name}</p>
+                                                    {user.bio && (
+                                                        <p className="text-xs text-slate-400 truncate">{user.bio}</p>
+                                                    )}
+                                                    {(user.websiteUrl || user.email) && (
+                                                        <p className="text-[10px] text-slate-500 truncate">
+                                                            {user.websiteUrl || user.email}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </Link>
                                             <button
                                                 onClick={() => handleAddFriend(user)}
                                                 disabled={isAdded || isAdding}
@@ -336,15 +338,17 @@ export default function FriendsPage() {
                                     key={req.id}
                                     className="flex items-center gap-3 p-3 bg-primary/10 rounded-xl border border-primary/20"
                                 >
-                                    <img
-                                        src={req.avatar}
-                                        alt={req.name}
-                                        className="w-10 h-10 rounded-full bg-slate-800"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-foreground truncate">{req.name}</p>
-                                        <p className="text-xs text-primary/80">Wants to be friends</p>
-                                    </div>
+                                    <Link href={`/profile/${req.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                                        <img
+                                            src={req.avatar}
+                                            alt={req.name}
+                                            className="w-10 h-10 rounded-full bg-slate-800"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-foreground truncate">{req.name}</p>
+                                            <p className="text-xs text-primary/80">Wants to be friends</p>
+                                        </div>
+                                    </Link>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleRespond(req.id, "ACCEPT")}
@@ -384,17 +388,19 @@ export default function FriendsPage() {
                                     key={friend.id}
                                     className="flex items-center gap-3 p-3 bg-card/50 rounded-xl border border-white/5 group"
                                 >
-                                    <img
-                                        src={friend.avatar}
-                                        alt={friend.name}
-                                        className="w-10 h-10 rounded-full bg-slate-800 ring-2 ring-white/5"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-foreground truncate">{friend.name}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {friend.sharedHangouts} hangout{friend.sharedHangouts !== 1 ? "s" : ""} together
-                                        </p>
-                                    </div>
+                                    <Link href={`/profile/${friend.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                                        <img
+                                            src={friend.avatar}
+                                            alt={friend.name}
+                                            className="w-10 h-10 rounded-full bg-slate-800 ring-2 ring-white/5"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-foreground truncate">{friend.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {friend.sharedHangouts} hangout{friend.sharedHangouts !== 1 ? "s" : ""} together
+                                            </p>
+                                        </div>
+                                    </Link>
                                 </div>
                             ))}
                         </div>
@@ -423,15 +429,17 @@ export default function FriendsPage() {
                                         key={user.id}
                                         className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5"
                                     >
-                                        <img
-                                            src={user.avatar}
-                                            alt={user.name}
-                                            className="w-10 h-10 rounded-full bg-slate-800"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-foreground truncate">{user.name}</p>
-                                            <p className="text-[10px] text-muted-foreground truncate">Popular in your area</p>
-                                        </div>
+                                        <Link href={`/profile/${user.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                                            <img
+                                                src={user.avatar}
+                                                alt={user.name}
+                                                className="w-10 h-10 rounded-full bg-slate-800"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-foreground truncate">{user.name}</p>
+                                                <p className="text-[10px] text-muted-foreground truncate">Popular in your area</p>
+                                            </div>
+                                        </Link>
                                         <button
                                             onClick={() => handleAddFriend(user)}
                                             disabled={isAdded || isAdding}

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Loader2, Check } from "lucide-react";
+import { Bell, MessageCircle, Loader2, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +18,90 @@ interface Notification {
     createdAt: string;
 }
 
-export function NotificationsBell() {
+export function TopHeader() {
+    const pathname = usePathname();
+    const { isSignedIn, isLoaded } = useUser();
+
+    // Don't show on auth pages or individual messages
+    if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up") || (pathname?.startsWith("/messages/") && pathname !== "/messages")) {
+        return null;
+    }
+
+    // Hide header on the landing page for unauthenticated users (landing has its own CTA)
+    if (isLoaded && !isSignedIn && pathname === "/") {
+        return null;
+    }
+
+    return (
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
+            <div className="flex items-center justify-between px-4 h-12">
+                {/* Logo */}
+                <Link href="/" className="flex items-center gap-2">
+                    <span className="text-base font-serif font-bold bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
+                        Plans
+                    </span>
+                </Link>
+
+                {/* Actions — Auth-aware */}
+                {isSignedIn ? (
+                    <div className="flex items-center gap-1">
+                        <MessagesBadge />
+                        <NotificationsDropdown />
+                    </div>
+                ) : (
+                    <SignInButton mode="modal">
+                        <button className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5">
+                            Sign In
+                        </button>
+                    </SignInButton>
+                )}
+            </div>
+        </header>
+    );
+}
+
+// ──────────────────────────────────────────────────────────
+// Messages Badge — just links to /messages with unread dot
+// ──────────────────────────────────────────────────────────
+function MessagesBadge() {
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const res = await fetch("/api/messages/unread");
+                if (res.ok) {
+                    const data = await res.json();
+                    setUnreadCount(data.unreadCount || 0);
+                }
+            } catch { }
+        };
+
+        fetchUnread();
+        const interval = setInterval(fetchUnread, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <Link
+            href="/messages"
+            className="relative p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+        >
+            <MessageCircle className="w-5 h-5" />
+            {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[10px] h-2.5 bg-primary rounded-full border-2 border-background" />
+            )}
+        </Link>
+    );
+}
+
+// ──────────────────────────────────────────────────────────
+// Notifications Dropdown — inline bell with full dropdown
+// ──────────────────────────────────────────────────────────
+function NotificationsDropdown() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const fetchNotifications = async () => {
@@ -28,22 +109,18 @@ export function NotificationsBell() {
             const res = await fetch("/api/notifications");
             if (res.ok) {
                 const data = await res.json();
-                setNotifications(data.notifications);
-                setUnreadCount(data.unreadCount);
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
             }
-        } catch (err) {
-            console.error("Failed to fetch notifications");
-        }
+        } catch { }
     };
 
-    // Poll for notifications
     useEffect(() => {
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 10000);
         return () => clearInterval(interval);
     }, []);
 
-    // Close on click outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -55,22 +132,17 @@ export function NotificationsBell() {
     }, []);
 
     const markAsRead = async (id: string, link?: string) => {
-        // Optimistic update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
-
-        // Close if link
         if (link) setIsOpen(false);
 
         try {
             await fetch("/api/notifications/read", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ notificationId: id })
+                body: JSON.stringify({ notificationId: id }),
             });
-        } catch (err) {
-            console.error("Failed to mark read");
-        }
+        } catch { }
     };
 
     const markAllRead = async () => {
@@ -81,11 +153,9 @@ export function NotificationsBell() {
             await fetch("/api/notifications/read", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ markAll: true })
+                body: JSON.stringify({ markAll: true }),
             });
-        } catch (err) {
-            console.error("Failed to mark all read");
-        }
+        } catch { }
     };
 
     return (
@@ -96,35 +166,35 @@ export function NotificationsBell() {
             >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950" />
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background" />
                 )}
             </button>
 
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 origin-top-right"
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 origin-top-right"
                     >
                         <div className="p-3 border-b border-white/5 flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-white">Notifications</h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllRead}
-                                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                                    className="text-xs text-primary hover:text-primary/80 transition-colors"
                                 >
                                     Mark all read
                                 </button>
                             )}
                         </div>
 
-                        <div className="max-h-96 overflow-y-auto">
+                        <div className="max-h-80 overflow-y-auto">
                             {notifications.length === 0 ? (
                                 <div className="p-8 text-center text-slate-500 text-sm">
-                                    No notifications
+                                    No notifications yet
                                 </div>
                             ) : (
                                 notifications.map(n => (
@@ -132,7 +202,7 @@ export function NotificationsBell() {
                                         key={n.id}
                                         className={cn(
                                             "block p-3 border-b border-white/5 last:border-0 transition-colors",
-                                            n.isRead ? "bg-transparent opacity-60 hover:opacity-100" : "bg-violet-500/5 hover:bg-violet-500/10"
+                                            n.isRead ? "bg-transparent opacity-60 hover:opacity-100" : "bg-primary/5 hover:bg-primary/10"
                                         )}
                                     >
                                         <div className="flex gap-3">
@@ -141,7 +211,7 @@ export function NotificationsBell() {
                                                     <Link
                                                         href={n.link}
                                                         onClick={() => markAsRead(n.id, n.link)}
-                                                        className="text-sm text-slate-200 hover:text-violet-300 block"
+                                                        className="text-sm text-slate-200 hover:text-primary block"
                                                     >
                                                         {n.content}
                                                     </Link>
@@ -155,9 +225,9 @@ export function NotificationsBell() {
                                             {!n.isRead && (
                                                 <button
                                                     onClick={() => markAsRead(n.id)}
-                                                    className="self-center p-1 text-violet-500 hover:bg-violet-500/20 rounded-full"
+                                                    className="self-center p-1 text-primary hover:bg-primary/20 rounded-full"
                                                 >
-                                                    <div className="w-2 h-2 rounded-full bg-violet-500" />
+                                                    <div className="w-2 h-2 rounded-full bg-primary" />
                                                 </button>
                                             )}
                                         </div>

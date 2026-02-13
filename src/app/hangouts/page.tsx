@@ -57,26 +57,24 @@ export default async function HangoutsPage() {
         (!h.scheduledFor || isFuture(new Date(h.scheduledFor)))
     );
 
-    // 2. Upcoming: Confirmed/Active that is in the future
+    // 2. Upcoming: ALL future non-cancelled/non-completed plans (including PLANNING/VOTING)
     const upcoming = hangouts.filter((h: any) =>
         h.status !== "CANCELLED" && h.status !== "COMPLETED" &&
-        h.scheduledFor && isFuture(new Date(h.scheduledFor)) &&
-        !pending.some((p: any) => p.id === h.id)
+        (!h.scheduledFor || isFuture(new Date(h.scheduledFor)))
     );
 
-    // 3. Past: Completed, Cancelled, or any confirmed/active that has passed
+    // 3. Past: Completed, Cancelled, or any that has passed
     const past = hangouts.filter((h: any) =>
         h.status === "COMPLETED" ||
         h.status === "CANCELLED" ||
         (h.scheduledFor && isPast(new Date(h.scheduledFor)))
     ).sort((a: any, b: any) => {
-        // Sort past by scheduled date descending (most recent first)
         const dateA = a.scheduledFor ? new Date(a.scheduledFor).getTime() : 0;
         const dateB = b.scheduledFor ? new Date(b.scheduledFor).getTime() : 0;
         return dateB - dateA;
     });
 
-    // Final sorting for upcoming
+    // Final sorting for upcoming (soonest first, no-date at end)
     upcoming.sort((a: any, b: any) => {
         const dateA = a.scheduledFor ? new Date(a.scheduledFor).getTime() : Number.MAX_SAFE_INTEGER;
         const dateB = b.scheduledFor ? new Date(b.scheduledFor).getTime() : Number.MAX_SAFE_INTEGER;
@@ -85,22 +83,6 @@ export default async function HangoutsPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
-                <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="text-lg font-bold text-white tracking-tight">
-                        My Plans
-                    </Link>
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-full transition-all shadow-lg shadow-primary/20 active:scale-95"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Create Plan
-                    </Link>
-                </div>
-            </header>
-
             <main className="container mx-auto max-w-2xl px-6 py-8">
                 <HangoutTabs
                     pending={pending}

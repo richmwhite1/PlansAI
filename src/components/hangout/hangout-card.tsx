@@ -75,10 +75,12 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
                 <div className="flex flex-col items-end justify-center gap-2">
                     <div className="flex -space-x-2">
                         {hangout.participants?.slice(0, 3).map((p: any) => (
-                            <div
+                            <NextLink
                                 key={p.id}
+                                href={p.profile ? `/profile/${p.profile.id}` : "#"}
                                 title={p.profile?.displayName || "Participant"}
-                                className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-950 overflow-hidden"
+                                className="block w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-950 overflow-hidden hover:scale-110 transition-transform"
+                                onClick={(e) => !p.profile && e.preventDefault()}
                             >
                                 {p.profile?.avatarUrl ? (
                                     <img src={p.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -87,7 +89,7 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
                                         {(p.profile?.displayName || "?").charAt(0)}
                                     </div>
                                 )}
-                            </div>
+                            </NextLink>
                         ))}
                         {(hangout.participants?.length || 0) > 3 && (
                             <div className="w-6 h-6 rounded-full bg-slate-800 ring-2 ring-slate-950 flex items-center justify-center text-[10px] text-slate-400 font-medium">

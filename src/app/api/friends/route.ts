@@ -38,9 +38,10 @@ export async function GET(req: NextRequest) {
         } else {
             whereClause = {
                 OR: [
-                    { profileAId: profile.id }, // Includes requests sent (PENDING or ACCEPTED)
-                    { profileBId: profile.id }  // Includes requests received (PENDING or ACCEPTED)
-                ]
+                    { profileAId: profile.id },
+                    { profileBId: profile.id }
+                ],
+                status: "ACCEPTED"
             };
         }
         console.log("Friends API: Query whereClause:", JSON.stringify(whereClause));

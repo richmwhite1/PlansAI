@@ -152,17 +152,12 @@ export default function DiscoverPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
-                <div className="container mx-auto max-w-2xl px-6 py-4">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Link href="/" className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition-colors">
-                            <ArrowLeft className="w-5 h-5 text-slate-400" />
-                        </Link>
-                        <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Compass className="w-5 h-5 text-primary" />
-                            Discover
-                        </h1>
+            <main className="container mx-auto max-w-2xl px-6 py-6 pb-32">
+                <div className="mb-8 space-y-6">
+                    {/* Header Title */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <Compass className="w-5 h-5 text-primary" />
+                        <h1 className="text-xl font-bold text-white">Discover</h1>
                     </div>
 
                     {/* Tabs */}
@@ -187,10 +182,8 @@ export default function DiscoverPage() {
                         </button>
                     </div>
                 </div>
-            </header>
 
-            <main className="container mx-auto max-w-2xl px-6 py-6 pb-32">
-                {/* AI & Filter Section */}
+                {/* Content */}
                 {activeTab === "explore" && (
                     <div className="mb-8 space-y-6">
                         {/* AI Search Bar */}

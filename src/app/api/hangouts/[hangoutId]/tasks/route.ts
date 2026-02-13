@@ -16,6 +16,11 @@ export async function GET(request: Request, context: RouteContext) {
             where: { hangoutId },
             include: {
                 assignee: { select: { id: true, displayName: true, avatarUrl: true } },
+                volunteers: {
+                    include: {
+                        profile: { select: { id: true, displayName: true, avatarUrl: true } },
+                    },
+                },
             },
             orderBy: [{ isComplete: "asc" }, { createdAt: "desc" }],
         });
@@ -35,7 +40,9 @@ export async function POST(request: Request, context: RouteContext) {
 
         const { hangoutId } = await context.params;
         const body = await request.json();
-        const { title, assigneeId } = body;
+        const { title } = body;
+
+        console.log("[Tasks POST] Creating task:", { hangoutId, title });
 
         if (!title?.trim()) {
             return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -45,13 +52,18 @@ export async function POST(request: Request, context: RouteContext) {
             data: {
                 hangoutId,
                 title: title.trim(),
-                assigneeId: assigneeId || null,
             },
             include: {
                 assignee: { select: { id: true, displayName: true, avatarUrl: true } },
+                volunteers: {
+                    include: {
+                        profile: { select: { id: true, displayName: true, avatarUrl: true } },
+                    },
+                },
             },
         });
 
+        console.log("[Tasks POST] Task created:", task.id);
         return NextResponse.json({ task });
     } catch (err) {
         console.error("Failed to create task:", err);
@@ -59,28 +71,59 @@ export async function POST(request: Request, context: RouteContext) {
     }
 }
 
-// PATCH — toggle completion or reassign
+// PATCH — toggle volunteer or toggle completion
 export async function PATCH(request: Request, context: RouteContext) {
     try {
         const { userId } = await auth();
         if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+        const profile = await getOrCreateProfile(userId);
+        if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+
         const body = await request.json();
-        const { taskId, isComplete, assigneeId } = body;
+        const { taskId, action } = body;
+
+        console.log("[Tasks PATCH]", { taskId, action, profileId: profile.id });
 
         if (!taskId) {
             return NextResponse.json({ error: "Task ID required" }, { status: 400 });
         }
 
-        const updateData: any = {};
-        if (typeof isComplete === "boolean") updateData.isComplete = isComplete;
-        if (assigneeId !== undefined) updateData.assigneeId = assigneeId || null;
+        if (action === "volunteer") {
+            // Toggle volunteer: if already volunteered, remove; otherwise add
+            const existing = await prisma.hangoutTaskVolunteer.findUnique({
+                where: { taskId_profileId: { taskId, profileId: profile.id } },
+            });
 
-        const task = await prisma.hangoutTask.update({
+            if (existing) {
+                await prisma.hangoutTaskVolunteer.delete({ where: { id: existing.id } });
+                console.log("[Tasks PATCH] Removed volunteer");
+            } else {
+                await prisma.hangoutTaskVolunteer.create({
+                    data: { taskId, profileId: profile.id },
+                });
+                console.log("[Tasks PATCH] Added volunteer");
+            }
+        } else if (action === "complete") {
+            const task = await prisma.hangoutTask.findUnique({ where: { id: taskId } });
+            if (task) {
+                await prisma.hangoutTask.update({
+                    where: { id: taskId },
+                    data: { isComplete: !task.isComplete },
+                });
+            }
+        }
+
+        // Return updated task
+        const task = await prisma.hangoutTask.findUnique({
             where: { id: taskId },
-            data: updateData,
             include: {
                 assignee: { select: { id: true, displayName: true, avatarUrl: true } },
+                volunteers: {
+                    include: {
+                        profile: { select: { id: true, displayName: true, avatarUrl: true } },
+                    },
+                },
             },
         });
 

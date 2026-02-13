@@ -37,7 +37,7 @@ export function ShareButton({ hangoutId }: ShareButtonProps) {
                 if (typeof navigator !== "undefined" && navigator.share) {
                     await navigator.share({
                         title: "Plans Invite",
-                        text: "You're invited! Join my plan on Plans.",
+                        text: message,
                         url: urlToShare
                     });
                     toast.success("Opened share menu!");

@@ -5,9 +5,39 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { Calendar, MapPin, Users, Check, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
+import { Metadata } from "next";
 
 interface JoinPageProps {
     params: Promise<{ token: string }>;
+}
+
+export async function generateMetadata({ params }: JoinPageProps): Promise<Metadata> {
+    const { token } = await params;
+    const hangout = await prisma.hangout.findFirst({
+        where: { inviteToken: token },
+        select: { title: true, slug: true }
+    });
+
+    if (!hangout) return {};
+
+    const url = `/hangouts/${hangout.slug}/opengraph-image`;
+
+    return {
+        title: `Join "${hangout.title}" on Plans`,
+        description: `You've been invited to ${hangout.title}. RSVP now on Plans AI.`,
+        openGraph: {
+            title: hangout.title,
+            description: "Join this hangout on Plans",
+            images: [
+                {
+                    url: url,
+                    width: 1200,
+                    height: 630,
+                    alt: hangout.title,
+                }
+            ],
+        },
+    };
 }
 
 export default async function JoinPage({ params }: JoinPageProps) {

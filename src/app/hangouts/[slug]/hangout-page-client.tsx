@@ -497,6 +497,7 @@ export function HangoutPageClient({
                                         avatarUrl: p.profile.avatarUrl,
                                     }))}
                                 isParticipant={!!currentUserParticipant}
+                                currentUserId={currentUserParticipant?.profileId}
                             />
                             <HangoutExpenses
                                 hangoutId={hangout.id}

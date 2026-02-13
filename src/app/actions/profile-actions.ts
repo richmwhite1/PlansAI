@@ -18,17 +18,31 @@ export async function updateProfile(formData: FormData) {
     const customPersonality = formData.get("customPersonality") as string;
     const scheduleFlexibility = formData.get("scheduleFlexibility") as string;
 
-    // Handle array fields
-    const dietaryPreferencesRaw = formData.get("dietaryPreferences") as string;
-    const dietaryPreferences = dietaryPreferencesRaw ? dietaryPreferencesRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    // Handle array fields (comma-separated)
+    const parseArray = (key: string): string[] => {
+        const raw = formData.get(key) as string;
+        return raw ? raw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    };
 
-    const interestsRaw = formData.get("interests") as string;
-    const interests = interestsRaw ? interestsRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const dietaryPreferences = parseArray("dietaryPreferences");
+    const interests = parseArray("interests");
+    const vibeTags = parseArray("vibeTags");
+    const availabilityWindows = parseArray("availabilityWindows");
+    const dealbreakers = parseArray("dealbreakers");
+    const funFacts = parseArray("funFacts");
+
+    // Numeric fields
+    const socialEnergyRaw = formData.get("socialEnergy") as string;
+    const socialEnergy = socialEnergyRaw ? parseInt(socialEnergyRaw, 10) : null;
+
+    const budgetComfortRaw = formData.get("budgetComfort") as string;
+    const budgetComfort = budgetComfortRaw ? parseInt(budgetComfortRaw, 10) : null;
+
+    const transportMode = formData.get("transportMode") as string;
+    const cuisinePreferences = parseArray("cuisinePreferences");
+    const drinkPreferences = parseArray("drinkPreferences");
 
     try {
-        // We need the email for creation if the profile doesn't exist
-        // auth() doesn't return email, so we might need to fetch from Clerk or use a default
-        // For now, let's try to find if a profile exists first to be safe
         const existingProfile = await prisma.profile.findUnique({
             where: { clerkId: userId }
         });
@@ -42,6 +56,15 @@ export async function updateProfile(formData: FormData) {
             scheduleFlexibility,
             dietaryPreferences,
             interests,
+            socialEnergy,
+            vibeTags,
+            budgetComfort,
+            availabilityWindows,
+            dealbreakers,
+            funFacts,
+            transportMode,
+            cuisinePreferences,
+            drinkPreferences,
         };
 
         if (existingProfile) {
@@ -50,19 +73,16 @@ export async function updateProfile(formData: FormData) {
                 data: profileData,
             });
         } else {
-            // Create new profile
-            // We'll use a placeholder email or try to get it if available
             await prisma.profile.create({
                 data: {
                     clerkId: userId,
-                    email: "", // We should ideally get this from Clerk
+                    email: "",
                     ...profileData,
                 },
             });
         }
     } catch (error: any) {
         console.error("CRITICAL: Error updating profile:", error);
-        // Log more details if it's a Prisma error
         if (error.code) {
             console.error("Prisma Error Code:", error.code);
             console.error("Prisma Error Message:", error.message);

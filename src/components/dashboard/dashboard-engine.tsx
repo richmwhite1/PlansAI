@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Calendar, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import { FriendSelector } from "./friend-selector";
 import { ActivitySuggestions } from "./activity-suggestions";
 import { InviteModal } from "./invite-modal";
@@ -15,8 +16,24 @@ import { cn } from "@/lib/utils";
 
 export function DashboardEngine() {
     const router = useRouter();
+    const { isSignedIn } = useUser();
     const location = useLocation();
     const { profile } = useProfile();
+
+    // Auth guard — shouldn't render for unauthenticated users
+    if (!isSignedIn) {
+        return (
+            <div className="glass p-8 rounded-[24px] text-center space-y-4">
+                <p className="text-slate-400">Sign in to create plans with your friends.</p>
+                <SignInButton mode="modal">
+                    <button className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl">
+                        Sign In
+                    </button>
+                </SignInButton>
+            </div>
+        );
+    }
+
     const [currentStep, setCurrentStep] = useState(1);
 
     // Determine effective location: Browser > Profile > Default
@@ -136,31 +153,8 @@ export function DashboardEngine() {
                     setShowInviteModal(true);
                     toast.success("Hangout created! Invite your guests.");
                 } else {
-                    // Standard share flow if supported
-                    if (typeof navigator !== 'undefined' && navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: 'Join my plan on Plans',
-                                text: shareText,
-                                url: inviteUrl
-                            });
-                            toast.success("Invites sent via share!");
-                        } catch (err) {
-                            console.log("Share cancelled or failed", err);
-                            toast.success("Hangout created!");
-                        }
-                    } else {
-                        // Fallback copy
-                        try {
-                            await navigator.clipboard.writeText(shareText);
-                            toast.success("Invite link copied to clipboard!");
-                        } catch (err) {
-                            console.error("Clipboard failed", err);
-                            toast.success("Hangout created!");
-                        }
-                    }
-
-                    // Redirect immediately if no guests
+                    // All invitees are app users — skip sharing, just redirect
+                    toast.success("Hangout created! Your friends have been notified.");
                     router.push(`/hangouts/${data.slug}`);
                 }
             } else {
