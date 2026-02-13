@@ -88,6 +88,7 @@ export default function DiscoverPage() {
 
     // People Selection
     const [selectedFriends, setSelectedFriends] = useState<Friend[]>([]);
+    const [isPublic, setIsPublic] = useState(false);
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
@@ -159,7 +160,8 @@ export default function DiscoverPage() {
                     activityIds: Array.from(selectedActivityIds),
                     status: selectedActivityIds.size > 1 ? "VOTING" : "PLANNING",
                     friendIds: selectedFriends.filter(f => !f.isGuest).map(f => f.id),
-                    guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name }))
+                    guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name })),
+                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY"
                 })
             });
             const data = await res.json();
@@ -535,6 +537,30 @@ export default function DiscoverPage() {
                                     selected={selectedFriends}
                                     onSelect={setSelectedFriends}
                                 />
+
+                                {/* Visibility Toggle */}
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <div className="space-y-0.5">
+                                            <label className="text-sm font-medium text-slate-200">Public Plan?</label>
+                                            <p className="text-xs text-slate-500">Enable to show this plan in the Public Discover tab.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsPublic(!isPublic)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                                                isPublic ? "bg-primary" : "bg-slate-700"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                    isPublic ? "translate-x-6" : "translate-x-1"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div className="pt-4 pb-8 sticky bottom-0 bg-slate-900">
                                     <button

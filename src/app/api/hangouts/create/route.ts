@@ -21,8 +21,11 @@ export async function POST(req: NextRequest) {
             scheduledFor,
             description,
             isVotingEnabled,
-            allowGuestsToInvite // Added
+            allowGuestsToInvite, // Added
+            visibility // Added: "PUBLIC" or "FRIENDS_ONLY"
         } = body;
+
+        const effectiveVisibility = visibility === "PUBLIC" ? "PUBLIC" : "FRIENDS_ONLY";
 
         const effectiveFriendIds = participantIds || friendIds || [];
         const effectiveWhen = when || scheduledFor;
@@ -185,7 +188,8 @@ export async function POST(req: NextRequest) {
                 creatorId: creator.id,
                 status: status || (effectiveVotingEnabled ? "VOTING" : "PLANNING"),
                 isVotingEnabled: effectiveVotingEnabled,
-                allowGuestsToInvite: allowGuestsToInvite || false, // Added
+                allowGuestsToInvite: allowGuestsToInvite || false,
+                visibility: effectiveVisibility, // Added
                 consensusThreshold: 60,
                 type: "CASUAL",
                 scheduledFor: effectiveWhen ? new Date(effectiveWhen) : undefined,
@@ -218,6 +222,32 @@ export async function POST(req: NextRequest) {
                 }
             }
         });
+
+        // 4a. If Public, create DiscoverableHangout record
+        if (effectiveVisibility === "PUBLIC") {
+            try {
+                // Get location from creator or use defaults
+                const lat = creator.homeLatitude || 0;
+                const lng = creator.homeLongitude || 0;
+                const city = creator.homeCity || "Unknown";
+
+                await prisma.discoverableHangout.create({
+                    data: {
+                        hangoutId: hangout.id,
+                        isPublic: true,
+                        latitude: lat,
+                        longitude: lng,
+                        city: city,
+                        happeningAt: hangout.scheduledFor || new Date(Date.now() + 1000 * 60 * 60 * 24), // Fallback to 24h if no date
+                        expiresAt: hangout.scheduledFor
+                            ? new Date(new Date(hangout.scheduledFor).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after start
+                            : new Date(Date.now() + 1000 * 60 * 60 * 48) // Fallback to 48h
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to create DiscoverableHangout record:", err);
+            }
+        }
 
         // 5. Send Notifications to all real users
         for (const pid of participantProfileIds) {

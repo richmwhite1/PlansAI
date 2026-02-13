@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { MapPin, Calendar, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -102,60 +103,96 @@ export function HangoutPageClient({
         }
     };
 
+    const heroImage = hangout.finalActivity?.imageUrl ||
+        (hangout.activityOptions && hangout.activityOptions.length > 0 ? hangout.activityOptions[0].cachedEvent?.imageUrl : null);
+
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
             {/* Hero Header */}
-            <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden group">
-                <div className="absolute inset-0 bg-slate-900">
-                    {hangout.finalActivity?.imageUrl ? (
-                        <img
-                            src={hangout.finalActivity.imageUrl}
+            <div className="relative h-[65vh] min-h-[500px] w-full overflow-hidden group">
+                <div className="absolute inset-0 bg-slate-950">
+                    {heroImage ? (
+                        <motion.img
+                            initial={{ scale: 1.1, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 0.7 }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            src={heroImage}
                             alt="Location"
-                            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
                         />
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800" />
+                        <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950" />
                     )}
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
-                <div className="absolute inset-0 bg-black/20 z-10" />
 
-                <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 z-20">
-                    <div className="container mx-auto max-w-2xl px-4 md:px-0 animate-in slide-in-from-bottom-5 fade-in duration-700">
-                        <div className="flex items-center justify-between mb-6">
-                            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-white border border-white/20 text-xs font-bold uppercase tracking-widest shadow-lg">
-                                {hangout.status}
-                            </span>
+                {/* Advanced Gradient Overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent z-10" />
+                <div className="absolute inset-0 bg-primary/5 mix-blend-overlay z-10" />
+
+                <div className="absolute bottom-0 left-0 w-full p-6 md:p-16 z-20">
+                    <div className="container mx-auto max-w-2xl px-4 md:px-0">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="flex items-center justify-between mb-8"
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className={cn(
+                                    "inline-block px-4 py-1.5 rounded-full backdrop-blur-xl text-white border text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl",
+                                    hangout.status === "VOTING" ? "bg-primary/20 border-primary/30 text-primary" : "bg-white/10 border-white/20"
+                                )}>
+                                    {hangout.status}
+                                </span>
+                                {hangout.visibility === "PUBLIC" && (
+                                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                                        Public
+                                    </span>
+                                )}
+                            </div>
                             <ShareButton hangoutId={hangout.id} />
-                        </div>
-                        <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-4 leading-tight shadow-xl drop-shadow-lg">
+                        </motion.div>
+
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.4 }}
+                            className="text-6xl md:text-8xl font-serif font-bold text-white mb-6 leading-[0.9] tracking-tight drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]"
+                        >
                             {hangout.title}
-                        </h1>
-                        <div className="flex flex-wrap items-center gap-6 text-sm md:text-base text-white/90 font-medium">
+                        </motion.h1>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="flex flex-wrap items-center gap-4 text-sm md:text-base text-white/90 font-medium"
+                        >
                             {hangout.scheduledFor && (
-                                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm">
+                                <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl hover:bg-white/10 transition-colors cursor-default">
                                     <Calendar className="w-4 h-4 text-primary" />
-                                    <span>{format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}</span>
+                                    <span className="tracking-tight">{format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}</span>
                                 </div>
                             )}
-                            {hangout.finalActivity && hangout.status !== "VOTING" && (
+                            {(hangout.finalActivity || (hangout.activityOptions?.[0]?.cachedEvent)) && hangout.status !== "VOTING" && (
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hangout.finalActivity.name + ' ' + (hangout.finalActivity.address || ''))}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((hangout.finalActivity?.name || hangout.activityOptions[0].cachedEvent.name) + ' ' + (hangout.finalActivity?.address || hangout.activityOptions[0].cachedEvent.address || ''))}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 hover:text-primary transition-colors bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm"
+                                    className="flex items-center gap-3 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl group/map"
                                 >
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    <span>{hangout.finalActivity.name}</span>
+                                    <MapPin className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                                    <span className="tracking-tight">{hangout.finalActivity?.name || hangout.activityOptions[0].cachedEvent.name}</span>
                                 </a>
                             )}
                             {hangout.status === "VOTING" && (
-                                <div className="flex items-center gap-2 text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 backdrop-blur-sm">
-                                    <Sparkles className="w-4 h-4" />
-                                    <span className="font-bold uppercase tracking-wider">Voting in Progress</span>
+                                <div className="flex items-center gap-3 text-primary bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20 backdrop-blur-md border-dashed shadow-xl">
+                                    <Sparkles className="w-4 h-4 animate-pulse" />
+                                    <span className="font-bold uppercase tracking-[0.1em] text-xs">Deciding the vibe</span>
                                 </div>
                             )}
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
             </div>

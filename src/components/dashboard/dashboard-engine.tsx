@@ -45,6 +45,7 @@ export function DashboardEngine() {
 
     const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
     const [allowGuestsToInvite, setAllowGuestsToInvite] = useState(false);
+    const [isPublic, setIsPublic] = useState(false);
     const [selectedActivities, setSelectedActivities] = useState<any[]>([]);
     const [isVotingEnabled, setIsVotingEnabled] = useState(false);
     const [description, setDescription] = useState("");
@@ -130,7 +131,8 @@ export function DashboardEngine() {
                     when: selectedDate,
                     description,
                     isVotingEnabled,
-                    allowGuestsToInvite
+                    allowGuestsToInvite,
+                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY"
                 }),
             });
 
@@ -328,6 +330,7 @@ export function DashboardEngine() {
                                         <p className="text-xs text-slate-500">If enabled, guests will see an invite button to share with friends.</p>
                                     </div>
                                     <button
+                                        onClick={() => setAllowGuestsToInvite(!allowGuestsToInvite)}
                                         className={cn(
                                             "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
                                             allowGuestsToInvite ? "bg-primary" : "bg-slate-700"
@@ -337,6 +340,28 @@ export function DashboardEngine() {
                                             className={cn(
                                                 "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
                                                 allowGuestsToInvite ? "translate-x-6" : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Visibility Toggle */}
+                                <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                                    <div className="space-y-0.5">
+                                        <label className="text-sm font-medium text-slate-200">Public Plan?</label>
+                                        <p className="text-xs text-slate-500">If enabled, your plan will appear in the Public Discover tab.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsPublic(!isPublic)}
+                                        className={cn(
+                                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                                            isPublic ? "bg-primary" : "bg-slate-700"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                isPublic ? "translate-x-6" : "translate-x-1"
                                             )}
                                         />
                                     </button>

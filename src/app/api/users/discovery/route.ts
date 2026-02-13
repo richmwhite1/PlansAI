@@ -20,43 +20,44 @@ export async function GET(req: NextRequest) {
         const excludedClerkIds = new Set<string>();
         excludedClerkIds.add(clerkUserId);
 
-        // 2. Find all existing friendships (any status) to exclude
+        // 2. Find all existing friendships (ACCEPTED) to exclude
         if (currentProfile) {
             const friendships = await prisma.friendship.findMany({
                 where: {
                     OR: [
                         { profileAId: currentProfile.id },
                         { profileBId: currentProfile.id }
-                    ]
-                },
-                include: {
-                    profileA: true,
-                    profileB: true
+                    ],
+                    status: "ACCEPTED"
                 }
             });
 
             friendships.forEach(f => {
-                if (f.profileA?.clerkId) excludedClerkIds.add(f.profileA.clerkId);
-                if (f.profileB?.clerkId) excludedClerkIds.add(f.profileB.clerkId);
+                const friendClerkId = f.profileAId === currentProfile.id ? f.profileB?.clerkId : f.profileA?.clerkId;
+                if (friendClerkId) excludedClerkIds.add(friendClerkId);
             });
         }
 
-        // 3. Fetch all users from Clerk
-        // Note: For large datasets, we'd want to search or paginate, but for now we list
-        const clerkUsersResponse = await clerkClient.users.getUserList({
-            limit: 100, // Fetch top 100 users
+        // 3. Fetch all database profiles (if they aren't the current user and aren't accepted friends)
+        // This is better than fetching from Clerk because it ensures we see everyone on the platform.
+        const allProfiles = await prisma.profile.findMany({
+            where: {
+                clerkId: { not: clerkUserId },
+                NOT: {
+                    clerkId: { in: Array.from(excludedClerkIds) }
+                }
+            },
+            take: 50,
         });
 
-        // 4. Map Clerk users to our internal structure and filter
-        const suggestedUsers = clerkUsersResponse.data
-            .filter(user => !excludedClerkIds.has(user.id))
-            .map(user => ({
-                id: user.id, // Using Clerk ID here so we can upsert on add
-                name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.emailAddresses[0]?.emailAddress.split("@")[0] || "Unknown"),
-                email: user.emailAddresses[0]?.emailAddress,
-                avatar: user.imageUrl || `https://i.pravatar.cc/150?u=${user.id}`,
-                isClerkDiscovery: true
-            }));
+        const suggestedUsers = allProfiles.map(p => ({
+            id: p.id,
+            name: p.displayName || p.email || "Unknown",
+            email: p.email,
+            avatar: p.avatarUrl || `https://i.pravatar.cc/150?u=${p.id}`,
+            bio: p.bio,
+            isClerkDiscovery: false
+        }));
 
         return NextResponse.json({
             users: suggestedUsers

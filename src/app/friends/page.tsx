@@ -375,13 +375,13 @@ export default function FriendsPage() {
                 {requests.length > 0 && (
                     <section>
                         <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-                            Friend Requests ({requests.length})
+                            Incoming Requests ({requests.length})
                         </h2>
                         <div className="space-y-2">
                             {requests.map(req => (
                                 <div
                                     key={req.id}
-                                    className="flex items-center gap-3 p-3 bg-primary/10 rounded-xl border border-primary/20"
+                                    className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20"
                                 >
                                     <Link href={`/profile/${req.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                                         <img
@@ -391,13 +391,13 @@ export default function FriendsPage() {
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-foreground truncate">{req.name}</p>
-                                            <p className="text-xs text-primary/80">Wants to be friends</p>
+                                            <p className="text-xs text-emerald-500/80">Sent you a request</p>
                                         </div>
                                     </Link>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleRespond(req.id, "ACCEPT")}
-                                            className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors"
                                         >
                                             Accept
                                         </button>
@@ -410,6 +410,46 @@ export default function FriendsPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Sent Requests */}
+                {sentRequests.size > 0 && (
+                    <section>
+                        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
+                            Sent Requests ({sentRequests.size})
+                        </h2>
+                        <div className="space-y-2">
+                            {Array.from(sentRequests).map(id => {
+                                // Try to find user info in suggested or friends or results
+                                const user = suggested.find(u => u.id === id) ||
+                                    searchResults.find(u => u.id === id) ||
+                                    { id, name: "Pending User", avatar: "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" };
+
+                                return (
+                                    <div
+                                        key={id}
+                                        className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 opacity-80"
+                                    >
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.name}
+                                            className="w-10 h-10 rounded-full bg-slate-800"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-slate-300 truncate">{user.name}</p>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                Waiting for response
+                                            </p>
+                                        </div>
+                                        <div className="px-3 py-1.5 bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-white/5">
+                                            Sent
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </section>
                 )}

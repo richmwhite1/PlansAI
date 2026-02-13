@@ -28,6 +28,12 @@ export async function GET(req: NextRequest) {
                         include: {
                             profile: true
                         }
+                    },
+                    activityOptions: {
+                        take: 1,
+                        include: {
+                            cachedEvent: true
+                        }
                     }
                 },
                 orderBy: {
@@ -59,6 +65,7 @@ export async function GET(req: NextRequest) {
             id: h.id,
             slug: h.slug,
             title: h.title,
+            visibility: h.visibility,
             status: h.status,
             date: h.scheduledFor,
             creator: {
@@ -71,7 +78,13 @@ export async function GET(req: NextRequest) {
                 image: h.finalActivity.imageUrl,
                 rating: h.finalActivity.rating,
                 address: h.finalActivity.address
-            } : null,
+            } : (h.activityOptions?.[0]?.cachedEvent ? {
+                name: h.activityOptions[0].cachedEvent.name,
+                category: h.activityOptions[0].cachedEvent.category,
+                image: h.activityOptions[0].cachedEvent.imageUrl,
+                rating: h.activityOptions[0].cachedEvent.rating,
+                address: h.activityOptions[0].cachedEvent.address
+            } : null),
             participantCount: h.participants.length,
             previewParticipants: h.participants.map((p: any) => ({
                 id: p.id,

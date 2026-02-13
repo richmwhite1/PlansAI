@@ -2,7 +2,7 @@
 
 import NextLink from "next/link";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock, Check, X } from "lucide-react";
+import { MapPin, Calendar, Clock, Check, X, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HangoutCardProps {
@@ -58,13 +58,23 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
                             <h3 className="font-medium text-slate-200 truncate group-hover:text-white transition-colors">
                                 {hangout.title}
                             </h3>
-                            <p className="text-[10px] text-slate-500 font-medium">
-                                {hangout.isCreator ? "Created by you" : `By ${hangout.creator.displayName}`}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                    {hangout.isCreator ? "Created by you" : `By ${hangout.creator.displayName || hangout.creator.name || "someone"}`}
+                                </p>
+                            </div>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${statusColors[hangout.status] || ""}`}>
-                            {hangout.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium", statusColors[hangout.status])}>
+                                {hangout.status}
+                            </span>
+                            {hangout.visibility === "PUBLIC" && (
+                                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                                    <Compass className="w-2.5 h-2.5" />
+                                    Public Plan
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {hangout.scheduledFor ? (
