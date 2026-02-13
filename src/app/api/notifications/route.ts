@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
         });
 
         if (!profile) {
-            return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+            return NextResponse.json({
+                notifications: [],
+                unreadCount: 0
+            });
         }
 
         const notifications = await prisma.notification.findMany({

@@ -53,7 +53,13 @@ export function HangoutChat({ hangoutId, currentUserId }: HangoutChatProps) {
 
     // Scroll to bottom on new messages
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (messagesEndRef.current) {
+            // scrollTo({ top: ... }) is safer for container-only scrolling than scrollIntoView
+            const container = messagesEndRef.current.parentElement;
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
     }, [messages]);
 
     const handleSend = async (e: React.FormEvent) => {

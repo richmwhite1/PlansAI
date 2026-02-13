@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Calendar, Sparkles, Users, User } from "lucide-react";
+import { Compass, Calendar, Sparkles, Users, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -12,7 +12,7 @@ export function BottomNav() {
         {
             name: "Home",
             href: "/",
-            icon: Sparkles,
+            icon: Home,
             activeMatch: (path: string) => path === "/",
         },
         {
@@ -50,7 +50,7 @@ export function BottomNav() {
     // Let's rely on the parent or useUser to decide, or just render it and let middleware handle redirects.
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-t border-white/5 pb-safe">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-t border-white/5 pb-safe">
             <div className="flex justify-around items-center h-16">
                 {tabs.map((tab) => {
                     const isActive = tab.activeMatch(pathname);
@@ -63,13 +63,13 @@ export function BottomNav() {
                             className={cn(
                                 "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
                                 isActive
-                                    ? "text-violet-400"
-                                    : "text-slate-500 hover:text-slate-300"
+                                    ? "text-primary"
+                                    : "text-muted-foreground hover:text-foreground"
                             )}
                         >
                             <div className={cn(
                                 "p-1 rounded-full transition-all",
-                                isActive && "bg-violet-500/10"
+                                isActive && "bg-primary/10"
                             )}>
                                 <Icon className={cn("w-5 h-5", isActive && "fill-current")} />
                             </div>

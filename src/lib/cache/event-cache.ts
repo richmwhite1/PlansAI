@@ -72,7 +72,7 @@ async function saveGooglePlacesToCache(googlePlaces: GooglePlace[]): Promise<Cac
             const savedEvent = await prisma.cachedEvent.create({
                 data: {
                     googlePlaceId: place.id,
-                    name: (place as any).displayName?.text || "Unknown Place",
+                    name: (place as any).displayName?.text || place.name || "Unknown Place",
                     description: (place as any).editorialSummary?.text || (place.types ? place.types.join(", ") : ""),
                     category,
                     subcategory: place.types ? place.types[0] : "",

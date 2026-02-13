@@ -43,10 +43,10 @@ export function GuestJoinForm({ hangoutId }: GuestJoinFormProps) {
     };
 
     return (
-        <div className="glass p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-900/40 backdrop-blur-xl shadow-2xl max-w-md mx-auto text-center space-y-6">
+        <div className="glass-card p-8 rounded-3xl border border-white/10 shadow-2xl max-w-md mx-auto text-center space-y-6">
             <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-white tracking-tight">Join the Vibe</h2>
-                <p className="text-slate-400 text-sm">
+                <h2 className="text-2xl font-serif font-bold text-foreground tracking-tight">Join the Vibe</h2>
+                <p className="text-muted-foreground text-sm">
                     Enter your name to join this hangout as a guest. No signup required.
                 </p>
             </div>
@@ -57,7 +57,7 @@ export function GuestJoinForm({ hangoutId }: GuestJoinFormProps) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your Name (e.g. Alex)"
-                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-center text-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all"
+                    className="w-full bg-input/50 ring-1 ring-white/10 rounded-xl px-4 py-3 text-center text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary/50 transition-all"
                     autoFocus
                 />
 
@@ -65,7 +65,7 @@ export function GuestJoinForm({ hangoutId }: GuestJoinFormProps) {
                     type="submit"
                     disabled={isJoining || !name.trim()}
                     className={cn(
-                        "w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-lg hover:bg-violet-500 transition-all shadow-lg shadow-violet-900/20 active:scale-[0.98] flex items-center justify-center gap-2",
+                        "w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] flex items-center justify-center gap-2",
                         (isJoining || !name.trim()) && "opacity-50 cursor-not-allowed"
                     )}
                 >
@@ -85,13 +85,13 @@ export function GuestJoinForm({ hangoutId }: GuestJoinFormProps) {
                     <span className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900 px-2 text-slate-500">Or</span>
+                    <span className="bg-card px-2 text-muted-foreground">Or</span>
                 </div>
             </div>
 
             <a
                 href="/sign-in"
-                className="block text-sm text-violet-400 hover:text-violet-300 transition-colors font-medium"
+                className="block text-sm text-primary hover:text-primary/80 transition-colors font-medium"
             >
                 Sign in to Plans
             </a>

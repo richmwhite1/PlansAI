@@ -18,6 +18,7 @@ model Profile {
   homeLongitude     Float?
   homeCity          String?
   homeState         String?
+  homeZipcode       String?
   travelRadiusMiles Int                  @default(25)
   preferences       Json                 @default("{}")
   vibeHistory       Json                 @default("[]")
@@ -27,11 +28,16 @@ model Profile {
 
   // New Profile Fields
   bio                 String?
-  personalityType     String?
+  mbti                String?
+  enneagram           String?
+  zodiac              String?
+  bigFive             Json?    // Store Big 5 scores if we want to be detailed
+  customPersonality   String?
   dietaryPreferences  String[]
   interests           String[]
-  socialBattery       SocialBattery  @default(MEDIUM)
   scheduleFlexibility String?
+  websiteUrl          String?
+  locationUrl         String?
 
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
@@ -102,6 +108,7 @@ model Hangout {
   consensusThreshold          Int                     @default(60)
   allowParticipantSuggestions Boolean                 @default(false)
   allowGuestVotes             Boolean                 @default(true)
+  allowGuestsToInvite         Boolean                 @default(false)
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   scheduledFor      DateTime?
@@ -133,6 +140,7 @@ model HangoutParticipant {
   guestId     String?
   role        ParticipantRole @default(MEMBER)
   rsvpStatus  RsvpStatus      @default(PENDING)
+  isMandatory Boolean         @default(false)
   latitude    Float?
   longitude   Float?
   invitedAt   DateTime        @default(now())
@@ -166,6 +174,7 @@ model CachedEvent {
   reviewCount     Int?
   imageUrl        String?
   websiteUrl      String?
+  locationUrl     String?
   phoneNumber     String?
   isTimeBound     Boolean                 @default(false)
   startsAt        DateTime?
@@ -361,6 +370,7 @@ enum ParticipantRole {
   CREATOR
   ORGANIZER
   MEMBER
+  GUEST
 }
 
 enum RsvpStatus {
@@ -403,10 +413,4 @@ enum NotificationType {
   HANGOUT_UPDATE
   HANGOUT_REMINDER
   SYSTEM
-}
-
-enum SocialBattery {
-  LOW
-  MEDIUM
-  HIGH
 }

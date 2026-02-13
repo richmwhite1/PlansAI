@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { MapPin, Calendar, Sparkles, Users } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HangoutVoting } from "@/components/hangout/hangout-voting";
 import { AddToCalendar } from "@/components/hangout/add-to-calendar";
@@ -14,15 +16,34 @@ import { SaveTemplateButton } from "@/components/hangout/save-template-button";
 import { PhotoGallery } from "@/components/hangout/photo-gallery";
 import { TimeVoting } from "@/components/hangout/time-voting";
 import { GuestJoinForm } from "@/components/hangout/guest-join-form";
+import { setGuestCookie } from "@/app/actions/guest-actions";
+import { GuestClaimUI } from "@/components/hangout/guest-claim-ui";
 
 interface HangoutPageClientProps {
     hangout: any;
     userId: string | null;
     profile: any;
     currentUserParticipant: any;
+    guestTokenToSet?: string | null;
+    guestsToClaim?: any[];
 }
 
-export function HangoutPageClient({ hangout, userId, profile, currentUserParticipant }: HangoutPageClientProps) {
+export function HangoutPageClient({
+    hangout,
+    userId,
+    profile,
+    currentUserParticipant,
+    guestTokenToSet,
+    guestsToClaim = []
+}: HangoutPageClientProps) {
+    useEffect(() => {
+        if (guestTokenToSet) {
+            setGuestCookie(guestTokenToSet).then(() => {
+                console.log("Guest cookie set");
+            });
+        }
+    }, [guestTokenToSet]);
+
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [editedDescription, setEditedDescription] = useState(hangout.description || "");
     const [isSaving, setIsSaving] = useState(false);
@@ -47,26 +68,72 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
         }
     };
 
-    return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
-            {/* Header / Hero */}
-            <div className="relative h-64 md:h-80 w-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent z-10" />
-                <div className="absolute inset-0 bg-slate-900" />
+    const [participants, setParticipants] = useState(hangout.participants);
 
-                <div className="absolute bottom-0 left-0 w-full p-6 z-20">
-                    <div className="container mx-auto max-w-2xl">
-                        <span className="inline-block px-3 py-1 rounded-full bg-violet-500/20 text-violet-300 text-xs font-semibold uppercase tracking-wider mb-2 border border-violet-500/30">
-                            {hangout.status}
-                        </span>
-                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+    const handleToggleMandatory = async (participantId: string, current: boolean) => {
+        // Optimistic update
+        setParticipants((prev: any[]) => prev.map((p: any) =>
+            p.id === participantId ? { ...p, isMandatory: !current } : p
+        ));
+
+        try {
+            const res = await fetch(`/api/hangouts/${hangout.id}/participants/${participantId}/mandatory`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isMandatory: !current })
+            });
+            if (res.ok) {
+                toast.success(!current ? "Marked as mandatory" : "Removed mandatory status");
+            } else {
+                // Revert on failure
+                setParticipants((prev: any[]) => prev.map((p: any) =>
+                    p.id === participantId ? { ...p, isMandatory: current } : p
+                ));
+                toast.error("Failed to update");
+            }
+        } catch (error) {
+            console.error("Failed to toggle mandatory:", error);
+            // Revert on failure
+            setParticipants((prev: any[]) => prev.map((p: any) =>
+                p.id === participantId ? { ...p, isMandatory: current } : p
+            ));
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+            {/* Hero Header */}
+            <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden group">
+                <div className="absolute inset-0 bg-slate-900">
+                    {hangout.finalActivity?.imageUrl ? (
+                        <img
+                            src={hangout.finalActivity.imageUrl}
+                            alt="Location"
+                            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800" />
+                    )}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
+                <div className="absolute inset-0 bg-black/20 z-10" />
+
+                <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 z-20">
+                    <div className="container mx-auto max-w-2xl px-4 md:px-0 animate-in slide-in-from-bottom-5 fade-in duration-700">
+                        <div className="flex items-center justify-between mb-6">
+                            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-white border border-white/20 text-xs font-bold uppercase tracking-widest shadow-lg">
+                                {hangout.status}
+                            </span>
+                            <ShareButton hangoutId={hangout.id} />
+                        </div>
+                        <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-4 leading-tight shadow-xl drop-shadow-lg">
                             {hangout.title}
                         </h1>
-                        <div className="flex items-center gap-4 text-sm text-slate-300">
+                        <div className="flex flex-wrap items-center gap-6 text-sm md:text-base text-white/90 font-medium">
                             {hangout.scheduledFor && (
-                                <div className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4 text-violet-400" />
-                                    <span>{format(new Date(hangout.scheduledFor), "EEEE, MMM do 'at' h:mm a")}</span>
+                                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm">
+                                    <Calendar className="w-4 h-4 text-primary" />
+                                    <span>{format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}</span>
                                 </div>
                             )}
                             {hangout.finalActivity && hangout.status !== "VOTING" && (
@@ -74,16 +141,16 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hangout.finalActivity.name + ' ' + (hangout.finalActivity.address || ''))}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 hover:text-violet-400 transition-colors"
+                                    className="flex items-center gap-2 hover:text-primary transition-colors bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm"
                                 >
-                                    <MapPin className="w-4 h-4 text-violet-400" />
+                                    <MapPin className="w-4 h-4 text-primary" />
                                     <span>{hangout.finalActivity.name}</span>
                                 </a>
                             )}
                             {hangout.status === "VOTING" && (
-                                <div className="flex items-center gap-1.5 text-amber-400">
+                                <div className="flex items-center gap-2 text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 backdrop-blur-sm">
                                     <Sparkles className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase tracking-wider">Voting in Progress</span>
+                                    <span className="font-bold uppercase tracking-wider">Voting in Progress</span>
                                 </div>
                             )}
                         </div>
@@ -93,31 +160,70 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
 
             <div className="container mx-auto max-w-2xl p-6 space-y-8">
                 {/* Participants */}
-                <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
+                <div className="glass-card p-6 rounded-2xl">
+                    <h2 className="text-2xl font-serif font-semibold text-foreground mb-4 flex items-center justify-between">
                         Who's Going?
-                        <span className="text-xs font-normal text-slate-500 bg-white/5 px-2 py-1 rounded-full">{hangout.participants.length}</span>
+                        <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
                     </h2>
-                    <div className="flex flex-wrap gap-3">
-                        {hangout.participants.map((p: any) => (
-                            <div key={p.id} className="flex items-center gap-2 bg-white/5 p-2 pr-4 rounded-full border border-white/5">
-                                <Avatar className="w-8 h-8 border border-white/10">
-                                    <AvatarImage src={p.profile?.avatarUrl || undefined} />
-                                    <AvatarFallback className="text-xs bg-slate-800 text-slate-400">
-                                        {p.profile?.displayName?.slice(0, 2).toUpperCase() || "??"}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-slate-200">
-                                        {p.profile?.displayName || "Guest"}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">
-                                        {p.rsvpStatus}
-                                    </span>
+                    <div className="flex flex-col gap-3">
+                        {participants.map((p: any) => (
+                            <div key={p.id} className="flex items-center justify-between bg-white/5 p-2 pr-4 rounded-full border border-white/5 group/p">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                        <Avatar className="w-10 h-10 border border-white/10">
+                                            <AvatarImage src={p.profile?.avatarUrl || undefined} />
+                                            <AvatarFallback className="text-xs bg-slate-800 text-slate-400">
+                                                {p.profile?.displayName?.slice(0, 2).toUpperCase() || "??"}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        {p.isMandatory && (
+                                            <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-slate-900 shadow-lg">
+                                                <Sparkles className="w-2.5 h-2.5 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-foreground">
+                                            {p.profile?.displayName || p.guest?.displayName || "Guest"}
+                                            {p.role === "CREATOR" && <span className="ml-2 text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Host</span>}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "text-[10px] uppercase tracking-wider",
+                                                p.rsvpStatus === "GOING" ? "text-emerald-400 font-bold" : "text-slate-500"
+                                            )}>
+                                                {p.rsvpStatus}
+                                            </span>
+                                            {/* Show SMS Invite Button for Guests who haven't RSVP'd */}
+                                            {p.guest && p.rsvpStatus === "PENDING" && (userId === hangout.creator.clerkId || hangout.allowGuestsToInvite) && (
+                                                <a
+                                                    href={`sms:${p.guest.phone || ''}?body=${encodeURIComponent(`Hey ${p.guest.displayName}, join my hangout here: https://plans.ai/h/${hangout.slug}?guestToken=${p.guest.token}`)}`}
+                                                    className="ml-2 text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-full transition-colors flex items-center gap-1"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    Tap to Invite
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {userId === hangout.creator.clerkId && p.profileId !== profile?.id && (
+                                    <button
+                                        onClick={() => handleToggleMandatory(p.id, p.isMandatory)}
+                                        className={cn(
+                                            "transition-all px-3 py-1 rounded-full text-[10px] font-bold uppercase border",
+                                            p.isMandatory
+                                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30 opacity-100"
+                                                : "bg-white/5 text-slate-500 hover:text-slate-300 border-transparent hover:border-white/10"
+                                        )}
+                                    >
+                                        {p.isMandatory ? "Mandatory" : "Optional"}
+                                    </button>
+                                )}
                             </div>
                         ))}
-                        <ShareButton hangoutId={hangout.id} />
                     </div>
                 </div>
 
@@ -139,69 +245,75 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
                         <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
                             <h2 className="text-lg font-semibold text-white mb-4">Your Response</h2>
                             <div className="flex gap-4 mb-8">
-                                <ShareButton hangoutId={hangout.id} />
                                 {hangout.status !== "VOTING" && <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />}
                             </div>
 
-                            {/* Description Block */}
-                            <div className="mb-8">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                        The Vibe
-                                    </label>
-                                </div>
-                                {isEditingDescription ? (
-                                    <div className="space-y-3">
-                                        <textarea
-                                            value={editedDescription}
-                                            onChange={(e) => setEditedDescription(e.target.value)}
-                                            className="w-full bg-slate-800 border border-violet-500/30 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 resize-none h-24"
-                                            placeholder="What's the vibe?"
-                                        />
-                                        <div className="flex justify-end gap-2">
+                            {/* Polaroid Vibe Section */}
+                            <div className="mb-8 relative group">
+                                <div className="absolute inset-0 bg-white transform rotate-1 rounded-xl shadow-xl z-0 transition-transform group-hover:rotate-2 duration-500" />
+                                <div className="relative z-10 bg-[#fafafa] p-6 pb-12 rounded-xl shadow-inner border border-stone-200">
+                                    <div className="flex items-center justify-between mb-4 border-b border-stone-300 pb-2 border-dashed">
+                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                                            <span className="text-lg">📸</span> The Note
+                                        </label>
+                                        {userId === hangout.creator.clerkId && !isEditingDescription && (
                                             <button
-                                                onClick={() => setIsEditingDescription(false)}
-                                                className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300"
+                                                onClick={() => setIsEditingDescription(true)}
+                                                className="text-xs font-bold text-stone-400 hover:text-stone-600 uppercase tracking-wider"
                                             >
-                                                Cancel
+                                                Edit Note
                                             </button>
-                                            <button
-                                                onClick={handleSaveDescription}
-                                                disabled={isSaving}
-                                                className="px-4 py-1.5 text-xs bg-violet-600 text-white rounded-lg font-bold hover:bg-violet-500 disabled:opacity-50"
-                                            >
-                                                {isSaving ? "Saving..." : "Save Changes"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        {hangout.description ? (
-                                            <div className="group relative">
-                                                <p className="text-slate-300 italic text-sm border-l-2 border-violet-500/30 pl-4 py-1 bg-white/5 rounded-r-xl pr-4">
-                                                    "{hangout.description}"
-                                                </p>
-                                                {userId === hangout.creator.clerkId && (
-                                                    <button
-                                                        onClick={() => setIsEditingDescription(true)}
-                                                        className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 text-[10px] text-violet-400 font-bold uppercase"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            userId === hangout.creator.clerkId && (
-                                                <button
-                                                    onClick={() => setIsEditingDescription(true)}
-                                                    className="text-xs text-slate-500 hover:text-violet-400 transition-colors border border-dashed border-white/10 rounded-xl px-4 py-2 w-full text-left"
-                                                >
-                                                    Add a description for your hangout...
-                                                </button>
-                                            )
                                         )}
                                     </div>
-                                )}
+
+                                    {isEditingDescription ? (
+                                        <div className="space-y-3">
+                                            <textarea
+                                                value={editedDescription}
+                                                onChange={(e) => setEditedDescription(e.target.value)}
+                                                className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-lg font-serif text-stone-800 focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-500 resize-none h-32 leading-relaxed"
+                                                placeholder="Write a note about the plan..."
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => setIsEditingDescription(false)}
+                                                    className="px-3 py-1.5 text-xs font-bold text-stone-500 hover:text-stone-800 uppercase"
+                                                >
+                                                    Discard
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveDescription}
+                                                    disabled={isSaving}
+                                                    className="px-4 py-1.5 text-xs bg-stone-800 text-white rounded-lg font-bold hover:bg-stone-700 disabled:opacity-50 uppercase tracking-wider"
+                                                >
+                                                    {isSaving ? "Saving..." : "Pin Note"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="relative min-h-[60px]">
+                                            {hangout.description ? (
+                                                <p className="text-xl font-serif text-stone-800 leading-relaxed italic opacity-90">
+                                                    "{hangout.description}"
+                                                </p>
+                                            ) : (
+                                                userId === hangout.creator.clerkId ? (
+                                                    <button
+                                                        onClick={() => setIsEditingDescription(true)}
+                                                        className="text-stone-400 italic text-lg hover:text-stone-600 w-full text-left"
+                                                    >
+                                                        Add a handwritten note...
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-stone-400 italic">No note attached yet.</span>
+                                                )
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Tape effect */}
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/20 backdrop-blur-sm border border-white/30 skew-y-1 shadow-sm z-20" />
                             </div>
                         </div>
                     </>
@@ -278,6 +390,10 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
                                 userVote: opt.votes.find((v: any) => v.profileId === profile?.id)?.value || 0
                             }))}
                             allowParticipantSuggestions={hangout.allowParticipantSuggestions}
+                            votingEndsAt={hangout.votingEndsAt}
+                            isCreator={userId === hangout.creator.clerkId}
+                            initialThreshold={hangout.consensusThreshold}
+                            totalParticipants={participants.length}
                         />
 
                         {hangout.timeOptions.length > 0 && (
@@ -375,6 +491,11 @@ export function HangoutPageClient({ hangout, userId, profile, currentUserPartici
                     </div>
                 )}
             </div>
+
+            {/* Guest Claim Modal */}
+            {guestsToClaim.length > 0 && (
+                <GuestClaimUI hangoutId={hangout.id} guests={guestsToClaim} />
+            )}
         </div>
     );
 }

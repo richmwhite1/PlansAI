@@ -38,10 +38,9 @@ export async function GET(req: NextRequest) {
             whereClause = { status: "PENDING", profileAId: profile.id };
         } else {
             whereClause = {
-                status: "ACCEPTED",
                 OR: [
-                    { profileAId: profile.id },
-                    { profileBId: profile.id }
+                    { profileAId: profile.id }, // Includes requests sent (PENDING or ACCEPTED)
+                    { profileBId: profile.id }  // Includes requests received (PENDING or ACCEPTED)
                 ]
             };
         }
@@ -75,7 +74,9 @@ export async function GET(req: NextRequest) {
                 id: friend.id,
                 name: friend.displayName || friend.email || "Unknown",
                 avatar: friend.avatarUrl || `https://i.pravatar.cc/150?u=${friend.id}`,
-                sharedHangouts: f.sharedHangoutCount
+                sharedHangouts: f.sharedHangoutCount,
+                status: f.status,
+                isRequester: f.profileAId === profile.id
             };
         }).filter(Boolean);
 

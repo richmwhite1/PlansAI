@@ -2,12 +2,14 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google"; // Import Playfair Display
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://plans.app"),
   title: "Plans - Social Coordination Engine",
   description: "AI-first social gathering app.",
   manifest: "/manifest.json",
@@ -16,16 +18,21 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Plans",
   },
+  openGraph: {
+    title: "Plans - Social Coordination Engine",
+    description: "AI-first social gathering app.",
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "Plans App" }],
+  },
 };
 
 import { BottomNav } from "@/components/layout/bottom-nav";
 
 export const viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#0A0A0A", // Updated to Midnight Carbon
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Prevent zooming for native app feel
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -38,16 +45,17 @@ export default function RootLayout({
       appearance={{
         baseTheme: dark,
         variables: {
-          colorPrimary: "#8b5cf6", // Violet-500
-          colorBackground: "#0f172a", // Slate-900
+          colorPrimary: "#D4A373", // Warm Ochre
+          colorBackground: "#0A0A0A", // Midnight Carbon
+          colorText: "#EDEDED",
         },
       }}
     >
-      <html lang="en" className="dark">
-        <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased selection:bg-violet-500/30 overscroll-none`}>
+      <html lang="en" className="dark" suppressHydrationWarning>
+        <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground antialiased selection:bg-primary/30 overscroll-none`}>
           {children}
           <BottomNav />
-          <Toaster richColors position="bottom-center" />
+          <Toaster richColors position="bottom-center" theme="dark" />
         </body>
       </html>
     </ClerkProvider>

@@ -14,7 +14,7 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
         PLANNING: "bg-amber-500/20 text-amber-400 border-amber-500/30",
         VOTING: "bg-blue-500/20 text-blue-400 border-blue-500/30",
         CONFIRMED: "bg-green-500/20 text-green-400 border-green-500/30",
-        ACTIVE: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+        ACTIVE: "bg-primary/20 text-primary border-primary/30",
         COMPLETED: "bg-slate-500/20 text-slate-400 border-slate-500/30",
         CANCELLED: "bg-rose-500/20 text-rose-400 border-rose-500/30"
     };
@@ -22,7 +22,7 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
     return (
         <NextLink
             href={`/hangouts/${hangout.slug}`}
-            className="block p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 hover:border-violet-500/30 transition-all group"
+            className="block p-4 glass-card hover:bg-white/5 hover:border-white/10 transition-all group"
         >
             <div className="flex gap-4">
                 {/* Left: Activity Image or Placeholder */}
@@ -34,8 +34,8 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-900/50 to-fuchsia-900/50">
-                            <MapPin className="w-6 h-6 text-slate-400" />
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <MapPin className="w-6 h-6 text-muted-foreground" />
                         </div>
                     )}
                 </div>

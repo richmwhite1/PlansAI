@@ -26,7 +26,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950/20 p-4 pb-24 md:p-8">
+    <main className="min-h-screen bg-background p-4 pb-24 md:p-8">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -34,10 +34,11 @@ export default function Home() {
         className="flex items-center justify-between mb-8"
       >
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-500 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
+          {/* Minimalist Logo */}
+          <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="font-serif font-bold text-black text-xl italic leading-none pt-1 pr-0.5">P</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Plans</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">Plans</h1>
         </div>
 
         <div className="flex items-center gap-4">
@@ -72,7 +73,7 @@ export default function Home() {
         className="max-w-md mx-auto space-y-8 mt-12 mb-20 md:mt-24"
       >
         <motion.div variants={item} className="text-center space-y-2">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400">
+          <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">
             Gather better.
           </h2>
           <p className="text-slate-400 text-lg">

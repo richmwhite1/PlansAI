@@ -27,10 +27,13 @@ model Profile {
   
   // New Profile Fields
   bio                 String?
-  personalityType     String?
+  mbti                String?
+  enneagram           String?
+  zodiac              String?
+  bigFive             Json?    // Store Big 5 scores if we want to be detailed
+  customPersonality   String?
   dietaryPreferences  String[]
   interests           String[]
-  socialBattery       SocialBattery  @default(MEDIUM)
   scheduleFlexibility String?
 
   createdAt         DateTime             @default(now())

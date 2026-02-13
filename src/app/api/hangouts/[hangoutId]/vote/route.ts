@@ -76,10 +76,26 @@ export async function POST(
                     }
                 });
 
-                const consensusPercentage = (yesVotes / totalParticipants) * 100;
-                console.log(`Consensus Check: ${yesVotes}/${totalParticipants} = ${consensusPercentage}% (Threshold: ${hangout.consensusThreshold}%)`);
+                // Check Mandatory Participants
+                const mandatoryParticipants = hangout.participants.filter((p: any) => p.isMandatory);
+                const mandatoryVotedYes = await Promise.all(mandatoryParticipants.map(async (p: any) => {
+                    const v = await prisma.vote.findFirst({
+                        where: {
+                            activityOptionId,
+                            profileId: p.profileId || undefined,
+                            guestId: p.guestId || undefined,
+                            value: 1
+                        }
+                    });
+                    return !!v;
+                }));
 
-                if (consensusPercentage >= hangout.consensusThreshold) {
+                const allMandatoryAgreed = mandatoryVotedYes.every(v => v === true);
+
+                const consensusPercentage = (yesVotes / totalParticipants) * 100;
+                console.log(`Consensus Check: ${yesVotes}/${totalParticipants} = ${consensusPercentage}% (Threshold: ${hangout.consensusThreshold}%). Mandatory Agreed: ${allMandatoryAgreed}`);
+
+                if (consensusPercentage >= hangout.consensusThreshold && allMandatoryAgreed) {
                     console.log("Consensus reached! Confirming hangout...");
                     const option = hangout.activityOptions[0];
                     await prisma.hangout.update({
@@ -94,7 +110,7 @@ export async function POST(
                     await prisma.message.create({
                         data: {
                             hangoutId,
-                            authorId: profile.id, // Or a system user if we had one
+                            authorId: profile.id,
                             content: `Consensus reached! The plan is confirmed: ${option.cachedEvent.name}.`,
                             type: "SYSTEM"
                         }

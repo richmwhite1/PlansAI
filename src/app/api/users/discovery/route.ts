@@ -1,88 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth, createClerkClient } from "@clerk/nextjs/server";
 
 export const dynamic = 'force-dynamic';
 
+const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
 export async function GET(req: NextRequest) {
     try {
-        console.log("Discovery API: Starting auth check...");
-        const { userId } = await auth();
-        console.log("Discovery API: auth() returned userId:", userId);
-
-        if (!userId) {
-            console.log("Discovery API: No userId, returning 401");
+        const { userId: clerkUserId } = await auth();
+        if (!clerkUserId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get current user profile
-        console.log("Discovery API: Fetching current profile...");
+        // 1. Get current user profile (if exists)
         const currentProfile = await prisma.profile.findUnique({
-            where: { clerkId: userId }
+            where: { clerkId: clerkUserId }
         });
-        console.log("Discovery API: currentProfile:", currentProfile?.id || "not found");
 
-        const excludedIds = new Set<string>();
+        const excludedClerkIds = new Set<string>();
+        excludedClerkIds.add(clerkUserId);
 
+        // 2. Find all existing friendships (any status) to exclude
         if (currentProfile) {
-            excludedIds.add(currentProfile.id);
-
-            // Get IDs of people I already have a friendship with (any status)
-            console.log("Discovery API: Fetching existing friendships...");
-            const existingFriendships = await prisma.friendship.findMany({
+            const friendships = await prisma.friendship.findMany({
                 where: {
                     OR: [
                         { profileAId: currentProfile.id },
                         { profileBId: currentProfile.id }
                     ]
                 },
-                select: {
-                    profileAId: true,
-                    profileBId: true
+                include: {
+                    profileA: true,
+                    profileB: true
                 }
             });
-            console.log("Discovery API: Found", existingFriendships.length, "existing friendships");
 
-            existingFriendships.forEach((f: { profileAId: string; profileBId: string }) => {
-                excludedIds.add(f.profileAId);
-                excludedIds.add(f.profileBId);
+            friendships.forEach(f => {
+                if (f.profileA?.clerkId) excludedClerkIds.add(f.profileA.clerkId);
+                if (f.profileB?.clerkId) excludedClerkIds.add(f.profileB.clerkId);
             });
         }
 
-        // Find users NOT in excludedIds
-        console.log("Discovery API: Fetching suggested users...");
-        const suggestedUsers = await prisma.profile.findMany({
-            where: {
-                id: { notIn: Array.from(excludedIds) }
-            },
-            select: {
-                id: true,
-                displayName: true,
-                email: true,
-                avatarUrl: true
-            },
-            take: 20,
-            orderBy: {
-                createdAt: 'desc'
-            }
+        // 3. Fetch all users from Clerk
+        // Note: For large datasets, we'd want to search or paginate, but for now we list
+        const clerkUsersResponse = await clerkClient.users.getUserList({
+            limit: 100, // Fetch top 100 users
         });
-        console.log("Discovery API: Found", suggestedUsers.length, "suggested users");
+
+        // 4. Map Clerk users to our internal structure and filter
+        const suggestedUsers = clerkUsersResponse.data
+            .filter(user => !excludedClerkIds.has(user.id))
+            .map(user => ({
+                id: user.id, // Using Clerk ID here so we can upsert on add
+                name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.emailAddresses[0]?.emailAddress.split("@")[0] || "Unknown"),
+                email: user.emailAddresses[0]?.emailAddress,
+                avatar: user.imageUrl || `https://i.pravatar.cc/150?u=${user.id}`,
+                isClerkDiscovery: true
+            }));
 
         return NextResponse.json({
-            users: suggestedUsers.map((u: any) => ({
-                id: u.id,
-                name: u.displayName || u.email?.split("@")[0] || "Unknown",
-                email: u.email,
-                avatar: u.avatarUrl || `https://i.pravatar.cc/150?u=${u.id}`
-            }))
+            users: suggestedUsers
         });
 
     } catch (error: any) {
         console.error("Discovery API CRITICAL ERROR:", error);
         return NextResponse.json({
             error: "Internal Server Error",
-            message: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: error.message
         }, { status: 500 });
     }
 }

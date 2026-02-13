@@ -161,7 +161,7 @@ export default function DiscoverPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200">
+        <div className="min-h-screen bg-background text-foreground">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto max-w-2xl px-6 py-4">
@@ -170,7 +170,7 @@ export default function DiscoverPage() {
                             <ArrowLeft className="w-5 h-5 text-slate-400" />
                         </Link>
                         <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Compass className="w-5 h-5 text-violet-500" />
+                            <Compass className="w-5 h-5 text-primary" />
                             Discover
                         </h1>
                     </div>
@@ -181,7 +181,7 @@ export default function DiscoverPage() {
                             onClick={() => { setActiveTab("plans"); setSelectedActivityIds(new Set()); setAiReasoning(null); }}
                             className={cn(
                                 "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                                activeTab === "plans" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-400 hover:text-white"
+                                activeTab === "plans" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
                             )}
                         >
                             Public Plans
@@ -190,7 +190,7 @@ export default function DiscoverPage() {
                             onClick={() => { setActiveTab("explore"); setAiReasoning(null); }}
                             className={cn(
                                 "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                                activeTab === "explore" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-400 hover:text-white"
+                                activeTab === "explore" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
                             )}
                         >
                             Explore Events
@@ -206,19 +206,19 @@ export default function DiscoverPage() {
                         {/* AI Search Bar */}
                         <form onSubmit={handleAiSubmit} className="relative group">
                             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                                <Sparkles className="w-5 h-5 text-violet-500" />
+                                <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <input
                                 type="text"
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
                                 placeholder="Ask AI for ideas (e.g. 'Chill Saturday hike')"
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
                             />
                             <button
                                 type="submit"
                                 disabled={isAiLoading || !aiPrompt.trim()}
-                                className="absolute right-3 top-2.5 p-2 bg-violet-600 rounded-xl text-white disabled:opacity-50 hover:bg-violet-500 transition-colors"
+                                className="absolute right-3 top-2.5 p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl disabled:opacity-50 transition-colors"
                             >
                                 {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                             </button>
@@ -230,10 +230,10 @@ export default function DiscoverPage() {
                                 <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4 flex gap-3"
+                                    className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex gap-3"
                                 >
-                                    <Info className="w-5 h-5 text-violet-400 shrink-0" />
-                                    <p className="text-sm text-violet-200 leading-relaxed">{aiReasoning}</p>
+                                    <Info className="w-5 h-5 text-primary shrink-0" />
+                                    <p className="text-sm text-primary-foreground leading-relaxed">{aiReasoning}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -249,8 +249,8 @@ export default function DiscoverPage() {
                                         className={cn(
                                             "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all",
                                             selectedCategory === cat.id
-                                                ? "bg-white text-slate-950 border-white"
-                                                : "bg-white/5 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                                                ? "bg-foreground text-background border-foreground"
+                                                : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
                                         )}
                                     >
                                         <Icon className="w-4 h-4" />
@@ -277,7 +277,7 @@ export default function DiscoverPage() {
                                     href={`/hangouts/${hangout.slug}`}
                                     className="block group"
                                 >
-                                    <div className="glass rounded-2xl border border-white/5 bg-slate-900/50 overflow-hidden hover:border-violet-500/40 transition-all duration-300">
+                                    <div className="glass-card rounded-2xl border border-white/5 bg-card/50 overflow-hidden hover:border-primary/20 transition-all duration-300">
                                         <div className="h-32 bg-slate-800 relative overflow-hidden">
                                             {hangout.activity?.image ? (
                                                 <img
@@ -298,7 +298,7 @@ export default function DiscoverPage() {
 
                                         <div className="p-4">
                                             <div className="flex items-start justify-between gap-2 mb-2">
-                                                <h2 className="font-bold text-lg text-white group-hover:text-violet-400 transition-colors">
+                                                <h2 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                                                     {hangout.title}
                                                 </h2>
                                                 {hangout.activity?.rating && (
@@ -357,8 +357,8 @@ export default function DiscoverPage() {
                                         key={activity.id}
                                         onClick={() => toggleActivitySelection(activity.id)}
                                         className={cn(
-                                            "relative glass rounded-2xl border bg-slate-900/50 p-4 transition-all duration-300 cursor-pointer",
-                                            isSelected ? "border-violet-500 shadow-lg shadow-violet-500/10" : "border-white/5 hover:border-white/20 active:scale-[0.98]"
+                                            "relative glass-card rounded-2xl border bg-card/50 p-4 transition-all duration-300 cursor-pointer",
+                                            isSelected ? "border-primary shadow-lg shadow-primary/10" : "border-white/5 hover:border-white/20 active:scale-[0.98]"
                                         )}
                                     >
                                         <div className="flex gap-4">
@@ -381,8 +381,8 @@ export default function DiscoverPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-xs text-slate-400 mb-2 font-medium capitalize flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                                                <div className="text-xs text-muted-foreground mb-2 font-medium capitalize flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                                     {activity.category} {activity.subcategory && `• ${activity.subcategory}`}
                                                 </div>
                                                 <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{activity.description || activity.address}</p>
@@ -400,7 +400,7 @@ export default function DiscoverPage() {
                                         {/* Selection Indicator */}
                                         <div className={cn(
                                             "absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                                            isSelected ? "bg-violet-500 border-violet-500" : "border-white/20 bg-black/20"
+                                            isSelected ? "bg-primary border-primary" : "border-white/20 bg-black/20"
                                         )}>
                                             {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
                                         </div>
@@ -430,17 +430,17 @@ export default function DiscoverPage() {
                         className="fixed bottom-8 left-0 right-0 z-50 px-6 pointer-events-none"
                     >
                         <div className="container mx-auto max-w-2xl pointer-events-auto">
-                            <div className="bg-violet-600 rounded-3xl p-4 shadow-2xl shadow-violet-500/40 border border-violet-400/30 flex items-center justify-between gap-4">
+                            <div className="bg-primary rounded-3xl p-4 shadow-2xl shadow-primary/20 border border-primary/20 flex items-center justify-between gap-4">
                                 <div className="pl-2">
-                                    <p className="text-white font-bold text-lg">{selectedActivityIds.size} Selected</p>
-                                    <p className="text-violet-200 text-xs">
+                                    <p className="text-primary-foreground font-bold text-lg">{selectedActivityIds.size} Selected</p>
+                                    <p className="text-primary-foreground/80 text-xs">
                                         {selectedActivityIds.size === 1 ? "Start a new plan" : "Start a group vote"}
                                     </p>
                                 </div>
                                 <button
                                     onClick={handleCreateHangout}
                                     disabled={isCreating}
-                                    className="bg-white text-violet-600 font-bold px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-slate-100 transition-colors shadow-lg disabled:opacity-50"
+                                    className="bg-background text-primary font-bold px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-white/90 transition-colors shadow-lg disabled:opacity-50"
                                 >
                                     {isCreating ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -454,8 +454,9 @@ export default function DiscoverPage() {
                             </div>
                         </div>
                     </motion.div>
+
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

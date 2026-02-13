@@ -42,7 +42,7 @@ export async function searchNearbyPlaces(
             headers: {
                 "Content-Type": "application/json",
                 "X-Goog-Api-Key": apiKey,
-                "X-Goog-FieldMask": "places.name,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.types,places.priceLevel,places.photos,places.id,places.websiteUri,places.nationalPhoneNumber,places.editorialSummary",
+                "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.types,places.priceLevel,places.photos,places.id,places.websiteUri,places.nationalPhoneNumber,places.editorialSummary",
             },
             body: JSON.stringify({
                 includedTypes,
@@ -60,7 +60,8 @@ export async function searchNearbyPlaces(
         });
 
         if (!response.ok) {
-            console.error("Google Places API error:", await response.text());
+            const errorText = await response.text();
+            console.error("Google Places API error:", errorText);
             return [];
         }
 
@@ -90,7 +91,7 @@ export async function searchTextPlaces(
             headers: {
                 "Content-Type": "application/json",
                 "X-Goog-Api-Key": apiKey,
-                "X-Goog-FieldMask": "places.name,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.types,places.priceLevel,places.photos,places.id,places.websiteUri,places.nationalPhoneNumber,places.editorialSummary",
+                "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.types,places.priceLevel,places.photos,places.id,places.websiteUri,places.nationalPhoneNumber,places.editorialSummary",
             },
             body: JSON.stringify({
                 textQuery,
@@ -103,6 +104,12 @@ export async function searchTextPlaces(
                 openNow: isOpenNow,
             }),
         });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Google Places API Error:", errorText);
+            return [];
+        }
 
         const data = await response.json();
         console.log(`Google Text Search for "${textQuery}" returned ${data.places?.length || 0} results`);

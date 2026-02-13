@@ -23,8 +23,8 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
                     className={cn(
                         "px-6 py-2 rounded-lg text-sm font-medium transition-all",
                         activeTab === "upcoming"
-                            ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
-                            : "text-slate-400 hover:text-slate-200"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     Upcoming
@@ -34,8 +34,8 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
                     className={cn(
                         "px-6 py-2 rounded-lg text-sm font-medium transition-all",
                         activeTab === "past"
-                            ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
-                            : "text-slate-400 hover:text-slate-200"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     Past
@@ -47,7 +47,7 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
                     {/* Pending Section */}
                     {pending.length > 0 && (
                         <section>
-                            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <h2 className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <Clock className="w-4 h-4" />
                                 Needs Attention ({pending.length})
                             </h2>
@@ -61,7 +61,7 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
 
                     {/* Upcoming Section */}
                     <section>
-                        <h2 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <h2 className="text-xs font-bold text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Calendar className="w-4 h-4" />
                             Upcoming ({upcoming.length})
                         </h2>
@@ -73,15 +73,15 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
                             </div>
                         ) : (
                             <div className="text-center py-12 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                                <Calendar className="w-10 h-10 text-slate-800 mx-auto mb-3" />
-                                <p className="text-slate-500 text-sm italic">No upcoming plans yet.</p>
+                                <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-muted-foreground text-sm italic">No upcoming plans yet.</p>
                             </div>
                         )}
                     </section>
                 </div>
             ) : (
                 <section>
-                    <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                         <Check className="w-4 h-4" />
                         Past Hangouts ({past.length})
                     </h2>
@@ -93,8 +93,8 @@ export function HangoutTabs({ pending, upcoming, past }: HangoutTabsProps) {
                         </div>
                     ) : (
                         <div className="text-center py-12 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                            <Check className="w-10 h-10 text-slate-800 mx-auto mb-3" />
-                            <p className="text-slate-500 text-sm italic">No past hangouts found.</p>
+                            <Check className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-muted-foreground text-sm italic">No past hangouts found.</p>
                         </div>
                     )}
                 </section>

@@ -86,7 +86,7 @@ export default async function HangoutsPage() {
     });
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans">
+        <div className="min-h-screen bg-background text-foreground font-sans">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
                 <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
@@ -95,7 +95,7 @@ export default async function HangoutsPage() {
                     </Link>
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold rounded-full transition-all shadow-lg shadow-violet-500/20 active:scale-95"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-full transition-all shadow-lg shadow-primary/20 active:scale-95"
                     >
                         <Plus className="w-4 h-4" />
                         Create Plan

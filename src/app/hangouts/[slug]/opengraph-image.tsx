@@ -126,7 +126,7 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
                                     color: 'white',
                                     marginLeft: i > 0 ? -20 : 0
                                 }}>
-                                    {(p.profile?.displayName?.[0] || p.guest?.name?.[0] || '?').toUpperCase()}
+                                    {(p.profile?.displayName?.[0] || p.guest?.displayName?.[0] || '?').toUpperCase()}
                                 </div>
                             </div>
                         ))}

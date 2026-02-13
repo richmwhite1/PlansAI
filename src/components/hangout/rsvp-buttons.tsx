@@ -44,22 +44,22 @@ export function RsvpButtons({ hangoutId, currentStatus, onStatusChange }: RsvpBu
             status: "GOING" as const,
             label: "Going",
             icon: Check,
-            activeClass: "bg-green-500/20 text-green-400 border-green-500/50",
-            hoverClass: "hover:bg-green-500/10 hover:text-green-400 hover:border-green-500/30"
+            activeClass: "bg-emerald-500 text-white border-b-emerald-700",
+            hoverClass: "hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/50"
         },
         {
             status: "MAYBE" as const,
             label: "Maybe",
             icon: HelpCircle,
-            activeClass: "bg-amber-500/20 text-amber-400 border-amber-500/50",
-            hoverClass: "hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/30"
+            activeClass: "bg-amber-500 text-white border-b-amber-700",
+            hoverClass: "hover:bg-amber-500/10 hover:text-amber-500 hover:border-amber-500/50"
         },
         {
             status: "NOT_GOING" as const,
             label: "Can't",
             icon: X,
-            activeClass: "bg-rose-500/20 text-rose-400 border-rose-500/50",
-            hoverClass: "hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30"
+            activeClass: "bg-rose-500 text-white border-b-rose-700",
+            hoverClass: "hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/50"
         }
     ];
 
@@ -76,11 +76,11 @@ export function RsvpButtons({ hangoutId, currentStatus, onStatusChange }: RsvpBu
                         onClick={() => handleRsvp(btn.status)}
                         disabled={isUpdating !== null}
                         className={cn(
-                            "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium border transition-all",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                            "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 duration-75",
+                            "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:border-b-4 disabled:active:translate-y-0",
                             isActive
                                 ? btn.activeClass
-                                : `bg-white/5 text-slate-400 border-white/10 ${btn.hoverClass}`
+                                : `bg-card border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 ${btn.hoverClass}`
                         )}
                     >
                         {isLoading ? (

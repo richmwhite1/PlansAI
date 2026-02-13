@@ -161,18 +161,18 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
                     <p className="text-sm">No photos shared yet</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="columns-2 md:columns-3 gap-3 space-y-3">
                     {photos.map((p) => (
                         <motion.div
                             key={p.id}
                             layoutId={p.id}
-                            className="group relative aspect-square rounded-xl overflow-hidden bg-slate-900 border border-white/5 cursor-pointer"
+                            className="group relative break-inside-avoid rounded-xl overflow-hidden bg-muted border border-white/5 cursor-pointer shadow-md hover:shadow-xl transition-all"
                             onClick={() => onPhotoClick?.(p)}
                         >
                             <img
                                 src={p.url}
                                 alt={p.caption || "Hangout photo"}
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                className="w-full h-auto object-cover transition-transform group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
                                 {p.caption && <p className="text-[10px] text-white line-clamp-1 mb-1">{p.caption}</p>}

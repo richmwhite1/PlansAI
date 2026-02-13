@@ -1,27 +1,24 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma"; // Assuming prisma client is exported from here
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { SocialBattery } from "@prisma/client";
 
 export async function updateProfile(formData: FormData) {
     const { userId } = await auth();
-    console.log("Updating profile for user:", userId);
 
     if (!userId) {
-        console.error("Unauthorized profile update attempt");
         throw new Error("Unauthorized");
     }
 
     const bio = formData.get("bio") as string;
-    const personalityType = formData.get("personalityType") as string;
-    const socialBattery = formData.get("socialBattery") as SocialBattery;
+    const mbti = formData.get("mbti") as string;
+    const enneagram = formData.get("enneagram") as string;
+    const zodiac = formData.get("zodiac") as string;
+    const customPersonality = formData.get("customPersonality") as string;
     const scheduleFlexibility = formData.get("scheduleFlexibility") as string;
 
-    // Handle array fields (expecting comma-separated values or multiple entries)
-    // For simplicity using comma-separated strings for now from a hidden input or text area
+    // Handle array fields
     const dietaryPreferencesRaw = formData.get("dietaryPreferences") as string;
     const dietaryPreferences = dietaryPreferencesRaw ? dietaryPreferencesRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
 
@@ -29,22 +26,48 @@ export async function updateProfile(formData: FormData) {
     const interests = interestsRaw ? interestsRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
 
     try {
-        console.log("Saving profile data:", { bio, personalityType, socialBattery, scheduleFlexibility, dietaryPreferences, interests });
-        await prisma.profile.update({
-            where: { clerkId: userId },
-            data: {
-                bio,
-                personalityType,
-                socialBattery,
-                scheduleFlexibility,
-                dietaryPreferences,
-                interests,
-            },
+        // We need the email for creation if the profile doesn't exist
+        // auth() doesn't return email, so we might need to fetch from Clerk or use a default
+        // For now, let's try to find if a profile exists first to be safe
+        const existingProfile = await prisma.profile.findUnique({
+            where: { clerkId: userId }
         });
-        console.log("Profile updated successfully");
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        throw new Error("Failed to update profile");
+
+        const profileData = {
+            bio,
+            mbti,
+            enneagram,
+            zodiac,
+            customPersonality,
+            scheduleFlexibility,
+            dietaryPreferences,
+            interests,
+        };
+
+        if (existingProfile) {
+            await prisma.profile.update({
+                where: { clerkId: userId },
+                data: profileData,
+            });
+        } else {
+            // Create new profile
+            // We'll use a placeholder email or try to get it if available
+            await prisma.profile.create({
+                data: {
+                    clerkId: userId,
+                    email: "", // We should ideally get this from Clerk
+                    ...profileData,
+                },
+            });
+        }
+    } catch (error: any) {
+        console.error("CRITICAL: Error updating profile:", error);
+        // Log more details if it's a Prisma error
+        if (error.code) {
+            console.error("Prisma Error Code:", error.code);
+            console.error("Prisma Error Message:", error.message);
+        }
+        throw new Error(`Failed to update profile: ${error.message || 'Unknown error'}`);
     }
 
     revalidatePath("/profile");
