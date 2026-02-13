@@ -46,6 +46,7 @@ export async function updateProfile(formData: FormData) {
     const homeCity = formData.get("homeCity") as string;
     const homeState = formData.get("homeState") as string;
     const homeZipcode = formData.get("homeZipcode") as string;
+    const avatarUrl = formData.get("avatarUrl") as string;
 
     try {
         const existingProfile = await prisma.profile.findUnique({
@@ -73,6 +74,7 @@ export async function updateProfile(formData: FormData) {
             homeCity,
             homeState,
             homeZipcode,
+            avatarUrl,
         };
 
         if (existingProfile) {

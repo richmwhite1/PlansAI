@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { updateProfile } from "@/app/actions/profile-actions";
 import { useRouter } from "next/navigation";
 import { TagInput } from "@/components/ui/tag-input";
@@ -90,6 +90,19 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
     const [dealbreakers, setDealbreakers] = useState<string[]>(initialData.dealbreakers || []);
     const [funFacts, setFunFacts] = useState<string[]>(initialData.funFacts || []);
     const [newFunFact, setNewFunFact] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState(initialData.avatarUrl || "");
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const completeness = calculateCompleteness(initialData);
 
@@ -291,6 +304,34 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                 <span className="text-2xl">✨</span> Edit Your Profile
             </h2>
 
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center mb-10 group">
+                <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative w-32 h-32 rounded-3xl overflow-hidden cursor-pointer border-2 border-white/10 hover:border-primary/50 transition-all shadow-2xl group"
+                >
+                    <img
+                        src={avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png"}
+                        alt="Profile Preview"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                        <Plus className="w-8 h-8 mb-1" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Change Photo</span>
+                    </div>
+                </div>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                />
+                <p className="mt-4 text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-4 py-1.5 bg-white/5 rounded-full">
+                    {avatarUrl.startsWith('data:') ? 'Custom Photo' : 'Default Identity'}
+                </p>
+            </div>
+
             <form
                 action={async (formData) => {
                     // Append array fields
@@ -300,6 +341,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     formData.set("funFacts", funFacts.join(","));
                     formData.set("socialEnergy", String(socialEnergy));
                     formData.set("budgetComfort", String(budgetComfort));
+                    formData.set("avatarUrl", avatarUrl);
 
                     setLoading(true);
                     try {
