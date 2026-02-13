@@ -36,18 +36,19 @@ export function HangoutCard({ hangout, variant }: HangoutCardProps) {
             className="block p-4 glass-card hover:bg-white/5 hover:border-white/10 transition-all group"
         >
             <div className="flex gap-4">
-                {/* Left: Activity Image or Placeholder */}
                 <div className="w-16 h-16 rounded-lg bg-slate-800 shrink-0 overflow-hidden">
-                    {hangout.finalActivity?.imageUrl ? (
+                    {(hangout.finalActivity?.imageUrl || hangout.activity?.image) ? (
                         <img
-                            src={hangout.finalActivity.imageUrl}
+                            src={hangout.finalActivity?.imageUrl || hangout.activity?.image}
                             alt=""
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted">
-                            <MapPin className="w-6 h-6 text-muted-foreground" />
-                        </div>
+                        <img
+                            src="/images/hangout-placeholder.png"
+                            alt=""
+                            className="w-full h-full object-cover opacity-80"
+                        />
                     )}
                 </div>
 

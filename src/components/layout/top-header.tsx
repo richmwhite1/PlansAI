@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, MessageCircle, Loader2, Check } from "lucide-react";
+import { Bell, MessageCircle, Loader2, Check, LogOut, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useUser, SignInButton } from "@clerk/nextjs";
+import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Notification {
     id: string;
@@ -47,6 +48,7 @@ export function TopHeader() {
                     <div className="flex items-center gap-1">
                         <MessagesBadge />
                         <NotificationsDropdown />
+                        <UserMenu />
                     </div>
                 ) : (
                     <SignInButton mode="modal">
@@ -234,6 +236,83 @@ function NotificationsDropdown() {
                                     </div>
                                 ))
                             )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ──────────────────────────────────────────────────────────
+// User Menu — Profile icon with sign out
+// ──────────────────────────────────────────────────────────
+function UserMenu() {
+    const { user } = useUser();
+    const { signOut } = useClerk();
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    if (!user) return null;
+
+    return (
+        <div className="relative" ref={wrapperRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-center p-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+                <Avatar className="w-7 h-7 border border-white/10">
+                    <AvatarImage src={user.imageUrl} />
+                    <AvatarFallback className="text-[10px] bg-slate-800 text-slate-400">
+                        {user.firstName?.charAt(0) || user.username?.charAt(0) || "?"}
+                    </AvatarFallback>
+                </Avatar>
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute right-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 origin-top-right"
+                    >
+                        <div className="p-3 border-b border-white/5">
+                            <p className="text-xs font-semibold text-white truncate">
+                                {user.fullName || user.username || "User"}
+                            </p>
+                            <p className="text-[10px] text-slate-500 truncate">
+                                {user.primaryEmailAddress?.emailAddress}
+                            </p>
+                        </div>
+
+                        <div className="p-1">
+                            <Link
+                                href="/profile"
+                                onClick={() => setIsOpen(false)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                            >
+                                <User className="w-4 h-4" />
+                                Your Profile
+                            </Link>
+                            <button
+                                onClick={() => signOut({ redirectUrl: "/" })}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Sign Out
+                            </button>
                         </div>
                     </motion.div>
                 )}

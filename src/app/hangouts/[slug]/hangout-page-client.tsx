@@ -121,7 +121,14 @@ export function HangoutPageClient({
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
                         />
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950" />
+                        <motion.img
+                            initial={{ scale: 1.1, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 0.4 }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            src="/images/hangout-placeholder.png"
+                            alt="Community"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
+                        />
                     )}
                 </div>
 
@@ -471,9 +478,7 @@ export function HangoutPageClient({
                                         {act.imageUrl ? (
                                             <img src={act.imageUrl} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                                <MapPin className="w-8 h-8" />
-                                            </div>
+                                            <img src="/images/hangout-placeholder.png" alt="" className="w-full h-full object-cover opacity-70" />
                                         )}
                                     </div>
                                     <div>

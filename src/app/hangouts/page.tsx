@@ -51,7 +51,13 @@ export default async function HangoutsPage() {
                         },
                         take: 5
                     },
-                    finalActivity: true
+                    finalActivity: true,
+                    activityOptions: {
+                        take: 1,
+                        include: {
+                            cachedEvent: true
+                        }
+                    }
                 }
             }
         }
@@ -62,7 +68,14 @@ export default async function HangoutsPage() {
         ...p.hangout,
         myRole: p.role,
         myRsvp: p.rsvpStatus,
-        isCreator: p.hangout.creatorId === profile.id
+        isCreator: p.hangout.creatorId === profile.id,
+        activity: p.hangout.finalActivity ? {
+            image: p.hangout.finalActivity.imageUrl,
+            name: p.hangout.finalActivity.name
+        } : (p.hangout.activityOptions?.[0]?.cachedEvent ? {
+            image: p.hangout.activityOptions[0].cachedEvent.imageUrl,
+            name: p.hangout.activityOptions[0].cachedEvent.name
+        } : null)
     }));
 
     // Categorize hangouts with robust date handling

@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { FriendSelector } from "@/components/dashboard/friend-selector";
 import { InviteModal } from "@/components/dashboard/invite-modal";
 import { toast } from "sonner";
+import { HangoutCard } from "@/components/hangout/hangout-card";
 
 interface Friend {
     id: string;
@@ -301,70 +302,11 @@ export default function DiscoverPage() {
                     <div className="space-y-4">
                         {hangouts.length > 0 ? (
                             hangouts.map(hangout => (
-                                <Link
+                                <HangoutCard
                                     key={hangout.id}
-                                    href={`/hangouts/${hangout.slug}`}
-                                    className="block group"
-                                >
-                                    <div className="glass-card rounded-2xl border border-white/5 bg-card/50 overflow-hidden hover:border-primary/20 transition-all duration-300">
-                                        <div className="h-32 bg-slate-800 relative overflow-hidden">
-                                            {hangout.activity?.image ? (
-                                                <img
-                                                    src={hangout.activity.image}
-                                                    alt=""
-                                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                                                    <Compass className="w-8 h-8 text-slate-700" />
-                                                </div>
-                                            )}
-                                            <div className="absolute top-2 left-2 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 border border-white/10">
-                                                <Users className="w-3 h-3" />
-                                                {hangout.participantCount} going
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4">
-                                            <div className="flex items-start justify-between gap-2 mb-2">
-                                                <h2 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
-                                                    {hangout.title}
-                                                </h2>
-                                                {hangout.activity?.rating && (
-                                                    <span className="text-xs bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 flex items-center gap-1 font-bold">
-                                                        ★ {hangout.activity.rating}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-1 text-sm text-slate-400">
-                                                {hangout.date && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar className="w-3.5 h-3.5" />
-                                                        {format(new Date(hangout.date), "EEE, MMM d • h:mm a")}
-                                                    </div>
-                                                )}
-                                                {hangout.activity?.address && (
-                                                    <div className="flex items-center gap-2">
-                                                        <MapPin className="w-3.5 h-3.5" />
-                                                        <span className="truncate">{hangout.activity.address}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="mt-4 flex items-center gap-2 border-t border-white/5 pt-4">
-                                                <img
-                                                    src={hangout.creator.avatar}
-                                                    alt=""
-                                                    className="w-5 h-5 rounded-full bg-slate-700 ring-1 ring-white/10"
-                                                />
-                                                <span className="text-xs text-slate-500">
-                                                    Hosted by <span className="text-slate-300 font-medium">{hangout.creator.name}</span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
+                                    hangout={hangout}
+                                    variant="upcoming"
+                                />
                             ))
                         ) : (
                             <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
