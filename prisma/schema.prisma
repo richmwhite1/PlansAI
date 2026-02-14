@@ -18,7 +18,6 @@ model Profile {
   homeLongitude       Float?
   homeCity            String?
   homeState           String?
-  homeZipcode       String?
   travelRadiusMiles   Int                    @default(25)
   preferences         Json                   @default("{}")
   vibeHistory         Json                   @default("[]")
@@ -30,13 +29,6 @@ model Profile {
   bio                 String?
   dietaryPreferences  String[]
   interests           String[]
-  mbti                String?
-  enneagram           String?
-  zodiac              String?
-  bigFive             Json?
-  customPersonality   String?
-  websiteUrl          String?
-  locationUrl         String?
   personalityType     String?
   scheduleFlexibility String?
   socialBattery       SocialBattery          @default(MEDIUM)
@@ -49,6 +41,14 @@ model Profile {
   socialEnergy        Int?
   transportMode       String?
   vibeTags            String[]
+  bigFive             Json?
+  customPersonality   String?
+  enneagram           String?
+  homeZipcode         String?
+  locationUrl         String?
+  mbti                String?
+  websiteUrl          String?
+  zodiac              String?
   conversationsA      Conversation[]         @relation("ConversationA")
   conversationsB      Conversation[]         @relation("ConversationB")
   directMessages      DirectMessage[]
@@ -160,6 +160,7 @@ model HangoutParticipant {
   latitude    Float?
   longitude   Float?
   invitedAt   DateTime        @default(now())
+  isMandatory Boolean         @default(false)
   respondedAt DateTime?
   guest       GuestProfile?   @relation(fields: [guestId], references: [id], onDelete: Cascade)
   hangout     Hangout         @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
