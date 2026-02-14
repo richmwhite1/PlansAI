@@ -202,16 +202,20 @@ export async function POST(req: NextRequest) {
                 participants: {
                     create: [
                         {
-                            profileId: creator.id,
+                            profile: { connect: { id: creator.id } },
                             role: "CREATOR",
                             rsvpStatus: "GOING"
-                        },
+                        } as any,
                         ...participantProfileIds.map(pid => ({
-                            profileId: pid,
+                            profile: { connect: { id: pid } },
                             role: "MEMBER",
                             rsvpStatus: "PENDING"
-                        })),
-                        ...guestParticipantCreates
+                        } as any)),
+                        ...guestParticipantCreates.map(g => ({
+                            guest: { connect: { id: g.guestId } },
+                            role: g.role,
+                            rsvpStatus: g.rsvpStatus
+                        } as any))
                     ]
                 },
                 activityOptions: {
