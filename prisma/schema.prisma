@@ -8,70 +8,65 @@ datasource db {
 }
 
 model Profile {
-  id                String               @id @default(cuid())
-  clerkId           String               @unique
-  email             String?              @unique
-  displayName       String?
-  avatarUrl         String?
-  phone             String?
-  homeLatitude      Float?
-  homeLongitude     Float?
-  homeCity          String?
-  homeState         String?
+  id                  String                 @id @default(cuid())
+  clerkId             String                 @unique
+  email               String?                @unique
+  displayName         String?
+  avatarUrl           String?
+  phone               String?
+  homeLatitude        Float?
+  homeLongitude       Float?
+  homeCity            String?
+  homeState           String?
   homeZipcode       String?
-  travelRadiusMiles Int                  @default(25)
-  preferences       Json                 @default("{}")
-  vibeHistory       Json                 @default("[]")
-  trustScore        Float                @default(0.5)
-  hangoutCount      Int                  @default(0)
-  lastActiveAt      DateTime             @default(now())
-
-  // New Profile Fields
+  travelRadiusMiles   Int                    @default(25)
+  preferences         Json                   @default("{}")
+  vibeHistory         Json                   @default("[]")
+  trustScore          Float                  @default(0.5)
+  hangoutCount        Int                    @default(0)
+  lastActiveAt        DateTime               @default(now())
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
   bio                 String?
+  dietaryPreferences  String[]
+  interests           String[]
   mbti                String?
   enneagram           String?
   zodiac              String?
-  bigFive             Json?    // Store Big 5 scores if we want to be detailed
+  bigFive             Json?
   customPersonality   String?
-  dietaryPreferences  String[]
-  interests           String[]
-  scheduleFlexibility String?
   websiteUrl          String?
   locationUrl         String?
-
-  // Social Personality (feeds AI recommendations)
-  socialEnergy        Int?       // 1=introvert, 5=extrovert
-  vibeTags            String[]   // "Foodie", "Night Owl", etc.
-  budgetComfort       Int?       // 1=$, 4=$$$$
-  availabilityWindows String[]   // "Weekday evenings", "Weekend mornings"
-  dealbreakers        String[]   // "No horror movies", etc.
-  funFacts            String[]   // Tidbits friends can see
-  
-  // Logistics & Specifics
-  transportMode       String?    // CAR, PUBLIC, WALK
-  cuisinePreferences  String[]   // "Sushi", "Italian"
-  drinkPreferences    String[]   // "Wine", "Cocktails"
-
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  friendshipsA      Friendship[]         @relation("FriendA")
-  friendshipsB      Friendship[]         @relation("FriendB")
-  hangoutsCreated   Hangout[]            @relation("HangoutCreator")
-  feedbacks         HangoutFeedback[]
-  participants      HangoutParticipant[]
-  photos            HangoutPhoto[]
-  templates         HangoutTemplate[]
-  messages          Message[]
-  notifications     Notification[]
-  timeVotes         TimeVote[]
-  votes             Vote[]
-  assignedTasks     HangoutTask[]       @relation("TaskAssignee")
-  volunteeredTasks  HangoutTaskVolunteer[]
-  paidExpenses      HangoutExpense[]    @relation("ExpensePayer")
-  pushSubscriptions PushSubscription[]
-  conversationsA    Conversation[]      @relation("ConversationA")
-  conversationsB    Conversation[]      @relation("ConversationB")
-  directMessages    DirectMessage[]
+  personalityType     String?
+  scheduleFlexibility String?
+  socialBattery       SocialBattery          @default(MEDIUM)
+  availabilityWindows String[]
+  budgetComfort       Int?
+  cuisinePreferences  String[]
+  dealbreakers        String[]
+  drinkPreferences    String[]
+  funFacts            String[]
+  socialEnergy        Int?
+  transportMode       String?
+  vibeTags            String[]
+  conversationsA      Conversation[]         @relation("ConversationA")
+  conversationsB      Conversation[]         @relation("ConversationB")
+  directMessages      DirectMessage[]
+  friendshipsA        Friendship[]           @relation("FriendA")
+  friendshipsB        Friendship[]           @relation("FriendB")
+  hangoutsCreated     Hangout[]              @relation("HangoutCreator")
+  paidExpenses        HangoutExpense[]       @relation("ExpensePayer")
+  feedbacks           HangoutFeedback[]
+  participants        HangoutParticipant[]
+  photos              HangoutPhoto[]
+  assignedTasks       HangoutTask[]          @relation("TaskAssignee")
+  volunteeredTasks    HangoutTaskVolunteer[]
+  templates           HangoutTemplate[]
+  messages            Message[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
+  timeVotes           TimeVote[]
+  votes               Vote[]
 
   @@index([clerkId])
   @@index([homeLatitude, homeLongitude])
@@ -109,44 +104,44 @@ model Friendship {
 }
 
 model Hangout {
-  id                String                  @id @default(cuid())
-  slug              String                  @unique @default(cuid())
-  title             String
-  description       String?
-  type              HangoutType             @default(CASUAL)
-  status            HangoutStatus           @default(PLANNING)
-  creatorId         String
-  finalActivityId   String?
-  finalDateTime     DateTime?
-  midpointLat       Float?
-  midpointLng       Float?
+  id                          String                  @id @default(cuid())
+  slug                        String                  @unique @default(cuid())
+  title                       String
+  description                 String?
+  type                        HangoutType             @default(CASUAL)
+  status                      HangoutStatus           @default(PLANNING)
+  creatorId                   String
+  finalActivityId             String?
+  finalDateTime               DateTime?
+  midpointLat                 Float?
+  midpointLng                 Float?
   searchRadiusMiles           Int                     @default(10)
   summary                     String?
   vibeScore                   String?
   votingEndsAt                DateTime?
-  isVotingEnabled             Boolean                 @default(false)
-  consensusThreshold          Int                     @default(60)
-  allowParticipantSuggestions Boolean                 @default(false)
   allowGuestVotes             Boolean                 @default(true)
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  scheduledFor                DateTime?
+  expiresAt                   DateTime?
+  inviteToken                 String?                 @unique
+  visibility                  HangoutVisibility       @default(PRIVATE)
+  allowParticipantSuggestions Boolean                 @default(false)
+  consensusThreshold          Int                     @default(60)
+  isVotingEnabled             Boolean                 @default(false)
   allowGuestsToInvite         Boolean                 @default(false)
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  scheduledFor      DateTime?
-  expiresAt         DateTime?
-  inviteToken       String?                 @unique
-  visibility        HangoutVisibility       @default(PRIVATE)
-  discoverable      DiscoverableHangout?
-  creator           Profile                 @relation("HangoutCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  finalActivity     CachedEvent?            @relation(fields: [finalActivityId], references: [id])
-  activityOptions   HangoutActivityOption[]
-  feedbacks         HangoutFeedback[]
-  participants      HangoutParticipant[]
-  photos            HangoutPhoto[]
-  timeOptions       HangoutTimeOption[]
-  messages          Message[]
-  votes             Vote[]
-  tasks             HangoutTask[]
-  expenses          HangoutExpense[]
+  discoverable                DiscoverableHangout?
+  creator                     Profile                 @relation("HangoutCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  finalActivity               CachedEvent?            @relation(fields: [finalActivityId], references: [id])
+  activityOptions             HangoutActivityOption[]
+  expenses                    HangoutExpense[]
+  feedbacks                   HangoutFeedback[]
+  participants                HangoutParticipant[]
+  photos                      HangoutPhoto[]
+  tasks                       HangoutTask[]
+  timeOptions                 HangoutTimeOption[]
+  messages                    Message[]
+  votes                       Vote[]
 
   @@index([creatorId])
   @@index([status])
@@ -162,7 +157,6 @@ model HangoutParticipant {
   guestId     String?
   role        ParticipantRole @default(MEMBER)
   rsvpStatus  RsvpStatus      @default(PENDING)
-  isMandatory Boolean         @default(false)
   latitude    Float?
   longitude   Float?
   invitedAt   DateTime        @default(now())
@@ -196,7 +190,6 @@ model CachedEvent {
   reviewCount     Int?
   imageUrl        String?
   websiteUrl      String?
-  locationUrl     String?
   phoneNumber     String?
   isTimeBound     Boolean                 @default(false)
   startsAt        DateTime?
@@ -369,6 +362,95 @@ model TimeVote {
   @@index([profileId])
 }
 
+model HangoutTask {
+  id         String                 @id @default(cuid())
+  hangoutId  String
+  title      String
+  assigneeId String?
+  isComplete Boolean                @default(false)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  assignee   Profile?               @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  hangout    Hangout                @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  volunteers HangoutTaskVolunteer[]
+
+  @@index([hangoutId])
+  @@index([assigneeId])
+}
+
+model HangoutTaskVolunteer {
+  id        String      @id @default(cuid())
+  taskId    String
+  profileId String
+  createdAt DateTime    @default(now())
+  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  task      HangoutTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, profileId])
+  @@index([taskId])
+  @@index([profileId])
+}
+
+model HangoutExpense {
+  id          String   @id @default(cuid())
+  hangoutId   String
+  paidById    String
+  amount      Float
+  description String
+  splitType   String   @default("EVEN")
+  splitAmong  String[]
+  createdAt   DateTime @default(now())
+  hangout     Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  paidBy      Profile  @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+  @@index([paidById])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  profileId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Conversation {
+  id             String          @id @default(cuid())
+  participantAId String
+  participantBId String
+  isRequest      Boolean         @default(false)
+  lastMessageAt  DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  participantA   Profile         @relation("ConversationA", fields: [participantAId], references: [id], onDelete: Cascade)
+  participantB   Profile         @relation("ConversationB", fields: [participantBId], references: [id], onDelete: Cascade)
+  messages       DirectMessage[]
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@index([lastMessageAt])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         Profile      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
 enum HangoutType {
   DATE
   GROUP_DINNER
@@ -434,95 +516,12 @@ enum NotificationType {
   HANGOUT_INVITE
   HANGOUT_UPDATE
   HANGOUT_REMINDER
-  NEW_MESSAGE
   SYSTEM
+  NEW_MESSAGE
 }
 
-model HangoutTask {
-  id         String   @id @default(cuid())
-  hangoutId  String
-  title      String
-  assigneeId String?
-  isComplete Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  hangout    Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
-  assignee   Profile? @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  volunteers HangoutTaskVolunteer[]
-
-  @@index([hangoutId])
-  @@index([assigneeId])
-}
-
-model HangoutTaskVolunteer {
-  id        String   @id @default(cuid())
-  taskId    String
-  profileId String
-  createdAt DateTime @default(now())
-  task      HangoutTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@unique([taskId, profileId])
-  @@index([taskId])
-  @@index([profileId])
-}
-
-model HangoutExpense {
-  id          String   @id @default(cuid())
-  hangoutId   String
-  paidById    String
-  amount      Float
-  description String
-  splitType   String   @default("EVEN") // EVEN or CUSTOM
-  splitAmong  String[] // Profile IDs (used for CUSTOM split)
-  createdAt   DateTime @default(now())
-  hangout     Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
-  paidBy      Profile  @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
-
-  @@index([hangoutId])
-  @@index([paidById])
-}
-
-model PushSubscription {
-  id        String   @id @default(cuid())
-  profileId String
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  createdAt DateTime @default(now())
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@index([profileId])
-}
-
-model Conversation {
-  id              String          @id @default(cuid())
-  participantAId  String
-  participantBId  String
-  isRequest       Boolean         @default(false)
-  lastMessageAt   DateTime        @default(now())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  participantA    Profile         @relation("ConversationA", fields: [participantAId], references: [id], onDelete: Cascade)
-  participantB    Profile         @relation("ConversationB", fields: [participantBId], references: [id], onDelete: Cascade)
-  messages        DirectMessage[]
-
-  @@unique([participantAId, participantBId])
-  @@index([participantAId])
-  @@index([participantBId])
-  @@index([lastMessageAt])
-}
-
-model DirectMessage {
-  id             String       @id @default(cuid())
-  conversationId String
-  senderId       String
-  content        String
-  isRead         Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         Profile      @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-  @@index([senderId])
+enum SocialBattery {
+  LOW
+  MEDIUM
+  HIGH
 }
