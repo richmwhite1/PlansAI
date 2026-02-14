@@ -28,7 +28,7 @@ export function InviteModal({ isOpen, onClose, inviteUrl, guests, onDone }: Invi
     };
 
     const handleTextGuest = (guestName: string) => {
-        const body = `Hey ${guestName}! Join our plan here: ${inviteUrl}`;
+        const body = `You're invited! Hey ${guestName}! Join our plan here: ${inviteUrl}`;
         // Try native share first if it's mobile-friendly or just use sms:
         if (navigator.share) {
             navigator.share({

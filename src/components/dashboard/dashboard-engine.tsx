@@ -266,17 +266,17 @@ export function DashboardEngine() {
                                                 Edit Vibe
                                             </button>
                                         )}
-                                        <div
-                                            className={cn(
-                                                "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border",
-                                                isVotingEnabled
-                                                    ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_10px_rgba(251,191,36,0.2)]"
-                                                    : "bg-white/5 border-white/5 text-slate-500"
-                                            )}
-                                        >
-                                            <Sparkles className={cn("w-3 h-3", isVotingEnabled ? "text-primary" : "text-slate-500")} />
-                                            {isVotingEnabled ? "Vote Mode" : "Quick Pick"}
-                                        </div>
+                                        {isVotingEnabled && (
+                                            <div
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border",
+                                                    "bg-primary/20 border-primary/50 text-primary shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+                                                )}
+                                            >
+                                                <Sparkles className="w-3 h-3 text-primary" />
+                                                Vote Mode
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

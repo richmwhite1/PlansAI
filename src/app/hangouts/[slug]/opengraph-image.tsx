@@ -23,7 +23,11 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
                 },
                 take: 3
             },
-            finalActivity: true
+            finalActivity: true,
+            photos: {
+                take: 1,
+                orderBy: { createdAt: 'desc' }
+            }
         }
     });
 
@@ -65,6 +69,8 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
         ? new Date(hangout.scheduledFor).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
         : 'Planning...';
 
+    const image = hangout.finalActivity?.imageUrl || hangout.photos[0]?.url;
+
     return new ImageResponse(
         (
             <div
@@ -77,13 +83,39 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
-                    padding: 80,
                     fontFamily: 'sans-serif',
                 }}
             >
-                {/* Background Decor */}
-                <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, background: '#8B5CF6', opacity: 0.2, borderRadius: '50%', filter: 'blur(80px)' }} />
-                <div style={{ position: 'absolute', bottom: -100, left: -100, width: 400, height: 400, background: '#D946EF', opacity: 0.2, borderRadius: '50%', filter: 'blur(80px)' }} />
+                {/* Background Image */}
+                {image && (
+                    <img
+                        src={image}
+                        alt={hangout.title}
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            filter: 'blur(4px)',
+                            transform: 'scale(1.1)', // Prevent blur edges
+                        }}
+                    />
+                )}
+
+                {/* Overlay for readability */}
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: image ? 'rgba(15, 23, 42, 0.7)' : 'transparent',
+                }} />
+
+                {/* Background Decor (only if no image) */}
+                {!image && (
+                    <>
+                        <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, background: '#8B5CF6', opacity: 0.2, borderRadius: '50%', filter: 'blur(80px)' }} />
+                        <div style={{ position: 'absolute', bottom: -100, left: -100, width: 400, height: 400, background: '#D946EF', opacity: 0.2, borderRadius: '50%', filter: 'blur(80px)' }} />
+                    </>
+                )}
 
                 {/* Content Card */}
                 <div
@@ -98,6 +130,8 @@ export default async function Image(props: { params: Promise<{ slug: string }> }
                         boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
                         maxWidth: 1000,
                         textAlign: 'center',
+                        backdropFilter: 'blur(12px)',
+                        zIndex: 10,
                     }}
                 >
                     <div style={{ fontSize: 24, letterSpacing: '0.1em', color: '#A78BFA', textTransform: 'uppercase', marginBottom: 20 }}>

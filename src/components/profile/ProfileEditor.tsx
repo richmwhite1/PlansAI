@@ -367,6 +367,65 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     />
                 </div>
 
+                {/* Personality Section */}
+                <div className="space-y-6 border-b border-border pb-6">
+                    <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        <Brain className="w-3.5 h-3.5" /> Personality
+                    </h3>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">MBTI</label>
+                            <select
+                                name="mbti"
+                                defaultValue={initialData.mbti || ""}
+                                className="w-full bg-input/50 border border-white/10 rounded-md p-2.5 text-sm focus:border-foreground outline-none cursor-pointer"
+                            >
+                                <option value="">Select—</option>
+                                {MBTI_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Zodiac</label>
+                            <select
+                                name="zodiac"
+                                defaultValue={initialData.zodiac || ""}
+                                className="w-full bg-input/50 border border-white/10 rounded-md p-2.5 text-sm focus:border-foreground outline-none cursor-pointer"
+                            >
+                                <option value="">Select—</option>
+                                {ZODIAC_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enneagram</label>
+                            <select
+                                name="enneagram"
+                                defaultValue={initialData.enneagram || ""}
+                                className="w-full bg-input/50 border border-white/10 rounded-md p-2.5 text-sm focus:border-foreground outline-none cursor-pointer"
+                            >
+                                <option value="">Select—</option>
+                                {ENNEAGRAM_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt.split(" - ")[0]}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custom / Other</label>
+                        <input
+                            name="customPersonality"
+                            defaultValue={initialData.customPersonality || ""}
+                            placeholder="e.g. Generator 3/5, Slytherin..."
+                            className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                        />
+                    </div>
+                </div>
+
                 {/* Logistics Section */}
                 <div className="space-y-6 border-b border-border pb-6">
                     <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">

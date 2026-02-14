@@ -26,28 +26,22 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
     const [query, setQuery] = useState("");
     const [isFocused, setIsFocused] = useState(false);
     const [friends, setFriends] = useState<any[]>([]);
-    const [discoveryUsers, setDiscoveryUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [addFriendError, setAddFriendError] = useState<string | null>(null);
 
-    // Fetch friends and discovery on mount
+    // Fetch friends on mount
     useEffect(() => {
         if (isSignedIn) {
             setIsLoading(true);
 
-            // Fetch both in parallel
-            Promise.all([
-                fetch(`/api/friends?t=${Date.now()}`).then(res => res.json()),
-                fetch(`/api/users/discovery?t=${Date.now()}`).then(res => res.json())
-            ]).then(([friendsData, discoveryData]) => {
-                if (friendsData.friends) {
-                    setFriends(friendsData.friends);
-                }
-                if (discoveryData.users) {
-                    setDiscoveryUsers(discoveryData.users);
-                }
-            })
+            fetch(`/api/friends?t=${Date.now()}`)
+                .then(res => res.json())
+                .then((friendsData) => {
+                    if (friendsData.friends) {
+                        setFriends(friendsData.friends);
+                    }
+                })
                 .catch(console.error)
                 .finally(() => setIsLoading(false));
         }
@@ -87,7 +81,6 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
                     status: data.status || "PENDING"
                 };
                 setFriends(prev => [...prev.filter(f => f.id !== newFriend.id), newFriend]);
-                setDiscoveryUsers(prev => prev.filter(u => u.id !== newFriend.id && u.email !== target));
                 onSelect([...selected, newFriend]);
                 setQuery("");
             } else if (data.canInvite) {
@@ -104,8 +97,7 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
 
     // Consolidated search logic
     const searchResults = [
-        ...friends.filter(f => (f.name || "").toLowerCase().includes(query.toLowerCase())),
-        ...discoveryUsers.filter(u => (u.name || "").toLowerCase().includes(query.toLowerCase()))
+        ...friends.filter(f => (f.name || "").toLowerCase().includes(query.toLowerCase()))
     ];
 
     const [guestName, setGuestName] = useState("");

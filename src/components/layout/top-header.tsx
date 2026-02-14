@@ -38,7 +38,7 @@ export function TopHeader() {
             <div className="flex items-center justify-between px-4 h-12">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2">
-                    <span className="text-base font-serif font-bold bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
+                    <span className="text-2xl font-serif font-bold bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent pb-1">
                         Plans
                     </span>
                 </Link>
