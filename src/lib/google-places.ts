@@ -36,6 +36,10 @@ export async function searchNearbyPlaces(
         return [];
     }
 
+    // DEBUG: Verify Key is loaded
+    const maskedKey = apiKey.length > 10 ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : "INVALID_LENGTH";
+    console.log(`[GooglePlaces] Using API Key: ${maskedKey}`);
+
     try {
         const response = await fetch(GOOGLE_PLACES_API_URL, {
             method: "POST",
