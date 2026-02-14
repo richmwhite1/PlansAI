@@ -29,6 +29,10 @@ export async function GET(req: NextRequest) {
                         { profileBId: currentProfile.id }
                     ],
                     status: "ACCEPTED"
+                },
+                include: {
+                    profileA: true,
+                    profileB: true
                 }
             });
 
