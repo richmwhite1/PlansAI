@@ -2,23 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, Download, Share, PlusSquare } from "lucide-react";
+import { Bell, X, Compass } from "lucide-react";
 
 export function InstallPrompt() {
     const [showEngagementPrompt, setShowEngagementPrompt] = useState(false);
     const [showInstallGuide, setShowInstallGuide] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
+    const [isInAppBrowser, setIsInAppBrowser] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
         // Run only on client
         if (typeof window === "undefined") return;
 
-        // Check platform
+        // Check platform and browser context
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIpadOS = window.navigator.maxTouchPoints > 2 && /macintosh/.test(userAgent);
         const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) || isIpadOS;
         setIsIOS(isIOSDevice);
+
+        // Simple heuristic for common in-app browsers on iOS (Instagram, FB, Messenger, TikTok, etc.)
+        const isSocialInApp = /instagram|fbav|fban|messenger|tiktok|snapchat|pinterest/i.test(userAgent);
+        setIsInAppBrowser(isSocialInApp);
 
         // Check if already installed
         const isAppStandalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
@@ -109,6 +114,17 @@ export function InstallPrompt() {
         setShowInstallGuide(false);
     };
 
+    const handleGotItClick = () => {
+        if (isIOS && isInAppBrowser) {
+            // Try to force trigger safari deep link if possible, though highly restricted.
+            // Normally users must tap the specific icon in the app header (e.g. compass in Instagram).
+            // Since we can't force them out programmatically in most cases, we alert them:
+            alert("To install Plans, please tap the browser icon (compass or three dots) in the corner of your screen to open this page in Safari first.");
+            return;
+        }
+        handleCloseGuide();
+    };
+
     // If installed, display nothing
     if (isStandalone) return null;
 
@@ -117,49 +133,54 @@ export function InstallPrompt() {
             {/* 10-Minute Engagement Prompt */}
             {showEngagementPrompt && (
                 <motion.div
-                    initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                    className="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:bottom-24 md:w-96 bg-zinc-900 border border-white/10 p-6 rounded-3xl shadow-2xl z-50 overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-
-                    <button
-                        onClick={handleDeclinePush}
-                        className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20 }}
+                        className="bg-zinc-950 border border-white/10 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col"
                     >
-                        <X className="w-5 h-5" />
-                    </button>
+                        <button
+                            onClick={handleDeclinePush}
+                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-colors z-10"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
 
-                    <div className="relative space-y-4">
-                        <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center">
-                            <Bell className="w-6 h-6 text-primary" />
+                        <div className="relative h-32 bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent flex flex-col items-center justify-center flex-shrink-0">
+                            <div className="w-16 h-16 bg-gradient-to-br from-primary to-amber-300 rounded-[1rem] flex items-center justify-center shadow-lg shadow-primary/30 mt-4">
+                                <Bell className="w-8 h-8 text-black" />
+                            </div>
                         </div>
 
-                        <div>
-                            <h3 className="text-xl font-serif font-bold text-white mb-2">
-                                Never miss a plan
-                            </h3>
-                            <p className="text-sm text-slate-300">
-                                Get push notifications when your friends vote, RSVP, or decide on an activity.
-                            </p>
-                        </div>
+                        <div className="p-6 md:p-8 space-y-6 pt-6 overflow-y-auto">
+                            <div className="text-center space-y-2">
+                                <h3 className="text-2xl font-serif font-bold text-white">
+                                    Never miss a plan
+                                </h3>
+                                <p className="text-sm text-slate-400">
+                                    Get push notifications when your friends vote, RSVP, or decide on an activity.
+                                </p>
+                            </div>
 
-                        <div className="flex gap-3 pt-2">
-                            <button
-                                onClick={handleDeclinePush}
-                                className="flex-1 py-3 px-4 font-semibold text-sm rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                            >
-                                Not now
-                            </button>
                             <button
                                 onClick={handleAcceptPush}
-                                className="flex-1 py-3 px-4 font-bold text-sm rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all"
+                                className="w-full py-4 rounded-xl font-bold bg-white text-black hover:bg-slate-200 transition-colors text-lg"
                             >
-                                Turn on
+                                Turn on Notifications
+                            </button>
+                            <button
+                                onClick={handleDeclinePush}
+                                className="w-full py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 transition-colors text-lg"
+                            >
+                                Not right now
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </motion.div>
             )}
 
@@ -169,34 +190,32 @@ export function InstallPrompt() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
                 >
                     <motion.div
                         initial={{ scale: 0.95, y: 20 }}
                         animate={{ scale: 1, y: 0 }}
                         exit={{ scale: 0.95, y: 20 }}
-                        className="bg-zinc-950 border border-white/10 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl"
+                        className="bg-zinc-950 border border-white/10 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col"
                     >
-                        <div className="relative h-48 bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent flex items-center justify-center">
-                            <button
-                                onClick={handleCloseGuide}
-                                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+                        <button
+                            onClick={handleCloseGuide}
+                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-colors z-10"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
 
-                            <div className="relative">
-                                {/* Native-looking Icon simulation */}
-                                <div className="w-24 h-24 rounded-[1.4rem] bg-gradient-to-br from-primary to-amber-300 flex items-center justify-center shadow-lg shadow-primary/30">
-                                    <span className="font-serif font-bold text-black text-[3rem] italic leading-none pt-2 pr-1">P</span>
-                                </div>
+                        <div className="relative h-32 bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent flex flex-col items-center justify-center flex-shrink-0">
+                            {/* Native-looking Icon simulation */}
+                            <div className="w-16 h-16 rounded-[1rem] bg-gradient-to-br from-primary to-amber-300 flex items-center justify-center shadow-lg shadow-primary/30 mt-4">
+                                <span className="font-serif font-bold text-black text-[2rem] italic leading-none pt-1 pr-0.5">P</span>
                             </div>
                         </div>
 
-                        <div className="p-6 md:p-8 space-y-6">
-                            <div className="text-center space-y-2">
+                        <div className="p-6 md:p-8 space-y-6 pt-4 overflow-y-auto">
+                            <div className="text-center space-y-2 pb-2">
                                 <h3 className="text-2xl font-serif font-bold text-white">
-                                    Install Plans
+                                    {isIOS ? "Install on iPhone" : "Install on Android"}
                                 </h3>
                                 <p className="text-sm text-slate-400">
                                     Add Plans to your home screen for a faster, app-like experience.
@@ -204,37 +223,63 @@ export function InstallPrompt() {
                             </div>
 
                             {isIOS ? (
-                                <div className="space-y-4 bg-white/5 p-4 rounded-2xl border border-white/5">
-                                    <div className="flex gap-4 items-center text-sm text-slate-300">
-                                        <div className="w-8 h-8 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center">
-                                            1
-                                        </div>
-                                        <p>Tap the <Share className="w-5 h-5 inline mx-1 text-blue-400" /> icon below in Safari.</p>
+                                isInAppBrowser ? (
+                                    <div className="space-y-4 bg-rose-500/10 border border-rose-500/20 p-5 rounded-2xl text-center">
+                                        <Compass className="w-10 h-10 text-rose-400 mx-auto mb-2" />
+                                        <p className="text-sm text-white font-medium">You are using an in-app browser.</p>
+                                        <p className="text-xs text-rose-200">
+                                            To install Plans, you must first open this page in Safari. Tap the browser/compass icon in the corner of your screen.
+                                        </p>
                                     </div>
-                                    <div className="flex gap-4 items-center text-sm text-slate-300">
-                                        <div className="w-8 h-8 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center">
-                                            2
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center text-xs mt-0.5 font-bold">1</div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-slate-300">Tap the <strong>Share</strong> icon below in Safari.</p>
+                                                    <img src="/ios-step1.png" alt="Safari Share Icon" className="rounded-lg shadow-md border border-white/10 w-full object-cover" />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p>Scroll down and tap <strong>Add to Home Screen</strong> <PlusSquare className="w-4 h-4 inline mx-1 text-white border-2 border-slate-300 rounded-[4px]" />.</p>
-                                    </div>
-                                    <div className="flex gap-4 items-center text-sm text-slate-300">
-                                        <div className="w-8 h-8 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center">
-                                            3
+                                        <div className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center text-xs mt-0.5 font-bold">2</div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-slate-300">Scroll down the menu and tap <strong>Add to Home Screen</strong>.</p>
+                                                    <img src="/ios-step2.png" alt="Add to Home Screen" className="rounded-lg shadow-md border border-white/10 w-full object-cover" />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p>Confirm by tapping <strong>Add</strong> in the top right.</p>
+                                        <div className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center text-xs mt-0.5 font-bold">3</div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-slate-300">Confirm by tapping <strong>Add</strong> in the top right.</p>
+                                                    <img src="/ios-step3.png" alt="Confirm Add" className="rounded-lg shadow-md border border-white/10 w-full object-cover" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                )
                             ) : (
-                                <div className="space-y-4 text-center">
-                                    <p className="text-sm text-slate-300 bg-white/5 p-4 rounded-2xl border border-white/5">
-                                        Tap the install button in your browser's address bar, or open the browser menu and select <strong>Install App</strong>.
-                                    </p>
+                                <div className="space-y-4">
+                                    <div className="bg-white/5 border border-white/5 p-5 rounded-2xl space-y-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-6 h-6 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center text-xs mt-0.5 font-bold">1</div>
+                                            <p className="text-sm text-slate-300">Tap the <strong>Install App</strong> button if it appears in your browser's address bar.</p>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-6 h-6 flex-shrink-0 bg-white/10 rounded-full flex items-center justify-center text-xs mt-0.5 font-bold">2</div>
+                                            <p className="text-sm text-slate-300">Or, tap the <strong>three dots (Menu)</strong> in the top right and select <strong>Install App</strong> or <strong>Add to Home Screen</strong>.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             <button
-                                onClick={handleCloseGuide}
-                                className="w-full py-4 rounded-xl font-bold bg-white text-black hover:bg-slate-200 transition-colors"
+                                onClick={handleGotItClick}
+                                className="w-full py-4 rounded-xl font-bold bg-white text-black hover:bg-slate-200 transition-colors text-lg"
                             >
                                 Got it
                             </button>
