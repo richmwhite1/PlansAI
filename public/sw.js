@@ -58,8 +58,8 @@ self.addEventListener("push", (event) => {
     const defaultData = {
         title: "Plans",
         body: "You have a new update",
-        icon: "/android-chrome-192x192.png",
-        badge: "/android-chrome-192x192.png",
+        icon: "/icon-192x192.png",
+        badge: "/icon-192x192.png",
         url: "/",
     };
 

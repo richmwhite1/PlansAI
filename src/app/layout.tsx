@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Plans",
   },
+  icons: {
+    apple: "/icon-192x192.png",
+  },
   openGraph: {
     type: "website",
     siteName: "Plans",
@@ -45,6 +48,7 @@ export const metadata: Metadata = {
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { TopHeader } from "@/components/layout/top-header";
 import { RegisterSW } from "@/components/register-sw";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 
 export const viewport = {
   themeColor: "#0A0A0A", // Updated to Midnight Carbon
@@ -76,6 +80,7 @@ export default function RootLayout({
           {children}
           <BottomNav />
           <RegisterSW />
+          <InstallPrompt />
           <Toaster richColors position="bottom-center" theme="dark" />
         </body>
       </html>

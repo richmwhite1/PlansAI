@@ -3,7 +3,7 @@
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { DashboardEngine } from "@/components/dashboard/dashboard-engine";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Download } from "lucide-react";
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
@@ -142,7 +142,15 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5" />
               </motion.button>
             </SignInButton>
-            <p className="text-sm text-slate-500">
+
+            <button
+              onClick={() => (window as any).triggerInstallPrompt?.()}
+              className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-2 pt-2"
+            >
+              <Download className="w-4 h-4" /> Download App
+            </button>
+
+            <p className="text-sm text-slate-500 mt-2">
               Free to use · No credit card needed
             </p>
           </div>
