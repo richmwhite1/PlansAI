@@ -421,7 +421,7 @@ export function HangoutPageClient({
                     <div className="space-y-8">
                         <HangoutVoting
                             hangoutId={hangout.id}
-                            currentUserIds={profile ? [profile.id] : []}
+                            currentUserIds={profile ? [profile.id] : currentUserParticipant?.guestId ? [currentUserParticipant.guestId] : []}
                             options={hangout.activityOptions.map((opt: any) => ({
                                 id: opt.id,
                                 activity: {
@@ -433,7 +433,7 @@ export function HangoutPageClient({
                                     imageUrl: opt.cachedEvent.imageUrl
                                 },
                                 votes: opt.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value })),
-                                userVote: opt.votes.find((v: any) => v.profileId === profile?.id)?.value || 0
+                                userVote: opt.votes.find((v: any) => v.profileId === profile?.id || (currentUserParticipant && v.guestId === currentUserParticipant.guestId))?.value || 0
                             }))}
                             allowParticipantSuggestions={hangout.allowParticipantSuggestions}
                             votingEndsAt={hangout.votingEndsAt}
@@ -447,11 +447,12 @@ export function HangoutPageClient({
                                 <TimeVoting
                                     hangoutId={hangout.id}
                                     isParticipant={!!currentUserParticipant}
+                                    currentUserId={currentUserParticipant?.profileId || currentUserParticipant?.guestId}
                                     options={hangout.timeOptions.map((t: any) => ({
                                         id: t.id,
                                         startTime: t.startTime,
                                         endTime: t.endTime || null,
-                                        votes: t.votes
+                                        votes: t.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value }))
                                     }))}
                                 />
                             </div>

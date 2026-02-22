@@ -16,10 +16,22 @@ interface TimeVotingProps {
     hangoutId: string;
     options: TimeOption[];
     isParticipant: boolean;
+    currentUserId?: string;
 }
 
-export function TimeVoting({ hangoutId, options, isParticipant }: TimeVotingProps) {
-    const [votes, setVotes] = useState<Record<string, number>>({}); // optionId -> value
+export function TimeVoting({ hangoutId, options, isParticipant, currentUserId }: TimeVotingProps) {
+    const [votes, setVotes] = useState<Record<string, number>>(() => {
+        const initialVotes: Record<string, number> = {};
+        if (currentUserId) {
+            options.forEach(opt => {
+                const userVote = opt.votes.find(v => v.userId === currentUserId);
+                if (userVote) {
+                    initialVotes[opt.id] = userVote.value;
+                }
+            });
+        }
+        return initialVotes;
+    });
 
     // Calculate Best Time
     const bestTime = options.reduce((best, curr) => {

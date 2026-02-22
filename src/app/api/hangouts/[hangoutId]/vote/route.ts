@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 
 export async function POST(
     req: NextRequest,
@@ -8,7 +9,10 @@ export async function POST(
 ) {
     try {
         const { userId } = await auth();
-        if (!userId) {
+        const cookieStore = await cookies();
+        const guestToken = cookieStore.get("plans-guest-token")?.value;
+
+        if (!userId && !guestToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -20,39 +24,61 @@ export async function POST(
             return NextResponse.json({ error: "Missing option ID" }, { status: 400 });
         }
 
-        // 1. Get Profile
-        const profile = await prisma.profile.findUnique({
-            where: { clerkId: userId },
-        });
+        let profileId = undefined;
+        let guestId = undefined;
 
-        if (!profile) {
-            return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+        if (userId) {
+            const profile = await prisma.profile.findUnique({
+                where: { clerkId: userId },
+            });
+            if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+            profileId = profile.id;
+        } else if (guestToken) {
+            const guestProfile = await prisma.guestProfile.findUnique({
+                where: { token: guestToken }
+            });
+            if (!guestProfile) return NextResponse.json({ error: "Guest not found" }, { status: 404 });
+            guestId = guestProfile.id;
         }
-
-        // 2. Upsert Vote
-        // We need to handle the unique constraints. 
-        // Since we might be voting on activity OR time, we need to construct the where clause dynamically or handle separate logic.
-        // For MVP, let's assume Activity Voting primarily.
 
         if (activityOptionId) {
             const currentVoteValue = vote; // 1 for YES
 
-            await prisma.vote.upsert({
-                where: {
-                    hangoutId_profileId_activityOptionId: {
+            if (profileId) {
+                await prisma.vote.upsert({
+                    where: {
+                        hangoutId_profileId_activityOptionId: {
+                            hangoutId,
+                            profileId: profileId,
+                            activityOptionId
+                        }
+                    },
+                    update: { value: currentVoteValue },
+                    create: {
                         hangoutId,
-                        profileId: profile.id,
-                        activityOptionId
+                        profileId: profileId,
+                        activityOptionId,
+                        value: currentVoteValue
                     }
-                },
-                update: { value: currentVoteValue },
-                create: {
-                    hangoutId,
-                    profileId: profile.id,
-                    activityOptionId,
-                    value: currentVoteValue
-                }
-            });
+                });
+            } else if (guestId) {
+                await prisma.vote.upsert({
+                    where: {
+                        hangoutId_guestId_activityOptionId: {
+                            hangoutId,
+                            guestId: guestId,
+                            activityOptionId
+                        }
+                    },
+                    update: { value: currentVoteValue },
+                    create: {
+                        hangoutId,
+                        guestId: guestId,
+                        activityOptionId,
+                        value: currentVoteValue
+                    }
+                });
+            }
 
             // 3. CONSENSUS LOGIC
             // Get hangout details for threshold and participants
@@ -106,11 +132,11 @@ export async function POST(
                         }
                     });
 
-                    // Add system message
+                    // Add system message (Using the user's profile ID if available, else fallback to the hangout creator)
                     await prisma.message.create({
                         data: {
                             hangoutId,
-                            authorId: profile.id,
+                            authorId: profileId || hangout.creatorId,
                             content: `Consensus reached! The plan is confirmed: ${option.cachedEvent.name}.`,
                             type: "SYSTEM"
                         }

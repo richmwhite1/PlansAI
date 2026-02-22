@@ -83,6 +83,7 @@ model GuestProfile {
   expiresAt            DateTime
   participants         HangoutParticipant[]
   votes                Vote[]
+  timeVotes            TimeVote[]
 
   @@index([token])
   @@index([expiresAt])
@@ -354,12 +355,15 @@ model HangoutTemplate {
 model TimeVote {
   id           String            @id @default(cuid())
   timeOptionId String
-  profileId    String
+  profileId    String?
+  guestId      String?
   value        Int               @default(1)
-  profile      Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile      Profile?          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  guest        GuestProfile?     @relation(fields: [guestId], references: [id], onDelete: Cascade)
   timeOption   HangoutTimeOption @relation(fields: [timeOptionId], references: [id], onDelete: Cascade)
 
   @@unique([timeOptionId, profileId])
+  @@unique([timeOptionId, guestId])
   @@index([profileId])
 }
 
