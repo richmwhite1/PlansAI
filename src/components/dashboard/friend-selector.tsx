@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Search, UserPlus, X, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,17 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [addFriendError, setAddFriendError] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleFocus = () => {
+        if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+        setIsFocused(true);
+    };
+
+    const handleBlur = () => {
+        blurTimeoutRef.current = setTimeout(() => setIsFocused(false), 200);
+    };
 
     // Fetch friends on mount
     useEffect(() => {
@@ -133,16 +144,20 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
         <div className="space-y-4">
             <div className="relative group">
                 <div className={cn(
-                    "absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent blur opacity-0 transition-opacity duration-500 rounded-xl",
+                    "absolute inset-0 pointer-events-none bg-gradient-to-r from-primary/10 to-transparent blur opacity-0 transition-opacity duration-500 rounded-xl",
                     isFocused || showGuestInput ? "opacity-100" : "group-hover:opacity-50"
                 )} />
 
                 <div className="relative bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-xl p-3 transition-colors focus-within:bg-slate-900/60 focus-within:border-primary/30">
 
                     {!showGuestInput ? (
-                        <div className="flex items-center gap-3">
+                        <div
+                            className="flex items-center gap-3 w-full cursor-text"
+                            onClick={() => inputRef.current?.focus()}
+                        >
                             <Search className="w-5 h-5 text-slate-400" />
                             <input
+                                ref={inputRef}
                                 type="text"
                                 placeholder="Search friends by name, email, or phone..."
                                 className="bg-transparent border-none outline-none text-slate-200 placeholder:text-slate-500 flex-1 text-sm"
@@ -151,8 +166,8 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
                                     setQuery(e.target.value);
                                     setAddFriendError(null);
                                 }}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && isNewContact) {
                                         handleAddFriend();
@@ -184,7 +199,10 @@ export function FriendSelector({ selected, onSelect }: FriendSelectorProps) {
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">New Guest</span>
                                 <button
-                                    onClick={() => setShowGuestInput(false)}
+                                    onClick={() => {
+                                        setShowGuestInput(false);
+                                        setTimeout(() => inputRef.current?.focus(), 10);
+                                    }}
                                     className="text-slate-500 hover:text-slate-300"
                                 >
                                     <X className="w-4 h-4" />

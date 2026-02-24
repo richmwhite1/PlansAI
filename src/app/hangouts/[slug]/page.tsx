@@ -166,12 +166,13 @@ export default async function HangoutPage(props: HangoutPageProps) {
         }
     }
 
-    // Check for Claim Flow
-    const isClaiming = (searchParams.claim === 'true');
+    // Get guests to claim for unauthenticated users
     let guestsToClaim: any[] = [];
 
-    if (isClaiming && !currentUserParticipant) {
-        // Get all guests for this hangout
+    if (!currentUserParticipant) {
+        // Get all guests for this hangout who are just placeholders (not yet claimed)
+        // Usually, a placeholder guest might have "Guest" or was added manually with a specific name
+        // We can just show all guest participants basically.
         const guests = hangout.participants
             .filter((p: any) => p.guest !== null)
             .map((p: any) => ({
