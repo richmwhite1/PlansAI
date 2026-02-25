@@ -193,6 +193,10 @@ model CachedEvent {
   imageUrl        String?
   websiteUrl      String?
   phoneNumber     String?
+  ticketUrl       String?
+  eventUrl        String?
+  priceRange      String?
+  performers      String[]
   isTimeBound     Boolean                 @default(false)
   startsAt        DateTime?
   endsAt          DateTime?

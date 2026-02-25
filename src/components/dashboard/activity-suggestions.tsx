@@ -191,45 +191,93 @@ export function ActivitySuggestions({
         }
     };
 
-    // AI Fallback Search
+    // AI Fallback Search — also searches for real events when a date is selected
     const handleAiSearch = async () => {
         if (!searchQuery.trim()) return;
-        setIsThinking(true); // Reuse the main loading state for visual consistency
+        setIsThinking(true);
 
         try {
-            const res = await fetch("/api/ai/find-activities", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    query: searchQuery,
-                    latitude: location.lat,
-                    longitude: location.lng,
-                    radius: 25 * 1609,
-                    friendIds
-                })
-            });
-            const data = await res.json();
-            if (data.activities) {
-                // Append AI results to current search results
-                const newResults = data.activities.map((a: any) => ({
-                    id: a.id,
-                    title: a.name,
-                    type: a.category,
-                    matchPercentage: a.matchPercentage || 0,
-                    reason: a.reason || "AI Match for " + searchQuery,
-                    imageUrl: a.imageUrl,
-                    rating: a.rating,
-                    address: a.address,
-                    latitude: a.latitude,
-                    longitude: a.longitude
-                }));
+            // Run both searches in parallel: places + events (if date is set)
+            const promises: Promise<any>[] = [
+                fetch("/api/ai/find-activities", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: searchQuery,
+                        latitude: location.lat,
+                        longitude: location.lng,
+                        radius: 25 * 1609,
+                        friendIds,
+                        targetDate: targetDate ? targetDate.toISOString() : undefined
+                    })
+                }).then(r => r.json())
+            ];
 
-                // Avoid duplicates
-                setSearchResults(prev => {
-                    const existingIds = new Set(prev.map(p => p.id));
-                    return [...prev, ...newResults.filter((n: any) => !existingIds.has(n.id))];
-                });
+            // If a date is selected, also search for real events
+            if (targetDate) {
+                promises.push(
+                    fetch("/api/events/discover", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            query: searchQuery,
+                            latitude: location.lat,
+                            longitude: location.lng,
+                            targetDate: format(targetDate, 'yyyy-MM-dd'),
+                            radiusMiles: 50
+                        })
+                    }).then(r => r.json())
+                );
             }
+
+            const results = await Promise.all(promises);
+            const placeData = results[0];
+            const eventData = results[1];
+
+            const newResults: Activity[] = [];
+
+            // Process place results
+            if (placeData?.activities) {
+                for (const a of placeData.activities) {
+                    newResults.push({
+                        id: a.id,
+                        title: a.name,
+                        type: a.category,
+                        matchPercentage: a.matchPercentage || 0,
+                        reason: a.reason || "AI Match for " + searchQuery,
+                        imageUrl: a.imageUrl,
+                        rating: a.rating,
+                        address: a.address,
+                        latitude: a.latitude,
+                        longitude: a.longitude,
+                    });
+                }
+            }
+
+            // Process event results (real events with dates, tickets, etc.)
+            if (eventData?.events) {
+                for (const e of eventData.events) {
+                    newResults.push({
+                        id: e.id,
+                        title: `🎫 ${e.name}`,
+                        type: e.category || "Event",
+                        matchPercentage: 95,
+                        reason: e.priceRange ? `${e.venue} • ${e.priceRange}` : (e.venue || "Live Event"),
+                        imageUrl: e.imageUrl,
+                        rating: e.rating,
+                        address: e.address,
+                        latitude: e.latitude,
+                        longitude: e.longitude,
+                        websiteUrl: e.ticketUrl || e.eventUrl,
+                    });
+                }
+            }
+
+            // Avoid duplicates
+            setSearchResults(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                return [...prev, ...newResults.filter(n => !existingIds.has(n.id))];
+            });
         } catch (err) {
             console.error("AI Search failed:", err);
         } finally {

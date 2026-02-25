@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import {
-    ArrowLeft, MapPin, Calendar, Compass, Loader2, Users,
-    Search, Sparkles, Filter, Check, Plus, Send, Info, Star,
-    Ticket, ShoppingBag, Utensils, Music, Footprints, Camera,
-    UserPlus, X
+    MapPin, Calendar, Compass, Loader2, Users,
+    Search, Sparkles, Check, Send, Star,
+    Ticket, Utensils, Music, Footprints, Camera,
+    UserPlus, X, ExternalLink, Clock
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -60,28 +60,44 @@ interface Activity {
     vibes: string[];
 }
 
-const CATEGORIES = [
+interface DiscoverEvent {
+    id: string;
+    name: string;
+    description: string | null;
+    category: string;
+    venue: string;
+    address: string | null;
+    latitude: number;
+    longitude: number;
+    imageUrl: string | null;
+    startsAt: string;
+    ticketUrl: string | null;
+    eventUrl: string | null;
+    priceRange: string | null;
+    performers: string[];
+}
+
+const PLACE_CATEGORIES = [
     { id: "all", name: "All", icon: Compass },
     { id: "restaurant", name: "Dining", icon: Utensils },
     { id: "activity", name: "Activities", icon: Footprints },
     { id: "bar", name: "Nightlife", icon: Music },
-    { id: "shopping", name: "Shopping", icon: ShoppingBag },
     { id: "sightseeing", name: "Sightsee", icon: Camera },
 ];
 
 export default function DiscoverPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"plans" | "explore">("plans");
+    const [activeTab, setActiveTab] = useState<"plans" | "events" | "places">("events");
 
     // Filters & Search
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const [targetDate, setTargetDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
 
-    // AI Assistant
-    const [aiPrompt, setAiPrompt] = useState("");
-    const [isAiLoading, setIsAiLoading] = useState(false);
-    const [aiReasoning, setAiReasoning] = useState<string | null>(null);
-    const [aiActivities, setAiActivities] = useState<Activity[]>([]);
+    // AI Search for Events
+    const [isEventSearching, setIsEventSearching] = useState(false);
+    const [eventResults, setEventResults] = useState<DiscoverEvent[]>([]);
+    const [eventSearchQuery, setEventSearchQuery] = useState("");
 
     // Selection for Hangout Creation
     const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
@@ -94,46 +110,68 @@ export default function DiscoverPage() {
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
 
+    // User location (could be improved with geolocation API)
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => setUserLocation({ lat: 40.7608, lng: -111.8910 }) // Default: SLC
+            );
+        } else {
+            setUserLocation({ lat: 40.7608, lng: -111.8910 });
+        }
+    }, []);
+
     const fetcher = (url: string) => fetch(url).then(r => r.json());
 
     const discoverKey = (() => {
         const params = new URLSearchParams();
         params.append("type", activeTab === "plans" ? "hangouts" : "activities");
-        if (activeTab === "explore" && selectedCategory !== "all") {
+        if (activeTab === "places" && selectedCategory !== "all") {
             params.append("category", selectedCategory);
         }
         return `/api/discover?${params.toString()}`;
     })();
 
-    const { data: discoverData, isLoading } = useSWR(discoverKey, fetcher, {
-        revalidateOnFocus: false,
-        dedupingInterval: 30000, // 30s dedup
-    });
+    const { data: discoverData, isLoading } = useSWR(
+        activeTab !== "events" ? discoverKey : null,
+        fetcher,
+        { revalidateOnFocus: false, dedupingInterval: 30000 }
+    );
 
     const hangouts: DiscoverableHangout[] = discoverData?.hangouts || [];
-    const activities: Activity[] = aiActivities.length > 0 ? aiActivities : (discoverData?.activities || []);
+    const activities: Activity[] = discoverData?.activities || [];
 
-    const handleAiSubmit = async (e: React.FormEvent) => {
+    // Event Search Handler
+    const handleEventSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!aiPrompt.trim()) return;
+        if (!eventSearchQuery.trim() || !userLocation) return;
 
-        setIsAiLoading(true);
-        setActiveTab("explore");
+        setIsEventSearching(true);
+
         try {
-            const res = await fetch("/api/discover/ai-ideas", {
+            const res = await fetch("/api/events/discover", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: aiPrompt })
+                body: JSON.stringify({
+                    query: eventSearchQuery,
+                    latitude: userLocation.lat,
+                    longitude: userLocation.lng,
+                    targetDate,
+                    radiusMiles: 50
+                })
             });
             const data = await res.json();
-            if (data.suggestions) {
-                setAiActivities(data.suggestions);
-                setAiReasoning(data.reasoning);
+            if (data.events) {
+                setEventResults(data.events);
             }
         } catch (err) {
-            console.error("AI Assistant failed:", err);
+            console.error("Event search failed:", err);
+            toast.error("Failed to search for events");
         } finally {
-            setIsAiLoading(false);
+            setIsEventSearching(false);
         }
     };
 
@@ -195,70 +233,239 @@ export default function DiscoverPage() {
                         <h1 className="text-xl font-bold text-white">Discover</h1>
                     </div>
 
-                    {/* Tabs */}
+                    {/* Three Tabs */}
                     <div className="flex p-1 bg-white/5 rounded-xl border border-white/5">
                         <button
-                            onClick={() => { setActiveTab("plans"); setSelectedActivityIds(new Set()); setAiReasoning(null); }}
+                            onClick={() => { setActiveTab("events"); setSelectedActivityIds(new Set()); }}
                             className={cn(
-                                "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
+                                "flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5",
+                                activeTab === "events" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
+                            )}
+                        >
+                            <Ticket className="w-4 h-4" />
+                            Events
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab("places"); setSelectedActivityIds(new Set()); }}
+                            className={cn(
+                                "flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5",
+                                activeTab === "places" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
+                            )}
+                        >
+                            <MapPin className="w-4 h-4" />
+                            Places
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab("plans"); setSelectedActivityIds(new Set()); }}
+                            className={cn(
+                                "flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5",
                                 activeTab === "plans" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
                             )}
                         >
-                            Public Plans
-                        </button>
-                        <button
-                            onClick={() => { setActiveTab("explore"); setAiReasoning(null); }}
-                            className={cn(
-                                "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                                activeTab === "explore" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"
-                            )}
-                        >
-                            Explore Events
+                            <Users className="w-4 h-4" />
+                            Plans
                         </button>
                     </div>
                 </div>
 
-                {/* Content */}
-                {activeTab === "explore" && (
-                    <div className="mb-8 space-y-6">
-                        {/* AI Search Bar */}
-                        <form onSubmit={handleAiSubmit} className="relative group">
+                {/* ─── EVENTS TAB ─── */}
+                {activeTab === "events" && (
+                    <div className="space-y-6">
+                        {/* Date Picker */}
+                        <div className="flex items-center gap-3">
+                            <div className="relative flex-1">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                                <input
+                                    type="date"
+                                    value={targetDate}
+                                    onChange={(e) => setTargetDate(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary/50 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                />
+                            </div>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => setTargetDate(format(new Date(), 'yyyy-MM-dd'))}
+                                    className={cn(
+                                        "px-3 py-3 rounded-xl text-xs font-bold border transition-all",
+                                        targetDate === format(new Date(), 'yyyy-MM-dd')
+                                            ? "bg-primary text-primary-foreground border-primary"
+                                            : "bg-white/5 border-white/10 text-muted-foreground hover:text-white"
+                                    )}
+                                >
+                                    Today
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const d = new Date();
+                                        const dayOfWeek = d.getDay();
+                                        const daysToSat = (6 - dayOfWeek + 7) % 7 || 7;
+                                        d.setDate(d.getDate() + daysToSat);
+                                        setTargetDate(format(d, 'yyyy-MM-dd'));
+                                    }}
+                                    className="px-3 py-3 rounded-xl text-xs font-bold bg-white/5 border border-white/10 text-muted-foreground hover:text-white transition-all"
+                                >
+                                    Sat
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Event Search Bar */}
+                        <form onSubmit={handleEventSearch} className="relative group">
                             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                                 <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <input
                                 type="text"
-                                value={aiPrompt}
-                                onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="Ask AI for ideas (e.g. 'Chill Saturday hike')"
+                                value={eventSearchQuery}
+                                onChange={(e) => setEventSearchQuery(e.target.value)}
+                                placeholder="Search events (e.g. 'live music', 'comedy shows', 'food festivals')"
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
                             />
                             <button
                                 type="submit"
-                                disabled={isAiLoading || !aiPrompt.trim()}
+                                disabled={isEventSearching || !eventSearchQuery.trim()}
                                 className="absolute right-3 top-2.5 p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl disabled:opacity-50 transition-colors"
                             >
-                                {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                {isEventSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                             </button>
                         </form>
 
-                        {/* Reasoning Alert */}
-                        <AnimatePresence>
-                            {aiReasoning && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex gap-3"
-                                >
-                                    <Info className="w-5 h-5 text-primary shrink-0" />
-                                    <p className="text-sm text-primary-foreground leading-relaxed">{aiReasoning}</p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/* Quick Suggestions */}
+                        {eventResults.length === 0 && !isEventSearching && (
+                            <div className="flex flex-wrap gap-2">
+                                {["Live Music", "Comedy Shows", "Sports", "Food Festivals", "Art Exhibits", "Concerts"].map(q => (
+                                    <button
+                                        key={q}
+                                        onClick={() => { setEventSearchQuery(q); }}
+                                        className="px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs font-medium text-muted-foreground hover:text-white hover:border-white/20 transition-all"
+                                    >
+                                        {q}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
+                        {/* Loading */}
+                        {isEventSearching && (
+                            <div className="py-16 flex flex-col items-center gap-3">
+                                <div className="relative">
+                                    <Sparkles className="w-10 h-10 text-primary animate-pulse" />
+                                </div>
+                                <p className="text-sm text-muted-foreground">AI is searching the web for real events...</p>
+                                <p className="text-xs text-slate-600">This may take a few seconds</p>
+                            </div>
+                        )}
+
+                        {/* Event Results */}
+                        {eventResults.length > 0 && (
+                            <div className="space-y-3">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                                    {eventResults.length} Events Found for {format(new Date(targetDate + 'T00:00:00'), 'EEEE, MMM d')}
+                                </p>
+                                {eventResults.map((event) => {
+                                    const isSelected = selectedActivityIds.has(event.id);
+                                    return (
+                                        <motion.div
+                                            key={event.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className={cn(
+                                                "relative rounded-2xl border bg-card/50 overflow-hidden transition-all",
+                                                isSelected ? "border-primary shadow-lg shadow-primary/10 ring-1 ring-primary/30" : "border-white/5 hover:border-white/15"
+                                            )}
+                                        >
+                                            {/* Clickable card body → ticket/event URL */}
+                                            <a
+                                                href={event.ticketUrl || event.eventUrl || `https://www.google.com/search?q=${encodeURIComponent(event.name + ' ' + (event.address || ''))}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                                            >
+                                                <div className="flex gap-4">
+                                                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20 flex items-center justify-center shrink-0">
+                                                        <Ticket className="w-7 h-7 text-primary" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                            <h3 className="font-bold text-white text-sm leading-tight">{event.name}</h3>
+                                                            <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                        </div>
+                                                        <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
+                                                            <MapPin className="w-3 h-3" />
+                                                            {event.venue}
+                                                        </p>
+                                                        {event.description && (
+                                                            <p className="text-xs text-slate-500 line-clamp-2 mb-2">{event.description}</p>
+                                                        )}
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {event.priceRange && (
+                                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                                    {event.priceRange}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                                                {event.category}
+                                                            </span>
+                                                            {event.performers.length > 0 && (
+                                                                <span className="text-[10px] text-slate-500 truncate">
+                                                                    feat. {event.performers.slice(0, 2).join(", ")}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+
+                                            {/* Selection checkbox — separate from the link */}
+                                            <div className="absolute top-4 right-4" onClick={(e) => e.preventDefault()}>
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleActivitySelection(event.id); }}
+                                                    className={cn(
+                                                        "w-7 h-7 rounded-full flex items-center justify-center transition-all border-2",
+                                                        isSelected
+                                                            ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
+                                                            : "bg-transparent border-white/20 text-transparent hover:border-primary/50"
+                                                    )}
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* No results message */}
+                        {!isEventSearching && eventResults.length === 0 && eventSearchQuery && (
+                            <div className="text-center py-16 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                <h2 className="text-lg font-semibold text-white mb-2">Search for events</h2>
+                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
+                                    Type what you&apos;re looking for and hit search. Our AI will scout the web for real events near you.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Landing state */}
+                        {!isEventSearching && eventResults.length === 0 && !eventSearchQuery && (
+                            <div className="text-center py-16 bg-gradient-to-b from-primary/5 to-transparent rounded-3xl border border-dashed border-primary/10">
+                                <Sparkles className="w-12 h-12 text-primary/40 mx-auto mb-4" />
+                                <h2 className="text-lg font-semibold text-white mb-2">What are you in the mood for?</h2>
+                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
+                                    Search for concerts, comedy shows, food festivals, sports games — anything happening on {format(new Date(targetDate + 'T00:00:00'), 'MMM d')}.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ─── PLACES TAB ─── */}
+                {activeTab === "places" && (
+                    <div className="space-y-6">
                         {/* Categories */}
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                            {CATEGORIES.map(cat => {
+                            {PLACE_CATEGORIES.map(cat => {
                                 const Icon = cat.icon;
                                 return (
                                     <button
@@ -277,30 +484,116 @@ export default function DiscoverPage() {
                                 );
                             })}
                         </div>
+
+                        {/* Activities Grid */}
+                        {isLoading ? (
+                            <div className="space-y-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="rounded-2xl border border-white/5 bg-card/50 overflow-hidden animate-pulse">
+                                        <div className="h-16 bg-slate-800" />
+                                        <div className="p-4 space-y-3">
+                                            <div className="h-5 bg-slate-800 rounded-lg w-3/4" />
+                                            <div className="h-3 bg-slate-800/60 rounded w-1/2" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : activities.length > 0 ? (
+                            <div className="grid grid-cols-1 gap-3">
+                                {activities.map(activity => {
+                                    const isSelected = selectedActivityIds.has(activity.id);
+                                    return (
+                                        <div
+                                            key={activity.id}
+                                            className={cn(
+                                                "relative rounded-2xl border bg-card/50 p-4 transition-all",
+                                                isSelected ? "border-primary shadow-lg shadow-primary/10" : "border-white/5 hover:border-white/20"
+                                            )}
+                                        >
+                                            <a
+                                                href={`https://www.google.com/search?q=${encodeURIComponent(activity.name + ' ' + (activity.address || activity.city || ''))}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex gap-4 cursor-pointer"
+                                            >
+                                                <div className="w-20 h-20 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-white/10">
+                                                    {activity.imageUrl ? (
+                                                        <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                                                            <MapPin className="w-8 h-8 text-slate-600" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start gap-2 mb-1">
+                                                        <h3 className="font-bold text-white truncate">{activity.name}</h3>
+                                                        {activity.rating && (
+                                                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/10 shrink-0">
+                                                                <Star className="w-2.5 h-2.5 fill-current" />
+                                                                {activity.rating}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground mb-1 font-medium capitalize flex items-center gap-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                                        {activity.category} {activity.subcategory && `• ${activity.subcategory}`}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 line-clamp-2">{activity.description || activity.address}</p>
+                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                        {activity.vibes.slice(0, 3).map(vibe => (
+                                                            <span key={vibe} className="text-[10px] px-2 py-0.5 bg-white/5 rounded-full text-slate-400 border border-white/5">
+                                                                #{vibe}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </a>
+
+                                            {/* Selection checkbox */}
+                                            <div className="absolute top-3 right-3">
+                                                <button
+                                                    onClick={() => toggleActivitySelection(activity.id)}
+                                                    className={cn(
+                                                        "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all",
+                                                        isSelected ? "bg-primary border-primary text-white" : "border-white/20 bg-black/20 text-transparent hover:border-primary/50"
+                                                    )}
+                                                >
+                                                    <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                <h2 className="text-xl font-semibold text-white mb-2">No places found</h2>
+                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
+                                    Try a different category or check back later.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* Content */}
-                {isLoading ? (
+                {/* ─── PLANS TAB ─── */}
+                {activeTab === "plans" && (
                     <div className="space-y-4">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="rounded-2xl border border-white/5 bg-card/50 overflow-hidden animate-pulse">
-                                <div className="h-32 bg-slate-800" />
-                                <div className="p-4 space-y-3">
-                                    <div className="h-5 bg-slate-800 rounded-lg w-3/4" />
-                                    <div className="h-3 bg-slate-800/60 rounded w-1/2" />
-                                    <div className="h-3 bg-slate-800/40 rounded w-1/3" />
-                                    <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                                        <div className="w-5 h-5 rounded-full bg-slate-800" />
-                                        <div className="h-3 bg-slate-800/40 rounded w-24" />
+                        {isLoading ? (
+                            <div className="space-y-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="rounded-2xl border border-white/5 bg-card/50 overflow-hidden animate-pulse">
+                                        <div className="h-32 bg-slate-800" />
+                                        <div className="p-4 space-y-3">
+                                            <div className="h-5 bg-slate-800 rounded-lg w-3/4" />
+                                            <div className="h-3 bg-slate-800/60 rounded w-1/2" />
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                ) : activeTab === "plans" ? (
-                    <div className="space-y-4">
-                        {hangouts.length > 0 ? (
+                        ) : hangouts.length > 0 ? (
                             hangouts.map(hangout => (
                                 <HangoutCard
                                     key={hangout.id}
@@ -311,79 +604,9 @@ export default function DiscoverPage() {
                         ) : (
                             <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
                                 <Compass className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                <h2 className="text-xl font-semibold text-white mb-2">No plans nearby</h2>
+                                <h2 className="text-xl font-semibold text-white mb-2">No public plans yet</h2>
                                 <p className="text-slate-400 max-w-xs mx-auto text-sm">
-                                    Be the first to start a public hangout or explore activities!
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                        {activities.length > 0 ? (
-                            activities.map(activity => {
-                                const isSelected = selectedActivityIds.has(activity.id);
-                                return (
-                                    <div
-                                        key={activity.id}
-                                        onClick={() => toggleActivitySelection(activity.id)}
-                                        className={cn(
-                                            "relative glass-card rounded-2xl border bg-card/50 p-4 transition-all duration-300 cursor-pointer",
-                                            isSelected ? "border-primary shadow-lg shadow-primary/10" : "border-white/5 hover:border-white/20 active:scale-[0.98]"
-                                        )}
-                                    >
-                                        <div className="flex gap-4">
-                                            <div className="w-24 h-24 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-white/10">
-                                                {activity.imageUrl ? (
-                                                    <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                                                        <MapPin className="w-8 h-8 text-slate-600" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-start gap-2 mb-1">
-                                                    <h3 className="font-bold text-white truncate">{activity.name}</h3>
-                                                    {activity.rating && (
-                                                        <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/10 shrink-0">
-                                                            <Star className="w-2.5 h-2.5 fill-current" />
-                                                            {activity.rating}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground mb-2 font-medium capitalize flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                    {activity.category} {activity.subcategory && `• ${activity.subcategory}`}
-                                                </div>
-                                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{activity.description || activity.address}</p>
-
-                                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                                    {activity.vibes.slice(0, 3).map(vibe => (
-                                                        <span key={vibe} className="text-[10px] px-2 py-0.5 bg-white/5 rounded-full text-slate-400 border border-white/5">
-                                                            #{vibe}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Selection Indicator */}
-                                        <div className={cn(
-                                            "absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                                            isSelected ? "bg-primary border-primary" : "border-white/20 bg-black/20"
-                                        )}>
-                                            {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                <h2 className="text-xl font-semibold text-white mb-2">No activities found</h2>
-                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
-                                    Try a different category or ask the AI for specialized ideas!
+                                    Be the first to create a public hangout!
                                 </p>
                             </div>
                         )}
@@ -391,7 +614,7 @@ export default function DiscoverPage() {
                 )}
             </main>
 
-            {/* Selection FAB (Float Action Button) */}
+            {/* Selection FAB */}
             <AnimatePresence>
                 {selectedActivityIds.size > 0 && (
                     <motion.div
