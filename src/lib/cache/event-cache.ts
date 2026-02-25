@@ -23,6 +23,19 @@ export async function getCachedEvents(
             latitude: { gte: minLat, lte: maxLat },
             longitude: { gte: minLng, lte: maxLng },
             expiresAt: { gt: new Date() }, // Not expired
+            AND: [
+                {
+                    OR: [
+                        { isTimeBound: false },
+                        {
+                            AND: [
+                                { isTimeBound: true },
+                                { endsAt: { gte: new Date() } } // Only active events
+                            ]
+                        }
+                    ]
+                }
+            ]
         },
         take: limit,
     });
@@ -100,23 +113,67 @@ export async function searchCachedEvents(
     latitude: number,
     longitude: number,
     radiusMeters: number = 5000,
-    limit: number = 20
+    limit: number = 20,
+    targetDate?: Date
 ): Promise<CachedEvent[]> {
     // 1. DB Search (Text match + Location)
     const latDegrees = radiusMeters / 111000;
     const lngDegrees = radiusMeters / (111000 * Math.cos(latitude * (Math.PI / 180)));
 
+    // Base conditions for all searches
+    const baseWhere: any = {
+        OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { category: { contains: query, mode: 'insensitive' } }
+        ],
+        latitude: { gte: latitude - latDegrees, lte: latitude + latDegrees },
+        longitude: { gte: longitude - lngDegrees, lte: longitude + lngDegrees },
+        expiresAt: { gt: new Date() },
+    };
+
+    // If there's a specific target date requested, we need to filter timebound events
+    if (targetDate) {
+        // Create start/end of the target date to check if it overlaps
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        baseWhere.AND = [
+            {
+                OR: [
+                    { isTimeBound: false }, // Evergreen places are always valid
+                    {
+                        AND: [
+                            { isTimeBound: true },
+                            { endsAt: { gte: startOfDay } }, // Event hasn't ended before this day starts
+                            { startsAt: { lte: endOfDay } }  // Event starts on or before this day ends
+                        ]
+                    }
+                ]
+            }
+        ];
+    } else {
+        // Even if no target date is requested, filter out events that have already ended
+        baseWhere.AND = [
+            {
+                OR: [
+                    { isTimeBound: false },
+                    {
+                        AND: [
+                            { isTimeBound: true },
+                            { endsAt: { gte: new Date() } } // Event has not ended yet
+                        ]
+                    }
+                ]
+            }
+        ];
+    }
+
     const cachedEvents = await prisma.cachedEvent.findMany({
-        where: {
-            OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { description: { contains: query, mode: 'insensitive' } },
-                { category: { contains: query, mode: 'insensitive' } }
-            ],
-            latitude: { gte: latitude - latDegrees, lte: latitude + latDegrees },
-            longitude: { gte: longitude - lngDegrees, lte: longitude + lngDegrees },
-            expiresAt: { gt: new Date() },
-        },
+        where: baseWhere,
         take: limit,
     });
 

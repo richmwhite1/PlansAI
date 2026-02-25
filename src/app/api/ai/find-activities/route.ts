@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         console.log("AI Find Activities Body:", JSON.stringify(body, null, 2));
 
-        const { query, latitude, longitude, radius = 25000, friendIds } = body;
+        const { query, latitude, longitude, radius = 25000, friendIds, targetDate } = body;
 
         if (!query || latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
             console.error("AI Search validation failed:", { query, latitude, longitude });
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         const aiEnhancedQuery = query;
 
         // 2. Search (Larger radius and more aggressive fallback)
-        let candidates = await searchCachedEvents(aiEnhancedQuery, latitude, longitude, radius, 15);
+        let candidates = await searchCachedEvents(aiEnhancedQuery, latitude, longitude, radius, 15, targetDate ? new Date(targetDate) : undefined);
 
         // 3. AI Fallback if Google/Cache fails
         if (candidates.length < 3) {

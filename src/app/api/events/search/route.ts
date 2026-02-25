@@ -5,16 +5,16 @@ import { calculateTrustScore } from "@/lib/ai/trust-score";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { query, latitude, longitude, radius = 5000, friendIds } = body;
+        const { query, latitude, longitude, radius = 5000, friendIds, targetDate } = body;
 
-        console.log(`Search request: "${query}" at ${latitude}, ${longitude}`);
+        console.log(`Search request: "${query}" at ${latitude}, ${longitude}, date: ${targetDate}`);
 
         if (!query || !latitude || !longitude) {
             return NextResponse.json({ error: "Query and Location required" }, { status: 400 });
         }
 
         // 1. Search (Cache -> Google Text Search)
-        const candidates = await searchCachedEvents(query, latitude, longitude, radius);
+        const candidates = await searchCachedEvents(query, latitude, longitude, radius, 20, targetDate ? new Date(targetDate) : undefined);
 
         // 2. Calculate Trust Scores (if we have friends)
         let results = candidates.map(c => ({

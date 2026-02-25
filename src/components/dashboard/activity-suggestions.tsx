@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, MapPin, Search, X, Loader2, Check, Plus, Link } from "lucide-react";
 import { cn, calculateDistance } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 interface Activity {
     id: string;
@@ -57,6 +59,7 @@ export function ActivitySuggestions({
     // Filter State
     const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife'>('All');
     const [distanceFilter, setDistanceFilter] = useState<5 | 10 | 25>(10);
+    const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
 
     // Search State
     const [searchQuery, setSearchQuery] = useState("");
@@ -67,7 +70,7 @@ export function ActivitySuggestions({
     // Fetch Trending
     useEffect(() => {
         setIsLoadingTrending(true);
-        fetch(`/api/events/trending?lat=${location.lat}&lng=${location.lng}&radius=${distanceFilter}`)
+        fetch(`/api/events/trending?lat=${location.lat}&lng=${location.lng}&radius=${distanceFilter}${targetDate ? `&targetDate=${targetDate.toISOString()}` : ''}`)
             .then(res => res.json())
             .then(data => {
                 if (data.activities) setTrending(data.activities);
@@ -162,7 +165,8 @@ export function ActivitySuggestions({
                     latitude: location.lat,
                     longitude: location.lng,
                     radius: distanceFilter * 1609,
-                    friendIds
+                    friendIds,
+                    targetDate: targetDate ? targetDate.toISOString() : undefined
                 })
             });
             const data = await res.json();
@@ -389,8 +393,9 @@ export function ActivitySuggestions({
                 )}
             </AnimatePresence>
 
+
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
                 <div className="flex bg-slate-800/50 rounded-lg p-1 border border-white/5 text-xs">
                     {(['All', 'Food', 'Activity', 'Nightlife'] as const).map((f) => (
                         <button
@@ -405,6 +410,24 @@ export function ActivitySuggestions({
                         </button>
                     ))}
                 </div>
+
+                {/* Simple Date Toggle for demo, in real app use a DatePicker component */}
+                <div className="flex items-center gap-2 ml-auto">
+                    <input
+                        type="date"
+                        value={targetDate ? format(targetDate, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => setTargetDate(e.target.value ? new Date(e.target.value) : undefined)}
+                        className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary/50 [&::-webkit-calendar-picker-indicator]:filter-invert"
+                    />
+                    {targetDate && (
+                        <button
+                            onClick={() => setTargetDate(undefined)}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
@@ -417,12 +440,12 @@ export function ActivitySuggestions({
                     filteredOptions.map((activity, i) => {
                         const isSelected = selectedActivityIds.includes(activity.id);
                         return (
-                            <motion.button
+                            <motion.div
                                 key={activity.id}
                                 layout
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05 } }}
-                                onClick={() => onSelectCallback(activity)}
+
                                 className={cn(
                                     "w-full text-left p-4 rounded-2xl transition-all group relative overflow-hidden border",
                                     isSelected
@@ -430,7 +453,9 @@ export function ActivitySuggestions({
                                         : "bg-white/5 border-white/5 hover:bg-white/10"
                                 )}
                             >
-                                <div className="flex gap-4">
+
+                                <div className="flex gap-4 w-full cursor-pointer" onClick={() => window.open(activity.websiteUrl || activity.locationUrl || `https://www.google.com/search?q=${encodeURIComponent(activity.title + ' ' + (activity.address || ''))}`, '_blank')}>
+
                                     <div className="w-16 h-16 rounded-xl bg-slate-800 shrink-0 overflow-hidden relative border border-white/5">
                                         {activity.imageUrl ? (
                                             <img src={activity.imageUrl} className="w-full h-full object-cover" />
@@ -439,11 +464,7 @@ export function ActivitySuggestions({
                                                 {activity.isCustom ? <Sparkles size={24} /> : <MapPin size={24} className="text-muted-foreground" />}
                                             </div>
                                         )}
-                                        {isSelected && (
-                                            <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
-                                                <Check className="w-8 h-8 text-white" />
-                                            </div>
-                                        )}
+
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -473,20 +494,24 @@ export function ActivitySuggestions({
                                         </p>
                                     </div>
 
-                                    <div className="flex flex-col justify-between items-end gap-2">
-                                        <a
-                                            href={activity.websiteUrl || activity.locationUrl || `https://www.google.com/search?q=${encodeURIComponent(activity.title + ' ' + (activity.address || ''))}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="p-2 rounded-full bg-white/5 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
-                                            title="Visit Website / Info"
+                                    <div className="flex flex-col justify-center items-end pl-4" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onSelectCallback(activity);
+                                            }}
+                                            className={cn(
+                                                "w-8 h-8 rounded-full flex items-center justify-center transition-all border-2",
+                                                isSelected
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.5)]"
+                                                    : "bg-transparent border-white/20 text-transparent hover:border-primary/50"
+                                            )}
                                         >
-                                            <Link className="w-4 h-4" />
-                                        </a>
+                                            <Check className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
-                            </motion.button>
+                            </motion.div>
                         );
                     })
                 ) : !isThinking && (
