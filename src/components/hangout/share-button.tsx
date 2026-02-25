@@ -6,9 +6,11 @@ import { toast } from "sonner";
 
 interface ShareButtonProps {
     hangoutId: string;
+    variant?: "button" | "icon";
+    className?: string;
 }
 
-export function ShareButton({ hangoutId }: ShareButtonProps) {
+export function ShareButton({ hangoutId, variant = "button", className }: ShareButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -61,22 +63,39 @@ export function ShareButton({ hangoutId }: ShareButtonProps) {
         }
     };
 
-    return (
-        <div className="flex gap-2">
+    if (variant === "icon") {
+        return (
             <button
                 onClick={handleShare}
                 disabled={isLoading}
-                className="flex items-center gap-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 p-2 pr-4 rounded-full border border-violet-500/30 transition-colors text-sm font-medium disabled:opacity-50"
+                className={`p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 ${className || ''}`}
+                title="Share Hangout"
             >
                 {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                 ) : copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
+                    <Check className="w-5 h-5 text-green-400" />
                 ) : (
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-5 h-5" />
                 )}
-                {copied ? "Copied!" : "Invite"}
             </button>
-        </div>
+        );
+    }
+
+    return (
+        <button
+            onClick={handleShare}
+            disabled={isLoading}
+            className={`flex items-center gap-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 p-2 pr-4 rounded-full border border-violet-500/30 transition-colors text-sm font-medium disabled:opacity-50 ${className || ''}`}
+        >
+            {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+            ) : copied ? (
+                <Check className="w-4 h-4 text-green-400" />
+            ) : (
+                <Share2 className="w-4 h-4" />
+            )}
+            {copied ? "Copied!" : "Invite"}
+        </button>
     );
 }

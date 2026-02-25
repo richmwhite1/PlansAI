@@ -157,7 +157,9 @@ export function HangoutPageClient({
                                     </span>
                                 )}
                             </div>
-                            <ShareButton hangoutId={hangout.id} />
+                            {hangout.visibility === "PUBLIC" && (
+                                <ShareButton hangoutId={hangout.id} variant="icon" className="backdrop-blur-md shadow-xl hover:bg-white/20" />
+                            )}
                         </motion.div>
 
                         <motion.h1
@@ -403,10 +405,15 @@ export function HangoutPageClient({
 
                 {/* Participants */}
                 <div className="glass-card p-6 rounded-2xl">
-                    <h2 className="text-2xl font-serif font-semibold text-foreground mb-4 flex items-center justify-between">
-                        Who's Going?
-                        <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
+                            Who's Going?
+                            <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
+                        </h2>
+                        {hangout.visibility === "PUBLIC" && (
+                            <ShareButton hangoutId={hangout.id} variant="button" />
+                        )}
+                    </div>
                     <div className="flex flex-col gap-3">
                         {participants.map((p: any) => (
                             <div key={p.id} className="flex items-center justify-between bg-white/5 p-2 pr-4 rounded-full border border-white/5 group/p">
