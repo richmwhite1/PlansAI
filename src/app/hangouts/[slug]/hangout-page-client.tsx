@@ -157,7 +157,7 @@ export function HangoutPageClient({
                                     </span>
                                 )}
                             </div>
-                            {hangout.visibility === "PUBLIC" && (
+                            {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
                                 <ShareButton hangoutId={hangout.id} variant="icon" className="backdrop-blur-md shadow-xl hover:bg-white/20" />
                             )}
                         </motion.div>
@@ -410,7 +410,7 @@ export function HangoutPageClient({
                             Who's Going?
                             <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
                         </h2>
-                        {hangout.visibility === "PUBLIC" && (
+                        {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
                             <ShareButton hangoutId={hangout.id} variant="button" />
                         )}
                     </div>

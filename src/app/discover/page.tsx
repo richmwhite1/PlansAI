@@ -246,11 +246,21 @@ export default function DiscoverPage() {
         try {
             const hasGuests = selectedFriends.some(f => f.isGuest);
 
+            // Send full activity objects so the backend can seed ephemeral AI results if needed
+            const allAvailableActivities = [
+                ...(discoverData?.activities || []),
+                ...placeResults,
+                ...eventResults
+            ];
+            const activities = Array.from(selectedActivityIds).map(id => {
+                return allAvailableActivities.find(a => a.id === id) || { id };
+            });
+
             const res = await fetch("/api/hangouts/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    activityIds: Array.from(selectedActivityIds),
+                    activities,
                     status: selectedActivityIds.size > 1 ? "VOTING" : "PLANNING",
                     friendIds: selectedFriends.filter(f => !f.isGuest).map(f => f.id),
                     guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name })),

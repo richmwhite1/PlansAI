@@ -6,12 +6,16 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const lat = parseFloat(searchParams.get("lat") || "37.7749");
         const lng = parseFloat(searchParams.get("lng") || "-122.4194");
-        const radius = parseFloat(searchParams.get("radius") || "10"); // miles
+        const radiusMiles = parseFloat(searchParams.get("radius") || "10");
         const targetDate = searchParams.get("targetDate");
 
+        const latDegrees = radiusMiles / 69.0;
+        const lngDegrees = radiusMiles / (69.0 * Math.cos(lat * (Math.PI / 180)));
+
         const baseWhere: any = {
-            latitude: { gte: lat - 0.2, lte: lat + 0.2 },
-            longitude: { gte: lng - 0.2, lte: lng + 0.2 },
+            latitude: { gte: lat - latDegrees, lte: lat + latDegrees },
+            longitude: { gte: lng - lngDegrees, lte: lng + lngDegrees },
+            expiresAt: { gt: new Date() },
         };
 
         if (targetDate) {
@@ -51,7 +55,7 @@ export async function GET(req: NextRequest) {
                     { rating: 'desc' },
                     { createdAt: 'desc' }
                 ],
-                take: 10
+                take: 50
             });
         } else {
             console.log(`[API/Trending] No local events found for lat=${lat}, lng=${lng}. Fetching global trending.`);
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
                     { rating: 'desc' },
                     { createdAt: 'desc' }
                 ],
-                take: 10
+                take: 50
             });
         }
 

@@ -108,17 +108,21 @@ export async function POST(req: NextRequest) {
         const activityNames: string[] = [];
 
         for (const act of activityObjects) {
-            if (act.isCustom || act.id?.startsWith("custom-")) {
+            if (act.isCustom || act.id?.startsWith("custom-") || act.id?.startsWith("ai_ephemeral_") || act.id?.startsWith("ai_event_")) {
                 const newEvent = await prisma.cachedEvent.create({
                     data: {
                         name: act.title || act.name || "Custom Idea",
-                        category: "CUSTOM",
-                        source: "USER_SUBMITTED",
-                        websiteUrl: act.websiteUrl || null,
-                        latitude: creator.homeLatitude || 0,
-                        longitude: creator.homeLongitude || 0,
-                        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-                        staleAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
+                        category: act.category || act.type || "CUSTOM",
+                        subcategory: act.subcategory || null,
+                        source: act.isCustom ? "USER_SUBMITTED" : "AI_GENERATED",
+                        websiteUrl: act.websiteUrl || act.locationUrl || null,
+                        address: act.address || null,
+                        latitude: act.latitude || creator.homeLatitude || 0,
+                        longitude: act.longitude || creator.homeLongitude || 0,
+                        imageUrl: act.imageUrl || null,
+                        rating: act.rating || null,
+                        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+                        staleAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
                     } as any
                 });
                 finalCachedActivityIds.push(newEvent.id);
@@ -193,6 +197,7 @@ export async function POST(req: NextRequest) {
                 consensusThreshold: 60,
                 type: "CASUAL",
                 scheduledFor: effectiveWhen ? new Date(effectiveWhen) : undefined,
+                // @ts-ignore - Prisma cache issue
                 endDate: endDate ? new Date(endDate) : undefined,
                 votingEndsAt: effectiveVotingEnabled ? (
                     effectiveWhen
@@ -244,7 +249,9 @@ export async function POST(req: NextRequest) {
                         longitude: lng,
                         city: city,
                         happeningAt: hangout.scheduledFor || new Date(Date.now() + 1000 * 60 * 60 * 24), // Fallback to 24h if no date
+                        // @ts-ignore - Prisma cache
                         expiresAt: hangout.endDate
+                            // @ts-ignore - Prisma cache
                             ? new Date(new Date(hangout.endDate).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after explicit end date
                             : hangout.scheduledFor
                                 ? new Date(new Date(hangout.scheduledFor).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after start
