@@ -1,6 +1,5 @@
 // ... existing imports
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { prisma } from "@/lib/prisma";
 import * as crypto from "crypto";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
@@ -37,36 +36,13 @@ export async function extractVibesFromReflection(reflection: string) {
 }
 
 export async function findPlacesWithAI(query: string, lat: number, lng: number, userContext?: string): Promise<any[]> {
-    // Check cache first — look for AI-generated results matching this query hash
-    const queryHash = hashQuery(query, lat, lng);
-    const cached = await prisma.cachedEvent.findMany({
-        where: {
-            source: "AI_GENERATED",
-            externalId: queryHash,
-            expiresAt: { gt: new Date() },
-        },
-        take: 5,
-    });
-
-    if (cached.length >= 3) {
-        console.log(`AI cache hit for "${query}" (${cached.length} results)`);
-        return cached.map(c => ({
-            name: c.name,
-            address: c.address || "",
-            description: c.description || "",
-            category: c.category,
-            lat: c.latitude,
-            lng: c.longitude,
-        }));
-    }
-
     const contextBlock = userContext ? `\nUser/Group context: ${userContext}\nPrioritize results that match these preferences.\n` : "";
 
     const prompt = `
         You are a local expert for the area around Latitude: ${lat}, Longitude: ${lng}.
         The user is searching for: "${query}".
         ${contextBlock}
-        The Google Places API is currently unavailable, so you need to provide 5 REAL, EXISTING places that match this query in this area.
+        Provide 5 REAL, EXISTING places that match this query in this area.
         If you are unsure of exact specific places, provide the most famous/popular ones you know of in the general vicinity (City/Neighborhood).
         
         Return a JSON array of objects with these fields:
@@ -87,32 +63,12 @@ export async function findPlacesWithAI(query: string, lat: number, lng: number, 
         const data = JSON.parse(text);
         const places = Array.isArray(data) ? data : [];
 
-        // Cache AI results in DB
-        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
-        const staleAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);   // 3 days
-
-        for (const place of places) {
-            try {
-                await prisma.cachedEvent.create({
-                    data: {
-                        name: place.name,
-                        description: place.description || "",
-                        category: place.category || "Other",
-                        address: place.address || "",
-                        latitude: place.lat || lat,
-                        longitude: place.lng || lng,
-                        source: "AI_GENERATED",
-                        externalId: queryHash,
-                        expiresAt,
-                        staleAt,
-                    } as any,
-                });
-            } catch (err) {
-                // Ignore duplicate errors
-            }
-        }
-
-        return places;
+        // Return ephemeral results with temp IDs (not cached — only seeded when user selects)
+        return places.map((p: any, i: number) => ({
+            ...p,
+            id: `ai_ephemeral_${Date.now()}_${i}`,
+            source: "AI_EPHEMERAL",
+        }));
     } catch (error) {
         console.error("Gemini place search failed:", error);
         return [];
@@ -135,26 +91,7 @@ export async function findEventsWithAI(
     radiusMiles: number = 50,
     userContext?: string
 ): Promise<any[]> {
-    // 1. Check cache first
-    const cacheKey = `events:${query}:${targetDate}:${lat.toFixed(1)}:${lng.toFixed(1)}`;
-    const queryHash = hashQuery(cacheKey, lat, lng);
-
-    const cached = await prisma.cachedEvent.findMany({
-        where: {
-            source: "AI_GENERATED",
-            externalId: queryHash,
-            isTimeBound: true,
-            expiresAt: { gt: new Date() },
-        },
-        take: 10,
-    });
-
-    if (cached.length >= 3) {
-        console.log(`[EventSearch] Cache hit for "${query}" on ${targetDate} (${cached.length} results)`);
-        return cached;
-    }
-
-    // 2. Use Gemini with Google Search grounding to find real events
+    // Use Gemini with Google Search grounding to find real events
     const searchModel = genAI.getGenerativeModel({
         model: "gemini-2.0-flash",
         tools: [{ googleSearch: {} } as any],
@@ -200,62 +137,25 @@ Return JSON array only. No markdown, no explanation.`;
 
         console.log(`[EventSearch] Found ${events.length} events for "${query}" on ${targetDate}`);
 
-        // 3. Cache results in DB
-        const savedEvents: any[] = [];
-        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3); // 3 day cache
-        const staleAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 1);   // 1 day stale
-
-        for (const event of events) {
-            try {
-                // Parse the event date for startsAt/endsAt
-                const eventDate = new Date(event.date || targetDate);
-                const endsAt = new Date(eventDate);
-                endsAt.setHours(23, 59, 59, 999);
-
-                const saved = await prisma.cachedEvent.create({
-                    data: {
-                        name: event.name || "Unknown Event",
-                        description: event.description || "",
-                        category: event.category || "Other",
-                        subcategory: event.venue || "",
-                        address: event.address || "",
-                        latitude: event.lat || lat,
-                        longitude: event.lng || lng,
-                        source: "AI_GENERATED",
-                        externalId: queryHash,
-                        isTimeBound: true,
-                        startsAt: eventDate,
-                        endsAt: endsAt,
-                        ticketUrl: event.ticketUrl || null,
-                        eventUrl: event.ticketUrl || null,
-                        priceRange: event.priceRange || null,
-                        performers: event.performers || [],
-                        vibes: [],
-                        expiresAt,
-                        staleAt,
-                    } as any,
-                });
-                savedEvents.push(saved);
-            } catch (err) {
-                // Ignore duplicate errors
-                console.error(`[EventSearch] Failed to cache event "${event.name}":`, err);
-            }
-        }
-
-        return savedEvents.length > 0 ? savedEvents : events.map((e: any) => ({
-            id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            name: e.name,
-            description: e.description,
-            category: e.category,
-            subcategory: e.venue,
-            address: e.address,
+        // Return ephemeral results (not cached — only seeded when user selects for a hangout)
+        return events.map((e: any, i: number) => ({
+            id: `ai_event_${Date.now()}_${i}`,
+            name: e.name || "Unknown Event",
+            description: e.description || "",
+            category: e.category || "Other",
+            subcategory: e.venue || "",
+            address: e.address || "",
             latitude: e.lat || lat,
             longitude: e.lng || lng,
+            source: "AI_EPHEMERAL",
             isTimeBound: true,
             startsAt: new Date(e.date || targetDate),
-            ticketUrl: e.ticketUrl,
-            priceRange: e.priceRange,
+            endsAt: (() => { const d = new Date(e.date || targetDate); d.setHours(23, 59, 59, 999); return d; })(),
+            ticketUrl: e.ticketUrl || null,
+            eventUrl: e.ticketUrl || null,
+            priceRange: e.priceRange || null,
             performers: e.performers || [],
+            rating: null,
         }));
 
     } catch (error) {

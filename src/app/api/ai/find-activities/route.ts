@@ -68,37 +68,23 @@ export async function POST(req: NextRequest) {
                 findEventsWithAI(aiEnhancedQuery, latitude, longitude, eventTargetDate, 50, fullContext),
             ]);
 
-            // Seed AI places into the DB so they are selectable
+            // Pass through AI places as ephemeral candidates (no DB seeding)
             for (const place of aiPlaces) {
-                try {
-                    const aiId = `ai_gen_${place.name.replace(/\s+/g, '_').toLowerCase()}_${Math.floor(place.lat * 100)}_${Math.floor(place.lng * 100)}`;
-
-                    const saved = await prisma.cachedEvent.upsert({
-                        where: { googlePlaceId: aiId },
-                        update: {},
-                        create: {
-                            googlePlaceId: aiId,
-                            name: place.name,
-                            description: place.description,
-                            category: place.category || "Activity",
-                            subcategory: "AI Generated",
-                            address: place.address,
-                            latitude: place.lat,
-                            longitude: place.lng,
-                            rating: 4.5,
-                            reviewCount: 10,
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-                            staleAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-                            imageUrl: undefined
-                        }
-                    });
-                    candidates.push(saved);
-                } catch (err) {
-                    console.error("Failed to seed AI place:", place.name, err);
-                }
+                candidates.push({
+                    id: place.id,
+                    name: place.name,
+                    description: place.description || "",
+                    category: place.category || "Activity",
+                    subcategory: "AI Suggestion",
+                    address: place.address || "",
+                    latitude: place.lat || latitude,
+                    longitude: place.lng || longitude,
+                    rating: null,
+                    source: "AI_EPHEMERAL",
+                } as any);
             }
 
-            // Merge AI event results (already cached in DB by findEventsWithAI)
+            // Pass through AI event results as ephemeral candidates
             for (const event of aiEvents) {
                 // Avoid duplicates
                 if (!candidates.some(c => c.id === event.id)) {

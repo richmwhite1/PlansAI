@@ -23,33 +23,20 @@ export async function POST(req: NextRequest) {
                 const { findPlacesWithAI } = await import("@/lib/ai/gemini");
                 const aiPlaces = await findPlacesWithAI(query, latitude, longitude);
 
-                // Seed into DB so they become selectable
-                const { prisma } = await import("@/lib/prisma");
+                // Pass through as ephemeral results (no DB seeding)
                 for (const place of aiPlaces) {
-                    try {
-                        const aiId = `ai_gen_${place.name.replace(/\s+/g, '_').toLowerCase()}_${Math.floor(place.lat * 100)}_${Math.floor(place.lng * 100)}`;
-                        const saved = await prisma.cachedEvent.upsert({
-                            where: { googlePlaceId: aiId },
-                            update: {},
-                            create: {
-                                googlePlaceId: aiId,
-                                name: place.name,
-                                description: place.description || "",
-                                category: place.category || "Activity",
-                                subcategory: "AI Generated",
-                                address: place.address || "",
-                                latitude: place.lat || latitude,
-                                longitude: place.lng || longitude,
-                                rating: 4.5,
-                                reviewCount: 10,
-                                expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-                                staleAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-                            }
-                        });
-                        candidates.push(saved);
-                    } catch (seedErr) {
-                        // Ignore duplicate errors
-                    }
+                    candidates.push({
+                        id: place.id,
+                        name: place.name,
+                        description: place.description || "",
+                        category: place.category || "Activity",
+                        subcategory: "AI Suggestion",
+                        address: place.address || "",
+                        latitude: place.lat || latitude,
+                        longitude: place.lng || longitude,
+                        rating: null,
+                        source: "AI_EPHEMERAL",
+                    } as any);
                 }
             } catch (aiErr) {
                 console.error("[Search] AI fallback failed (non-fatal):", aiErr);

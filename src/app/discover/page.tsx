@@ -148,6 +148,10 @@ export default function DiscoverPage() {
         if (activeTab === "places" && selectedCategory !== "all") {
             params.append("category", selectedCategory);
         }
+        if (userLocation) {
+            params.append("lat", userLocation.lat.toString());
+            params.append("lng", userLocation.lng.toString());
+        }
         return `/api/discover?${params.toString()}`;
     })();
 

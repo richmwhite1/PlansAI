@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
         }
 
         if (type === "all" || type === "activities") {
-            const activityWhere: any = {};
+            const activityWhere: any = {
+                expiresAt: { gt: new Date() },
+            };
             if (category && category !== "all") {
                 activityWhere.category = category;
             }
@@ -52,11 +54,21 @@ export async function GET(req: NextRequest) {
                 activityWhere.city = { contains: city, mode: "insensitive" };
             }
 
+            // Geo-filter: show activities near the user's location
+            const lat = parseFloat(searchParams.get("lat") || "0");
+            const lng = parseFloat(searchParams.get("lng") || "0");
+            if (lat !== 0 && lng !== 0) {
+                const degreeRadius = 0.5; // ~35 miles
+                activityWhere.latitude = { gte: lat - degreeRadius, lte: lat + degreeRadius };
+                activityWhere.longitude = { gte: lng - degreeRadius, lte: lng + degreeRadius };
+            }
+
             activities = await prisma.cachedEvent.findMany({
                 where: activityWhere,
-                orderBy: {
-                    rating: 'desc'
-                },
+                orderBy: [
+                    { timesSelected: 'desc' },
+                    { rating: 'desc' },
+                ],
                 take: 20
             });
         }
