@@ -81,7 +81,7 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
     return (
         <div className="glass-card p-8 rounded-3xl border border-white/10 shadow-2xl max-w-md mx-auto text-center space-y-6">
             <div className="space-y-2">
-                <h2 className="text-2xl font-serif font-bold text-foreground tracking-tight">Join the Vibe</h2>
+                <h2 className="text-2xl font-serif font-bold text-foreground tracking-tight">Join the Plan</h2>
                 <p className="text-muted-foreground text-sm">
                     {guestsToClaim.length > 0
                         ? "Are you one of these guests? Select your name to join, or enter a new one below."

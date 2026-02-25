@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { searchCachedEvents } from "@/lib/cache/event-cache";
 import { calculateTrustScore } from "@/lib/ai/trust-score";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
-import { buildScenarioContext } from "@/lib/ai/scenarios";
 import { auth } from "@clerk/nextjs/server";
 
 // In a real app, we'd use an LLM here to expand the query.
@@ -51,9 +50,7 @@ export async function POST(req: NextRequest) {
             console.error("Failed to build user context (non-fatal):", ctxErr);
         }
 
-        // Add scenario context
-        const scenarioCtx = buildScenarioContext(scenario);
-        const fullContext = [userContext, scenarioCtx].filter(Boolean).join(" ") || undefined;
+        const fullContext = userContext || undefined;
 
         // 3. AI Fallback if Google/Cache fails
         if (candidates.length < 3) {

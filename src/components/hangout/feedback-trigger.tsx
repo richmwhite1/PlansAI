@@ -26,7 +26,7 @@ export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, 
 
                 <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-violet-400" />
-                    How was the Vibe?
+                    How was the Activity?
                 </h2>
                 <p className="text-sm text-slate-400 mb-4 max-w-md">
                     The hangout is over! Share your reflections to help us personalize your future plans.

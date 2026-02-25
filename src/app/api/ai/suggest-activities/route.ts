@@ -3,7 +3,6 @@ import { getCachedEvents } from "@/lib/cache/event-cache";
 import { prisma } from "@/lib/prisma";
 import { calculateTrustScore } from "@/lib/ai/trust-score";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
-import { buildScenarioContext } from "@/lib/ai/scenarios";
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
@@ -34,8 +33,7 @@ export async function POST(req: NextRequest) {
                     userContext = [groupCtx, historyCtx].filter(Boolean).join(" ");
                 }
             }
-            const scenarioCtx = buildScenarioContext(scenario);
-            fullContextString = [userContext, scenarioCtx].filter(Boolean).join(" ") || undefined;
+            fullContextString = userContext || undefined;
         } catch (e) {
             console.error("Context build error:", e);
         }
@@ -65,13 +63,9 @@ export async function POST(req: NextRequest) {
                 // In the future, pass fullContextString into calculateTrustScore or similar
                 const { score, reason } = await calculateTrustScore(event, friendIds || []);
 
-                // If scenario is set, boost score slightly if category matches (simple heuristic)
+                // Score logic removed as scenario is gone
                 let finalScore = score;
                 let finalReason = reason;
-
-                if (scenario === 'date-night' && (event.category === 'restaurant' || event.category === 'Arts')) finalScore = Math.min(1, finalScore + 0.1);
-                if (scenario === 'outdoor-adventure' && event.category === 'activity') finalScore = Math.min(1, finalScore + 0.1);
-                if (scenario === 'coffee-chat' && event.category === 'restaurant') finalScore = Math.min(1, finalScore + 0.1);
 
                 return {
                     ...event,

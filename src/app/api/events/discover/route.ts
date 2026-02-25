@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEventsWithAI } from "@/lib/ai/gemini";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
-import { buildScenarioContext } from "@/lib/ai/scenarios";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
@@ -36,9 +35,7 @@ export async function POST(req: NextRequest) {
         } catch (ctxErr) {
             // Non-fatal — proceed without context
         }
-        // Add scenario context
-        const scenarioCtx = buildScenarioContext(scenario);
-        const fullContext = [userContext, scenarioCtx].filter(Boolean).join(" ") || undefined;
+        const fullContext = userContext || undefined;
 
         const events = await findEventsWithAI(query, latitude, longitude, targetDate, radiusMiles, fullContext);
 
@@ -61,7 +58,7 @@ export async function POST(req: NextRequest) {
             priceRange: e.priceRange || null,
             performers: e.performers || [],
             matchPercentage: 95,
-            reason: scenario ? `Matched to your ${scenario} vibe` : "AI identified this event for you",
+            reason: "AI identified this activity for you",
         }));
 
         return NextResponse.json({

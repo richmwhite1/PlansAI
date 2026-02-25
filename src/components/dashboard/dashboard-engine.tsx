@@ -257,7 +257,7 @@ export function DashboardEngine() {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
-                                        What's the vibe?
+                                        What is the activity?
                                     </h2>
 
                                     <div className="flex items-center gap-3">
@@ -266,7 +266,7 @@ export function DashboardEngine() {
                                                 onClick={() => setCurrentStep(2)}
                                                 className="text-xs font-medium text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline underline-offset-4"
                                             >
-                                                Edit Vibe
+                                                Edit Activity
                                             </button>
                                         )}
                                         {isVotingEnabled && (
@@ -323,7 +323,7 @@ export function DashboardEngine() {
                                 <textarea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="What's the vibe? (e.g. Celebrating Rick's birthday!)"
+                                    placeholder="What is the activity? (e.g. Celebrating Rick's birthday!)"
                                     className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none resize-none h-20 placeholder:text-muted-foreground"
                                 />
                                 {/* Settings Toggle */}

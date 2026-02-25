@@ -198,7 +198,7 @@ export function HangoutPageClient({
                             {hangout.status === "VOTING" && (
                                 <div className="flex items-center gap-3 text-primary bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20 backdrop-blur-md border-dashed shadow-xl">
                                     <Sparkles className="w-4 h-4 animate-pulse" />
-                                    <span className="font-bold uppercase tracking-[0.1em] text-xs">Deciding the vibe</span>
+                                    <span className="font-bold uppercase tracking-[0.1em] text-xs">Deciding the activity</span>
                                 </div>
                             )}
                         </motion.div>

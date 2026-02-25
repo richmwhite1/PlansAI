@@ -165,7 +165,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                             <div className="p-2 bg-primary/10 rounded-xl">
                                 <MapPin className="w-5 h-5 text-primary" />
                             </div>
-                            <h3 className="text-xl font-serif font-bold text-white">Vibe & Velocity</h3>
+                            <h3 className="text-xl font-serif font-bold text-white">Preferences & Pace</h3>
                         </div>
 
                         <div className="space-y-6">
@@ -195,7 +195,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                             <div className="w-full h-px bg-white/5" />
 
                             <div className="flex justify-between items-center group">
-                                <span className="text-sm font-medium text-slate-500 group-hover:text-slate-400 transition-colors">Budget Vibe</span>
+                                <span className="text-sm font-medium text-slate-500 group-hover:text-slate-400 transition-colors">Budget Limit</span>
                                 <span className="text-base font-bold text-primary font-serif italic">{BUDGET_LABELS[Math.max(0, (initialData.budgetComfort || 2) - 1)]?.split(" ").slice(1).join(" ")}</span>
                             </div>
 
@@ -535,7 +535,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     </div>
                 </div>
 
-                {/* Vibe Tags (Renamed to Planning Priorities) */}
+                {/* Planning Priorities */}
                 <div className="space-y-3 border-b border-border pb-6">
                     <label className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5" /> Planning Priorities

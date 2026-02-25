@@ -55,7 +55,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
                             <Sparkles className="w-8 h-8 text-violet-400" />
                         </div>
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-bold text-white">Vibe Analyzed!</h2>
+                            <h2 className="text-2xl font-bold text-white">Feedback Analyzed!</h2>
                             <p className="text-slate-400 italic">"{extracted.summary}"</p>
                         </div>
 
@@ -92,7 +92,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
                             <textarea
                                 value={reflection}
                                 onChange={(e) => setReflection(e.target.value)}
-                                placeholder="E.g. The sushi was incredible and the vibe was super chill. Loved the outdoor seating."
+                                placeholder="E.g. The sushi was incredible and the experience was super chill. Loved the outdoor seating."
                                 className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-200 placeholder:text-slate-600 focus:border-violet-500/50 outline-none transition-colors resize-none"
                             />
                         </div>
@@ -123,7 +123,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
                                 {isSubmitting ? (
                                     <>
                                         <Loader2 className="w-5 h-5 animate-spin" />
-                                        Analyzing Vibe...
+                                        Analyzing Feedback...
                                     </>
                                 ) : (
                                     "Save Reflection"
