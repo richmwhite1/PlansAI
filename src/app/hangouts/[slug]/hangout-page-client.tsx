@@ -178,7 +178,10 @@ export function HangoutPageClient({
                             {hangout.scheduledFor && (
                                 <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl hover:bg-white/10 transition-colors cursor-default">
                                     <Calendar className="w-4 h-4 text-primary" />
-                                    <span className="tracking-tight">{format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}</span>
+                                    <span className="tracking-tight">
+                                        {format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}
+                                        {hangout.endDate && ` - ${format(new Date(hangout.endDate), "EEE, MMM do @ h:mm a")}`}
+                                    </span>
                                 </div>
                             )}
                             {(hangout.finalActivity || (hangout.activityOptions?.[0]?.cachedEvent)) && hangout.status !== "VOTING" && (

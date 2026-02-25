@@ -17,7 +17,6 @@ import { FriendSelector } from "@/components/dashboard/friend-selector";
 import { InviteModal } from "@/components/dashboard/invite-modal";
 import { toast } from "sonner";
 import { HangoutCard } from "@/components/hangout/hangout-card";
-import { SCENARIO_TEMPLATES, type ScenarioTemplate } from "@/lib/ai/scenarios";
 
 interface Friend {
     id: string;
@@ -104,7 +103,6 @@ export default function DiscoverPage() {
     const [eventResults, setEventResults] = useState<DiscoverEvent[]>([]);
     const [eventSearchQuery, setEventSearchQuery] = useState("");
     const [hasEventSearched, setHasEventSearched] = useState(false);
-    const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
     // AI Search for Places
     const [isPlaceSearching, setIsPlaceSearching] = useState(false);
@@ -124,6 +122,9 @@ export default function DiscoverPage() {
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
+    const [startDatePickerValue, setStartDatePickerValue] = useState<string>("");
+    const [isMultiDay, setIsMultiDay] = useState(false);
+    const [endDatePickerValue, setEndDatePickerValue] = useState<string>("");
 
     // User location (could be improved with geolocation API)
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -171,9 +172,6 @@ export default function DiscoverPage() {
         setIsEventSearching(true);
         setHasEventSearched(true);
 
-        const scenario = SCENARIO_TEMPLATES.find(s => s.id === selectedScenario);
-        const searchRadius = scenario?.defaultRadius || 50;
-
         try {
             const res = await fetch("/api/events/discover", {
                 method: "POST",
@@ -183,8 +181,7 @@ export default function DiscoverPage() {
                     latitude: userLocation.lat,
                     longitude: userLocation.lng,
                     targetDate,
-                    radiusMiles: searchRadius,
-                    scenario: selectedScenario,
+                    radiusMiles: 50,
                 })
             });
             const data = await res.json();
@@ -213,8 +210,7 @@ export default function DiscoverPage() {
                     query: placeSearchQuery,
                     latitude: userLocation.lat,
                     longitude: userLocation.lng,
-                    radius: 25000,
-                    scenario: selectedScenario
+                    radius: 25000
                 })
             });
             const data = await res.json();
@@ -254,7 +250,9 @@ export default function DiscoverPage() {
                     status: selectedActivityIds.size > 1 ? "VOTING" : "PLANNING",
                     friendIds: selectedFriends.filter(f => !f.isGuest).map(f => f.id),
                     guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name })),
-                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY"
+                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY",
+                    when: startDatePickerValue || undefined,
+                    endDate: isMultiDay && endDatePickerValue ? new Date(endDatePickerValue).toISOString() : undefined
                 })
             });
             const data = await res.json();
@@ -383,25 +381,6 @@ export default function DiscoverPage() {
                                 {isEventSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                             </button>
                         </form>
-
-                        {/* Scenario Templates */}
-                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                            {SCENARIO_TEMPLATES.map(scenario => (
-                                <button
-                                    key={scenario.id}
-                                    onClick={() => setSelectedScenario(selectedScenario === scenario.id ? null : scenario.id)}
-                                    className={cn(
-                                        "flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold whitespace-nowrap transition-all",
-                                        selectedScenario === scenario.id
-                                            ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
-                                            : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
-                                    )}
-                                >
-                                    <span>{scenario.emoji}</span>
-                                    {scenario.name}
-                                </button>
-                            ))}
-                        </div>
 
                         {/* Quick Suggestions */}
                         {eventResults.length === 0 && !isEventSearching && (
@@ -833,6 +812,63 @@ export default function DiscoverPage() {
                                     selected={selectedFriends}
                                     onSelect={setSelectedFriends}
                                 />
+
+                                {/* Date and Time Section */}
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <h3 className="text-sm font-bold text-slate-200">When is it happening?</h3>
+                                    <div className="relative group">
+                                        <label className="text-xs text-slate-400 mb-1 block">Start Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm font-medium text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 appearance-none transition-all"
+                                            value={startDatePickerValue}
+                                            onChange={(e) => setStartDatePickerValue(e.target.value)}
+                                        />
+                                        <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-[38px] pointer-events-none group-focus-within:text-primary transition-colors" />
+                                    </div>
+
+                                    {/* Multi-Day Toggle */}
+                                    <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                                        <div className="space-y-0.5">
+                                            <label className="text-sm font-medium text-slate-200">Is this a multi-day event?</label>
+                                            <p className="text-xs text-slate-500">Enable an end date for trips, festivals, etc.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsMultiDay(!isMultiDay)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4",
+                                                isMultiDay ? "bg-primary" : "bg-slate-700"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                    isMultiDay ? "translate-x-6" : "translate-x-1"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {isMultiDay && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="relative group overflow-hidden mt-2"
+                                            >
+                                                <label className="text-xs text-slate-400 mb-1 block">End Date & Time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm font-medium text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 appearance-none transition-all"
+                                                    value={endDatePickerValue}
+                                                    onChange={(e) => setEndDatePickerValue(e.target.value)}
+                                                />
+                                                <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-[38px] pointer-events-none group-focus-within:text-primary transition-colors" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
 
                                 {/* Visibility Toggle */}
                                 <div className="space-y-4 pt-4 border-t border-white/5">

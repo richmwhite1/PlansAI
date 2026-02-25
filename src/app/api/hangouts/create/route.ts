@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
             description,
             isVotingEnabled,
             allowGuestsToInvite, // Added
-            visibility // Added: "PUBLIC" or "FRIENDS_ONLY"
+            visibility, // Added: "PUBLIC" or "FRIENDS_ONLY"
+            endDate // Added for Phase 9
         } = body;
 
         const effectiveVisibility = visibility === "PUBLIC" ? "PUBLIC" : "FRIENDS_ONLY";
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest) {
                 consensusThreshold: 60,
                 type: "CASUAL",
                 scheduledFor: effectiveWhen ? new Date(effectiveWhen) : undefined,
+                endDate: endDate ? new Date(endDate) : undefined,
                 votingEndsAt: effectiveVotingEnabled ? (
                     effectiveWhen
                         ? new Date(new Date(effectiveWhen).getTime() - 1000 * 60 * 60 * 2) // 2 hours before event
@@ -242,9 +244,11 @@ export async function POST(req: NextRequest) {
                         longitude: lng,
                         city: city,
                         happeningAt: hangout.scheduledFor || new Date(Date.now() + 1000 * 60 * 60 * 24), // Fallback to 24h if no date
-                        expiresAt: hangout.scheduledFor
-                            ? new Date(new Date(hangout.scheduledFor).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after start
-                            : new Date(Date.now() + 1000 * 60 * 60 * 48) // Fallback to 48h
+                        expiresAt: hangout.endDate
+                            ? new Date(new Date(hangout.endDate).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after explicit end date
+                            : hangout.scheduledFor
+                                ? new Date(new Date(hangout.scheduledFor).getTime() + 1000 * 60 * 60 * 6) // Expires 6h after start
+                                : new Date(Date.now() + 1000 * 60 * 60 * 48) // Fallback to 48h
                     }
                 });
             } catch (err) {

@@ -55,6 +55,8 @@ export function DashboardEngine() {
     const [isCreating, setIsCreating] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
+    const [isMultiDay, setIsMultiDay] = useState(false);
+    const [endDatePickerValue, setEndDatePickerValue] = useState("");
 
     // Sync voting mode with selection count
     const handleToggleActivity = (activity: any) => {
@@ -129,6 +131,7 @@ export function DashboardEngine() {
                     guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name })),
                     activities: selectedActivities, // Send full objects
                     when: selectedDate,
+                    endDate: isMultiDay && endDatePickerValue ? new Date(endDatePickerValue).toISOString() : undefined,
                     description,
                     isVotingEnabled,
                     allowGuestsToInvite,
@@ -402,6 +405,7 @@ export function DashboardEngine() {
                                     </div>
 
                                     <div className="relative group">
+                                        <label className="text-xs text-slate-400 mb-1 block">Start Date & Time</label>
                                         <input
                                             type="datetime-local"
                                             className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm font-medium text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 appearance-none transition-all"
@@ -411,8 +415,50 @@ export function DashboardEngine() {
                                                 handleDateSelect(e.target.value);
                                             }}
                                         />
-                                        <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-primary transition-colors" />
+                                        <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-[38px] pointer-events-none group-focus-within:text-primary transition-colors" />
                                     </div>
+
+                                    {/* Multi-Day Toggle */}
+                                    <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                                        <div className="space-y-0.5">
+                                            <label className="text-sm font-medium text-slate-200">Is this a multi-day event?</label>
+                                            <p className="text-xs text-slate-500">Enable an end date for trips, festivals, etc.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsMultiDay(!isMultiDay)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4",
+                                                isMultiDay ? "bg-primary" : "bg-slate-700"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                    isMultiDay ? "translate-x-6" : "translate-x-1"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {isMultiDay && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="relative group overflow-hidden mt-2"
+                                            >
+                                                <label className="text-xs text-slate-400 mb-1 block">End Date & Time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm font-medium text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 appearance-none transition-all"
+                                                    value={endDatePickerValue}
+                                                    onChange={(e) => setEndDatePickerValue(e.target.value)}
+                                                />
+                                                <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-[38px] pointer-events-none group-focus-within:text-primary transition-colors" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
 
                                 <button

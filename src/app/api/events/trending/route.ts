@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { SCENARIO_TEMPLATES } from "@/lib/ai/scenarios";
 
 export async function GET(req: NextRequest) {
     try {
@@ -9,9 +8,6 @@ export async function GET(req: NextRequest) {
         const lng = parseFloat(searchParams.get("lng") || "-122.4194");
         const radius = parseFloat(searchParams.get("radius") || "10"); // miles
         const targetDate = searchParams.get("targetDate");
-        const scenarioId = searchParams.get("scenario");
-
-        const scenario = scenarioId ? SCENARIO_TEMPLATES.find(s => s.id === scenarioId) : null;
 
         const baseWhere: any = {
             latitude: { gte: lat - 0.2, lte: lat + 0.2 },
@@ -39,15 +35,6 @@ export async function GET(req: NextRequest) {
                     ]
                 }
             ];
-        }
-
-        if (scenario) {
-            const orConditions = scenario.suggestedCategories.map(cat => ({ category: { contains: cat, mode: 'insensitive' } }));
-            if (baseWhere.AND) {
-                baseWhere.AND.push({ OR: orConditions });
-            } else {
-                baseWhere.AND = [{ OR: orConditions }];
-            }
         }
 
         const trendingCount = await prisma.cachedEvent.count({
@@ -90,7 +77,7 @@ export async function GET(req: NextRequest) {
                 title: a.name,
                 type: a.category,
                 matchPercentage: 90, // Static for trending
-                reason: scenario ? `Matches ${scenario.name} vibe` : (trendingCount > 0 ? "Trending in your area" : "Global Trending"),
+                reason: trendingCount > 0 ? "Trending in your area" : "Global Trending",
                 imageUrl: a.imageUrl,
                 rating: a.rating,
                 address: a.address
