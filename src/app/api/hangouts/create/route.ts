@@ -114,7 +114,6 @@ export async function POST(req: NextRequest) {
                         category: "CUSTOM",
                         source: "USER_SUBMITTED",
                         websiteUrl: act.websiteUrl || null,
-                        locationUrl: act.locationUrl || null,
                         latitude: creator.homeLatitude || 0,
                         longitude: creator.homeLongitude || 0,
                         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
