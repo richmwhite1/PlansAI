@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { searchCachedEvents } from "@/lib/cache/event-cache";
 import { calculateTrustScore } from "@/lib/ai/trust-score";
+import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
+import { auth } from "@clerk/nextjs/server";
 
 // In a real app, we'd use an LLM here to expand the query.
 // For now, we'll simulate the "AI Search" by being more aggressive with the search parameters
@@ -29,11 +31,30 @@ export async function POST(req: NextRequest) {
         // 2. Search (Larger radius and more aggressive fallback)
         let candidates = await searchCachedEvents(aiEnhancedQuery, latitude, longitude, radius, 15, targetDate ? new Date(targetDate) : undefined);
 
+        // Build user/group context for personalized AI fallback
+        let userContext = "";
+        try {
+            const { userId } = await auth();
+            if (userId) {
+                const profile = await prisma.profile.findUnique({ where: { clerkId: userId }, select: { id: true } });
+                if (profile) {
+                    const allIds = [profile.id, ...(friendIds || [])];
+                    const [groupCtx, historyCtx] = await Promise.all([
+                        buildGroupContext(allIds),
+                        buildHangoutHistoryContext(profile.id),
+                    ]);
+                    userContext = [groupCtx, historyCtx].filter(Boolean).join(" ");
+                }
+            }
+        } catch (ctxErr) {
+            console.error("Failed to build user context (non-fatal):", ctxErr);
+        }
+
         // 3. AI Fallback if Google/Cache fails
         if (candidates.length < 3) {
-            console.log("Insufficient results from Google/Cache. innovative AI Fallback triggered.");
+            console.log("Insufficient results from Google/Cache. AI Fallback triggered.");
             const { findPlacesWithAI } = await import("@/lib/ai/gemini");
-            const aiPlaces = await findPlacesWithAI(aiEnhancedQuery, latitude, longitude);
+            const aiPlaces = await findPlacesWithAI(aiEnhancedQuery, latitude, longitude, userContext || undefined);
 
             // Seed these into the DB so they are real selectable options
             for (const place of aiPlaces) {

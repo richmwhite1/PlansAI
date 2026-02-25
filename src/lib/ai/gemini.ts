@@ -36,7 +36,7 @@ export async function extractVibesFromReflection(reflection: string) {
     }
 }
 
-export async function findPlacesWithAI(query: string, lat: number, lng: number): Promise<any[]> {
+export async function findPlacesWithAI(query: string, lat: number, lng: number, userContext?: string): Promise<any[]> {
     // Check cache first — look for AI-generated results matching this query hash
     const queryHash = hashQuery(query, lat, lng);
     const cached = await prisma.cachedEvent.findMany({
@@ -60,10 +60,12 @@ export async function findPlacesWithAI(query: string, lat: number, lng: number):
         }));
     }
 
+    const contextBlock = userContext ? `\nUser/Group context: ${userContext}\nPrioritize results that match these preferences.\n` : "";
+
     const prompt = `
         You are a local expert for the area around Latitude: ${lat}, Longitude: ${lng}.
         The user is searching for: "${query}".
-        
+        ${contextBlock}
         The Google Places API is currently unavailable, so you need to provide 5 REAL, EXISTING places that match this query in this area.
         If you are unsure of exact specific places, provide the most famous/popular ones you know of in the general vicinity (City/Neighborhood).
         
@@ -130,7 +132,8 @@ export async function findEventsWithAI(
     lat: number,
     lng: number,
     targetDate: string, // ISO date string like "2026-02-26"
-    radiusMiles: number = 50
+    radiusMiles: number = 50,
+    userContext?: string
 ): Promise<any[]> {
     // 1. Check cache first
     const cacheKey = `events:${query}:${targetDate}:${lat.toFixed(1)}:${lng.toFixed(1)}`;
@@ -157,8 +160,10 @@ export async function findEventsWithAI(
         tools: [{ googleSearch: {} } as any],
     });
 
-    const prompt = `Find real events matching "${query}" happening on or around ${targetDate} within ${radiusMiles} miles of coordinates ${lat}, ${lng}.
+    const contextBlock = userContext ? `\nThe user/group has these preferences: ${userContext}\nPrioritize events that align with these preferences when possible.\n` : "";
 
+    const prompt = `Find real events matching "${query}" happening on or around ${targetDate} within ${radiusMiles} miles of coordinates ${lat}, ${lng}.
+${contextBlock}
 I need REAL events that are actually scheduled — concerts, festivals, shows, sports games, community events, workshops, etc.
 
 Return a JSON array of up to 8 events. Each event object must have:

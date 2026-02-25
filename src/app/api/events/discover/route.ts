@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEventsWithAI } from "@/lib/ai/gemini";
+import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
+import { buildScenarioContext } from "@/lib/ai/scenarios";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { query, latitude, longitude, targetDate, radiusMiles = 50 } = body;
+        const { query, latitude, longitude, targetDate, radiusMiles = 50, scenario = null } = body;
 
         if (!query || !latitude || !longitude || !targetDate) {
             return NextResponse.json(
@@ -15,7 +19,28 @@ export async function POST(req: NextRequest) {
 
         console.log(`[EventDiscover] "${query}" on ${targetDate} at ${latitude},${longitude}`);
 
-        const events = await findEventsWithAI(query, latitude, longitude, targetDate, radiusMiles);
+        // Build user context for personalized results
+        let userContext = "";
+        try {
+            const { userId } = await auth();
+            if (userId) {
+                const profile = await prisma.profile.findUnique({ where: { clerkId: userId }, select: { id: true } });
+                if (profile) {
+                    const [groupCtx, historyCtx] = await Promise.all([
+                        buildGroupContext([profile.id]),
+                        buildHangoutHistoryContext(profile.id),
+                    ]);
+                    userContext = [groupCtx, historyCtx].filter(Boolean).join(" ");
+                }
+            }
+        } catch (ctxErr) {
+            // Non-fatal — proceed without context
+        }
+        // Add scenario context
+        const scenarioCtx = buildScenarioContext(scenario);
+        const fullContext = [userContext, scenarioCtx].filter(Boolean).join(" ") || undefined;
+
+        const events = await findEventsWithAI(query, latitude, longitude, targetDate, radiusMiles, fullContext);
 
         // Format for frontend consumption
         const formatted = events.map((e: any) => ({

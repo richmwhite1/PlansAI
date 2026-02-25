@@ -17,6 +17,7 @@ import { FriendSelector } from "@/components/dashboard/friend-selector";
 import { InviteModal } from "@/components/dashboard/invite-modal";
 import { toast } from "sonner";
 import { HangoutCard } from "@/components/hangout/hangout-card";
+import { SCENARIO_TEMPLATES, type ScenarioTemplate } from "@/lib/ai/scenarios";
 
 interface Friend {
     id: string;
@@ -98,6 +99,7 @@ export default function DiscoverPage() {
     const [isEventSearching, setIsEventSearching] = useState(false);
     const [eventResults, setEventResults] = useState<DiscoverEvent[]>([]);
     const [eventSearchQuery, setEventSearchQuery] = useState("");
+    const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
     // Selection for Hangout Creation
     const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
@@ -151,6 +153,9 @@ export default function DiscoverPage() {
 
         setIsEventSearching(true);
 
+        const scenario = SCENARIO_TEMPLATES.find(s => s.id === selectedScenario);
+        const searchRadius = scenario?.defaultRadius || 50;
+
         try {
             const res = await fetch("/api/events/discover", {
                 method: "POST",
@@ -160,7 +165,8 @@ export default function DiscoverPage() {
                     latitude: userLocation.lat,
                     longitude: userLocation.lng,
                     targetDate,
-                    radiusMiles: 50
+                    radiusMiles: searchRadius,
+                    scenario: selectedScenario,
                 })
             });
             const data = await res.json();
@@ -329,6 +335,25 @@ export default function DiscoverPage() {
                                 {isEventSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                             </button>
                         </form>
+
+                        {/* Scenario Templates */}
+                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                            {SCENARIO_TEMPLATES.map(scenario => (
+                                <button
+                                    key={scenario.id}
+                                    onClick={() => setSelectedScenario(selectedScenario === scenario.id ? null : scenario.id)}
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold whitespace-nowrap transition-all",
+                                        selectedScenario === scenario.id
+                                            ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                            : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                                    )}
+                                >
+                                    <span>{scenario.emoji}</span>
+                                    {scenario.name}
+                                </button>
+                            ))}
+                        </div>
 
                         {/* Quick Suggestions */}
                         {eventResults.length === 0 && !isEventSearching && (

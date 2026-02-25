@@ -4,14 +4,32 @@
 import { ProfileHero } from "./ProfileHero";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Sparkles, Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign } from "lucide-react";
+import { Sparkles, Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 import { ExtendedProfile } from "@/lib/profile-utils";
 
 interface ProfileViewerProps {
     profile: NonNullable<ExtendedProfile>;
+}
+
+interface HangoutHistoryItem {
+    hangoutId: string;
+    title: string;
+    date: string;
+    activity: {
+        name: string;
+        category: string;
+        imageUrl: string | null;
+        rating: number | null;
+        address: string | null;
+    };
+    userRating: number | null;
+    reflection: string | null;
+    vibes: string[];
+    participantCount: number;
 }
 
 const ENERGY_LABELS = ["🐢 Very Introverted", "🌿 Introverted", "⚖️ Ambivert", "🌟 Extroverted", "🔥 Very Extroverted"];
@@ -20,6 +38,16 @@ const BUDGET_LABELS = ["$ Free/Cheap", "$$ Moderate", "$$$ Nice", "$$$$ Luxury"]
 export function ProfileViewer({ profile }: ProfileViewerProps) {
     const { user } = useUser();
     const router = useRouter();
+    const [hangoutHistory, setHangoutHistory] = useState<HangoutHistoryItem[]>([]);
+
+    useEffect(() => {
+        fetch(`/api/users/${profile.id}/hangout-history`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.history) setHangoutHistory(data.history);
+            })
+            .catch(() => { });
+    }, [profile.id]);
 
     const handleMessage = async () => {
         try {
@@ -215,6 +243,67 @@ export function ProfileViewer({ profile }: ProfileViewerProps) {
                         </div>
                     </div>
                 </div>
+
+                {/* ─── Past Adventures (Full Width) ─── */}
+                {hangoutHistory.length > 0 && (
+                    <div className="md:col-span-2 bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-xl">
+                                <Calendar className="w-5 h-5 text-primary" />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold text-white">Past Adventures</h3>
+                            <span className="ml-auto text-xs text-slate-500 font-medium">{hangoutHistory.length} hangouts</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {hangoutHistory.map((h) => (
+                                <div key={h.hangoutId} className="flex items-center gap-4 bg-white/5 rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                                    {/* Activity image */}
+                                    <div className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-white/10">
+                                        {h.activity.imageUrl ? (
+                                            <img src={h.activity.imageUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <MapPin className="w-5 h-5 text-slate-600" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-white text-sm truncate">{h.activity.name}</p>
+                                        <p className="text-xs text-slate-500">
+                                            {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {h.participantCount > 1 && ` • ${h.participantCount} people`}
+                                        </p>
+                                        {h.vibes.length > 0 && (
+                                            <div className="flex gap-1 mt-1">
+                                                {h.vibes.slice(0, 3).map((v: string) => (
+                                                    <span key={v} className="text-[9px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">#{v}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Star rating */}
+                                    {h.userRating && (
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                            {[1, 2, 3, 4, 5].map(s => (
+                                                <Star
+                                                    key={s}
+                                                    className={cn(
+                                                        "w-3.5 h-3.5",
+                                                        s <= h.userRating! ? "text-amber-400 fill-amber-400" : "text-slate-700"
+                                                    )}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Dealbreakers & Notes */}
                 {(profile.dealbreakers?.length ?? 0) > 0 && (
