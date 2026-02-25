@@ -59,6 +59,8 @@ interface Activity {
     rating: number | null;
     imageUrl: string | null;
     vibes: string[];
+    matchPercentage?: number;
+    reason?: string;
 }
 
 interface DiscoverEvent {
@@ -76,6 +78,8 @@ interface DiscoverEvent {
     eventUrl: string | null;
     priceRange: string | null;
     performers: string[];
+    matchPercentage?: number;
+    reason?: string;
 }
 
 const PLACE_CATEGORIES = [
@@ -100,6 +104,14 @@ export default function DiscoverPage() {
     const [eventResults, setEventResults] = useState<DiscoverEvent[]>([]);
     const [eventSearchQuery, setEventSearchQuery] = useState("");
     const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+
+    // AI Search for Places
+    const [isPlaceSearching, setIsPlaceSearching] = useState(false);
+    const [placeResults, setPlaceResults] = useState<Activity[]>([]);
+    const [placeSearchQuery, setPlaceSearchQuery] = useState("");
+
+    // Local Search for Plans
+    const [planSearchQuery, setPlanSearchQuery] = useState("");
 
     // Selection for Hangout Creation
     const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
@@ -146,6 +158,10 @@ export default function DiscoverPage() {
     const hangouts: DiscoverableHangout[] = discoverData?.hangouts || [];
     const activities: Activity[] = discoverData?.activities || [];
 
+    const visibleHangouts = planSearchQuery.trim()
+        ? hangouts.filter(h => h.title.toLowerCase().includes(planSearchQuery.toLowerCase()) || (h.activity && h.activity.name.toLowerCase().includes(planSearchQuery.toLowerCase())))
+        : hangouts;
+
     // Event Search Handler
     const handleEventSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -178,6 +194,36 @@ export default function DiscoverPage() {
             toast.error("Failed to search for events");
         } finally {
             setIsEventSearching(false);
+        }
+    };
+
+    // Place Search Handler
+    const handlePlaceSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!placeSearchQuery.trim() || !userLocation) return;
+
+        setIsPlaceSearching(true);
+        try {
+            const res = await fetch("/api/ai/find-activities", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    query: placeSearchQuery,
+                    latitude: userLocation.lat,
+                    longitude: userLocation.lng,
+                    radius: 25000,
+                    scenario: selectedScenario
+                })
+            });
+            const data = await res.json();
+            if (data.activities) {
+                setPlaceResults(data.activities);
+            }
+        } catch (err) {
+            console.error("Place search failed:", err);
+            toast.error("Failed to search for places");
+        } finally {
+            setIsPlaceSearching(false);
         }
     };
 
@@ -419,9 +465,20 @@ export default function DiscoverPage() {
                                                             <MapPin className="w-3 h-3" />
                                                             {event.venue}
                                                         </p>
-                                                        {event.description && (
+
+                                                        {/* AI Match Feedback for Events */}
+                                                        {event.matchPercentage ? (
+                                                            <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 mb-2">
+                                                                <div className="flex items-center gap-1 mb-1">
+                                                                    <Sparkles className="w-3 h-3 text-primary" />
+                                                                    <span className="text-[10px] font-bold text-primary">{event.matchPercentage}% AI Match</span>
+                                                                </div>
+                                                                <p className="text-[10px] text-primary/80 leading-tight">{event.reason}</p>
+                                                            </div>
+                                                        ) : event.description && (
                                                             <p className="text-xs text-slate-500 line-clamp-2 mb-2">{event.description}</p>
                                                         )}
+
                                                         <div className="flex items-center gap-2 flex-wrap">
                                                             {event.priceRange && (
                                                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -510,8 +567,29 @@ export default function DiscoverPage() {
                             })}
                         </div>
 
+                        {/* Place Search Bar */}
+                        <form onSubmit={handlePlaceSearch} className="relative group">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Sparkles className="w-5 h-5 text-primary" />
+                            </div>
+                            <input
+                                type="text"
+                                value={placeSearchQuery}
+                                onChange={(e) => setPlaceSearchQuery(e.target.value)}
+                                placeholder="Search for specific places, trails, or vibes..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                            />
+                            <button
+                                type="submit"
+                                disabled={isPlaceSearching || !placeSearchQuery.trim()}
+                                className="absolute right-3 top-2.5 p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl disabled:opacity-50 transition-colors"
+                            >
+                                {isPlaceSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                            </button>
+                        </form>
+
                         {/* Activities Grid */}
-                        {isLoading ? (
+                        {isLoading || isPlaceSearching ? (
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
                                     <div key={i} className="rounded-2xl border border-white/5 bg-card/50 overflow-hidden animate-pulse">
@@ -523,9 +601,9 @@ export default function DiscoverPage() {
                                     </div>
                                 ))}
                             </div>
-                        ) : activities.length > 0 ? (
+                        ) : (placeResults.length > 0 || activities.length > 0) ? (
                             <div className="grid grid-cols-1 gap-3">
-                                {activities.map(activity => {
+                                {(placeResults.length > 0 ? placeResults : activities).map(activity => {
                                     const isSelected = selectedActivityIds.has(activity.id);
                                     return (
                                         <div
@@ -564,8 +642,21 @@ export default function DiscoverPage() {
                                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                                         {activity.category} {activity.subcategory && `• ${activity.subcategory}`}
                                                     </div>
-                                                    <p className="text-xs text-slate-500 line-clamp-2">{activity.description || activity.address}</p>
-                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+
+                                                    {/* Match Reason or Description */}
+                                                    {activity.matchPercentage ? (
+                                                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 mb-2">
+                                                            <div className="flex items-center gap-1 mb-1">
+                                                                <Sparkles className="w-3 h-3 text-primary" />
+                                                                <span className="text-[10px] font-bold text-primary">{activity.matchPercentage}% AI Match</span>
+                                                            </div>
+                                                            <p className="text-[10px] text-primary/80 leading-tight">{activity.reason}</p>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-500 line-clamp-2 mb-2">{activity.description || activity.address}</p>
+                                                    )}
+
+                                                    <div className="flex flex-wrap gap-1.5">
                                                         {activity.vibes.slice(0, 3).map(vibe => (
                                                             <span key={vibe} className="text-[10px] px-2 py-0.5 bg-white/5 rounded-full text-slate-400 border border-white/5">
                                                                 #{vibe}
@@ -606,6 +697,20 @@ export default function DiscoverPage() {
                 {/* ─── PLANS TAB ─── */}
                 {activeTab === "plans" && (
                     <div className="space-y-4">
+                        {/* Plan Search Bar */}
+                        <div className="relative group mb-6">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Search className="w-5 h-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                value={planSearchQuery}
+                                onChange={(e) => setPlanSearchQuery(e.target.value)}
+                                placeholder="Search public plans..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                            />
+                        </div>
+
                         {isLoading ? (
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
@@ -618,8 +723,8 @@ export default function DiscoverPage() {
                                     </div>
                                 ))}
                             </div>
-                        ) : hangouts.length > 0 ? (
-                            hangouts.map(hangout => (
+                        ) : visibleHangouts.length > 0 ? (
+                            visibleHangouts.map(hangout => (
                                 <HangoutCard
                                     key={hangout.id}
                                     hangout={hangout}

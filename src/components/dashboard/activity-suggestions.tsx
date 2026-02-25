@@ -6,6 +6,7 @@ import { cn, calculateDistance } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { SCENARIO_TEMPLATES } from "@/lib/ai/scenarios";
 
 interface Activity {
     id: string;
@@ -60,6 +61,7 @@ export function ActivitySuggestions({
     const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife'>('All');
     const [distanceFilter, setDistanceFilter] = useState<5 | 10 | 25>(10);
     const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+    const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
     // Search State
     const [searchQuery, setSearchQuery] = useState("");
@@ -70,14 +72,14 @@ export function ActivitySuggestions({
     // Fetch Trending
     useEffect(() => {
         setIsLoadingTrending(true);
-        fetch(`/api/events/trending?lat=${location.lat}&lng=${location.lng}&radius=${distanceFilter}${targetDate ? `&targetDate=${targetDate.toISOString()}` : ''}`)
+        fetch(`/api/events/trending?lat=${location.lat}&lng=${location.lng}&radius=${distanceFilter}${targetDate ? `&targetDate=${targetDate.toISOString()}` : ''}${selectedScenario ? `&scenario=${selectedScenario}` : ''}`)
             .then(res => res.json())
             .then(data => {
                 if (data.activities) setTrending(data.activities);
             })
             .catch(console.error)
             .finally(() => setIsLoadingTrending(false));
-    }, [location.lat, location.lng, distanceFilter]);
+    }, [location.lat, location.lng, distanceFilter, targetDate, selectedScenario]);
 
     // Fetch AI Suggestions (Initial)
     const getAiRecommendations = () => {
@@ -92,7 +94,8 @@ export function ActivitySuggestions({
                 latitude: location.lat,
                 longitude: location.lng,
                 radius: distanceFilter * 1609,
-                friendIds
+                friendIds,
+                scenario: selectedScenario
             })
         })
             .then(res => res.json())
@@ -120,7 +123,7 @@ export function ActivitySuggestions({
         if (hasFriendsSelected && activities.length === 0 && !isThinking) {
             getAiRecommendations();
         }
-    }, [hasFriendsSelected, friendIds]);
+    }, [hasFriendsSelected, friendIds, selectedScenario]);
 
     const handleAddCustom = () => {
         if (!customValue.trim()) return;
@@ -166,7 +169,8 @@ export function ActivitySuggestions({
                     longitude: location.lng,
                     radius: distanceFilter * 1609,
                     friendIds,
-                    targetDate: targetDate ? targetDate.toISOString() : undefined
+                    targetDate: targetDate ? targetDate.toISOString() : undefined,
+                    scenario: selectedScenario
                 })
             });
             const data = await res.json();
@@ -208,7 +212,8 @@ export function ActivitySuggestions({
                         longitude: location.lng,
                         radius: 25 * 1609,
                         friendIds,
-                        targetDate: targetDate ? targetDate.toISOString() : undefined
+                        targetDate: targetDate ? targetDate.toISOString() : undefined,
+                        scenario: selectedScenario
                     })
                 }).then(r => r.json())
             ];
@@ -224,7 +229,8 @@ export function ActivitySuggestions({
                             latitude: location.lat,
                             longitude: location.lng,
                             targetDate: format(targetDate, 'yyyy-MM-dd'),
-                            radiusMiles: 50
+                            radiusMiles: 50,
+                            scenario: selectedScenario
                         })
                     }).then(r => r.json())
                 );
@@ -476,6 +482,25 @@ export function ActivitySuggestions({
                         </button>
                     )}
                 </div>
+            </div>
+
+            {/* Scenarios */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-2">
+                {SCENARIO_TEMPLATES.map(scenario => (
+                    <button
+                        key={scenario.id}
+                        onClick={() => setSelectedScenario(selectedScenario === scenario.id ? null : scenario.id)}
+                        className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all",
+                            selectedScenario === scenario.id
+                                ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                        )}
+                    >
+                        <span>{scenario.emoji}</span>
+                        {scenario.name}
+                    </button>
+                ))}
             </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">

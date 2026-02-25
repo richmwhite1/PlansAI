@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { searchCachedEvents } from "@/lib/cache/event-cache";
 import { calculateTrustScore } from "@/lib/ai/trust-score";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
+import { buildScenarioContext } from "@/lib/ai/scenarios";
 import { auth } from "@clerk/nextjs/server";
 
 // In a real app, we'd use an LLM here to expand the query.
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         console.log("AI Find Activities Body:", JSON.stringify(body, null, 2));
 
-        const { query, latitude, longitude, radius = 25000, friendIds, targetDate } = body;
+        const { query, latitude, longitude, radius = 25000, friendIds, targetDate, scenario } = body;
 
         if (!query || latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
             console.error("AI Search validation failed:", { query, latitude, longitude });
@@ -50,11 +51,15 @@ export async function POST(req: NextRequest) {
             console.error("Failed to build user context (non-fatal):", ctxErr);
         }
 
+        // Add scenario context
+        const scenarioCtx = buildScenarioContext(scenario);
+        const fullContext = [userContext, scenarioCtx].filter(Boolean).join(" ") || undefined;
+
         // 3. AI Fallback if Google/Cache fails
         if (candidates.length < 3) {
             console.log("Insufficient results from Google/Cache. AI Fallback triggered.");
             const { findPlacesWithAI } = await import("@/lib/ai/gemini");
-            const aiPlaces = await findPlacesWithAI(aiEnhancedQuery, latitude, longitude, userContext || undefined);
+            const aiPlaces = await findPlacesWithAI(aiEnhancedQuery, latitude, longitude, fullContext);
 
             // Seed these into the DB so they are real selectable options
             for (const place of aiPlaces) {

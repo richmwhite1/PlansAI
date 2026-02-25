@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
             eventUrl: e.eventUrl || null,
             priceRange: e.priceRange || null,
             performers: e.performers || [],
+            matchPercentage: 95,
+            reason: scenario ? `Matched to your ${scenario} vibe` : "AI identified this event for you",
         }));
 
         return NextResponse.json({

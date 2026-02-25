@@ -6,7 +6,8 @@ export async function getCachedEvents(
     latitude: number,
     longitude: number,
     radiusMeters: number = 5000,
-    limit: number = 20
+    limit: number = 20,
+    targetDate?: Date
 ): Promise<CachedEvent[]> {
     // 1. Calculate rough bounding box for DB search (optimisation)
     const latDegrees = radiusMeters / 111000; // Rough conversion
@@ -17,26 +18,52 @@ export async function getCachedEvents(
     const minLng = longitude - lngDegrees;
     const maxLng = longitude + lngDegrees;
 
+    const baseWhere: any = {
+        latitude: { gte: minLat, lte: maxLat },
+        longitude: { gte: minLng, lte: maxLng },
+        expiresAt: { gt: new Date() }, // Not expired
+    };
+
+    if (targetDate) {
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        baseWhere.AND = [
+            {
+                OR: [
+                    { isTimeBound: false },
+                    {
+                        AND: [
+                            { isTimeBound: true },
+                            { endsAt: { gte: startOfDay } },
+                            { startsAt: { lte: endOfDay } }
+                        ]
+                    }
+                ]
+            }
+        ];
+    } else {
+        baseWhere.AND = [
+            {
+                OR: [
+                    { isTimeBound: false },
+                    {
+                        AND: [
+                            { isTimeBound: true },
+                            { endsAt: { gte: new Date() } }
+                        ]
+                    }
+                ]
+            }
+        ];
+    }
+
     // 2. Query DB for fresh events
     const cachedEvents = await prisma.cachedEvent.findMany({
-        where: {
-            latitude: { gte: minLat, lte: maxLat },
-            longitude: { gte: minLng, lte: maxLng },
-            expiresAt: { gt: new Date() }, // Not expired
-            AND: [
-                {
-                    OR: [
-                        { isTimeBound: false },
-                        {
-                            AND: [
-                                { isTimeBound: true },
-                                { endsAt: { gte: new Date() } } // Only active events
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
+        where: baseWhere,
         take: limit,
     });
 
