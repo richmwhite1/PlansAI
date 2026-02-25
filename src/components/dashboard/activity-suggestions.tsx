@@ -3,9 +3,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, MapPin, Search, X, Loader2, Check, Plus, Link } from "lucide-react";
 import { cn, calculateDistance } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import debounce from "lodash.debounce";
 
 interface Activity {
     id: string;
@@ -155,41 +156,47 @@ export function ActivitySuggestions({
 
         setIsSearchingApi(true);
         setHasSearched(true);
-
-        try {
-            const res = await fetch("/api/events/search", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    query,
-                    latitude: location.lat,
-                    longitude: location.lng,
-                    radius: distanceFilter * 1609,
-                    friendIds,
-                    targetDate: targetDate ? targetDate.toISOString() : undefined
-                })
-            });
-            const data = await res.json();
-            if (data.activities) {
-                setSearchResults(data.activities.map((a: any) => ({
-                    id: a.id,
-                    title: a.name,
-                    type: a.category,
-                    matchPercentage: a.matchPercentage || 0,
-                    reason: a.reason || "Search result",
-                    imageUrl: a.imageUrl,
-                    rating: a.rating,
-                    address: a.address,
-                    latitude: a.latitude,
-                    longitude: a.longitude
-                })));
-            }
-        } catch (err) {
-            console.error("Search failed:", err);
-        } finally {
-            setIsSearchingApi(false);
-        }
+        debouncedFetch(query, location, distanceFilter, friendIds, targetDate);
     };
+
+    const debouncedFetch = useCallback(
+        debounce(async (q: string, loc: any, dist: number, fIds: string[], date: Date | undefined) => {
+            try {
+                const res = await fetch("/api/events/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: q,
+                        latitude: loc.lat,
+                        longitude: loc.lng,
+                        radius: dist * 1609,
+                        friendIds: fIds,
+                        targetDate: date ? date.toISOString() : undefined
+                    })
+                });
+                const data = await res.json();
+                if (data.activities) {
+                    setSearchResults(data.activities.map((a: any) => ({
+                        id: a.id,
+                        title: a.name,
+                        type: a.category,
+                        matchPercentage: a.matchPercentage || 0,
+                        reason: a.reason || "Search result",
+                        imageUrl: a.imageUrl,
+                        rating: a.rating,
+                        address: a.address,
+                        latitude: a.latitude,
+                        longitude: a.longitude
+                    })));
+                }
+            } catch (err) {
+                console.error("Search failed:", err);
+            } finally {
+                setIsSearchingApi(false);
+            }
+        }, 800),
+        []
+    );
 
     // AI Fallback Search — also searches for real events when a date is selected
     const handleAiSearch = async () => {
