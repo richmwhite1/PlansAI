@@ -155,6 +155,18 @@ export function HangoutTasks({ hangoutId, participants, isParticipant, currentUs
         );
     }
 
+    if (tasks.length === 0 && !isAdding && isParticipant) {
+        return (
+            <button
+                onClick={() => setIsAdding(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-sm font-medium text-slate-400 hover:text-white transition-all shadow-sm"
+            >
+                <Plus className="w-4 h-4 text-emerald-400" />
+                Add Checklist
+            </button>
+        );
+    }
+
     return (
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
             {/* Header */}

@@ -156,9 +156,13 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
             </AnimatePresence>
 
             {photos.length === 0 ? (
-                <div className="aspect-video bg-white/5 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-slate-600 p-8">
-                    <ImageIcon className="w-8 h-8 mb-2 opacity-20" />
-                    <p className="text-sm">No photos shared yet</p>
+                <div className="aspect-video relative bg-slate-900 rounded-2xl overflow-hidden flex flex-col items-center justify-center border border-white/10">
+                    <img src="/gallery-placeholder.png" alt="Gallery placeholder" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+                    <div className="relative z-10 flex flex-col items-center p-8 text-center">
+                        <Camera className="w-8 h-8 mb-3 text-white/50" />
+                        <p className="text-sm font-medium text-white shadow-sm">Be the first to share a memory</p>
+                    </div>
                 </div>
             ) : (
                 <div className="columns-2 md:columns-3 gap-3 space-y-3">

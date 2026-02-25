@@ -143,6 +143,18 @@ export function HangoutExpenses({ hangoutId, participants, isParticipant }: Hang
         );
     }
 
+    if (expenses.length === 0 && !showForm && isParticipant) {
+        return (
+            <button
+                onClick={() => setShowForm(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-sm font-medium text-slate-400 hover:text-white transition-all shadow-sm"
+            >
+                <Plus className="w-4 h-4 text-emerald-400" />
+                Log an Expense
+            </button>
+        );
+    }
+
     return (
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
             {/* Header */}
