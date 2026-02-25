@@ -103,6 +103,7 @@ export default function DiscoverPage() {
     const [isEventSearching, setIsEventSearching] = useState(false);
     const [eventResults, setEventResults] = useState<DiscoverEvent[]>([]);
     const [eventSearchQuery, setEventSearchQuery] = useState("");
+    const [hasEventSearched, setHasEventSearched] = useState(false);
     const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
     // AI Search for Places
@@ -168,6 +169,7 @@ export default function DiscoverPage() {
         if (!eventSearchQuery.trim() || !userLocation) return;
 
         setIsEventSearching(true);
+        setHasEventSearched(true);
 
         const scenario = SCENARIO_TEMPLATES.find(s => s.id === selectedScenario);
         const searchRadius = scenario?.defaultRadius || 50;
@@ -518,24 +520,23 @@ export default function DiscoverPage() {
                             </div>
                         )}
 
-                        {/* No results message */}
-                        {!isEventSearching && eventResults.length === 0 && eventSearchQuery && (
-                            <div className="text-center py-16 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                <h2 className="text-lg font-semibold text-white mb-2">Search for events</h2>
-                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
-                                    Type what you&apos;re looking for and hit search. Our AI will scout the web for real events near you.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Landing state */}
-                        {!isEventSearching && eventResults.length === 0 && !eventSearchQuery && (
+                        {/* Empty States */}
+                        {!hasEventSearched && eventResults.length === 0 && (
                             <div className="text-center py-16 bg-gradient-to-b from-primary/5 to-transparent rounded-3xl border border-dashed border-primary/10">
                                 <Sparkles className="w-12 h-12 text-primary/40 mx-auto mb-4" />
                                 <h2 className="text-lg font-semibold text-white mb-2">What are you in the mood for?</h2>
                                 <p className="text-slate-400 max-w-xs mx-auto text-sm">
                                     Search for concerts, comedy shows, food festivals, sports games — anything happening on {format(new Date(targetDate + 'T00:00:00'), 'MMM d')}.
+                                </p>
+                            </div>
+                        )}
+
+                        {hasEventSearched && !isEventSearching && eventResults.length === 0 && (
+                            <div className="text-center py-16 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                <h2 className="text-lg font-semibold text-white mb-2">No events found</h2>
+                                <p className="text-slate-400 max-w-xs mx-auto text-sm">
+                                    We couldn't find any events matching your search on this date. Try a different date or search term.
                                 </p>
                             </div>
                         )}

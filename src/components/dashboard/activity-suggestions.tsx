@@ -58,7 +58,7 @@ export function ActivitySuggestions({
     const customInputRef = useRef<HTMLInputElement>(null);
 
     // Filter State
-    const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife'>('All');
+    const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife' | 'Events'>('All');
     const [distanceFilter, setDistanceFilter] = useState<5 | 10 | 25>(10);
     const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
     const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
@@ -308,7 +308,7 @@ export function ActivitySuggestions({
     ];
 
     const filteredOptions = allOptions.filter(a =>
-        activeFilter === 'All' || a.type === activeFilter || a.isCustom
+        activeFilter === 'All' || a.isCustom || (activeFilter === 'Events' ? a.type === 'Event' || a.type === 'Festival' || a.type === 'Concerts' || a.websiteUrl : a.type === activeFilter)
     ).map(activity => {
         // Calculate distance if coordinates exist
         let dist = activity.distance;
@@ -450,13 +450,13 @@ export function ActivitySuggestions({
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-white/5 text-xs">
-                    {(['All', 'Food', 'Activity', 'Nightlife'] as const).map((f) => (
+                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-white/5 text-xs overflow-x-auto scrollbar-none">
+                    {(['All', 'Food', 'Activity', 'Nightlife', 'Events'] as const).map((f) => (
                         <button
                             key={f}
                             onClick={() => setActiveFilter(f)}
                             className={cn(
-                                "px-3 py-1.5 rounded-md font-bold uppercase tracking-tight transition-all",
+                                "px-3 py-1.5 rounded-md font-bold uppercase tracking-tight transition-all shrink-0",
                                 activeFilter === f ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -465,42 +465,46 @@ export function ActivitySuggestions({
                     ))}
                 </div>
 
-                {/* Simple Date Toggle for demo, in real app use a DatePicker component */}
-                <div className="flex items-center gap-2 ml-auto">
-                    <input
-                        type="date"
-                        value={targetDate ? format(targetDate, 'yyyy-MM-dd') : ''}
-                        onChange={(e) => setTargetDate(e.target.value ? new Date(e.target.value) : undefined)}
-                        className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary/50 [&::-webkit-calendar-picker-indicator]:filter-invert"
-                    />
-                    {targetDate && (
-                        <button
-                            onClick={() => setTargetDate(undefined)}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
+                {activeFilter === 'Events' && (
+                    <div className="flex items-center gap-2 ml-auto shrink-0">
+                        <input
+                            type="date"
+                            value={targetDate ? format(targetDate, 'yyyy-MM-dd') : ''}
+                            onChange={(e) => setTargetDate(e.target.value ? new Date(e.target.value) : undefined)}
+                            className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary/50 [&::-webkit-calendar-picker-indicator]:filter-invert"
+                        />
+                        {targetDate && (
+                            <button
+                                onClick={() => setTargetDate(undefined)}
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Scenarios */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-2">
-                {SCENARIO_TEMPLATES.map(scenario => (
-                    <button
-                        key={scenario.id}
-                        onClick={() => setSelectedScenario(selectedScenario === scenario.id ? null : scenario.id)}
-                        className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all",
-                            selectedScenario === scenario.id
-                                ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
-                                : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
-                        )}
-                    >
-                        <span>{scenario.emoji}</span>
-                        {scenario.name}
-                    </button>
-                ))}
+            {/* AI Vibe Match (Scenarios) */}
+            <div className="mb-4">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">✨ AI Vibe Match</p>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {SCENARIO_TEMPLATES.map(scenario => (
+                        <button
+                            key={scenario.id}
+                            onClick={() => setSelectedScenario(selectedScenario === scenario.id ? null : scenario.id)}
+                            className={cn(
+                                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all",
+                                selectedScenario === scenario.id
+                                    ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                    : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                            )}
+                        >
+                            <span>{scenario.emoji}</span>
+                            {scenario.name}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
@@ -562,12 +566,25 @@ export function ActivitySuggestions({
                                                 {activity.type}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-500 line-clamp-1 italic">
-                                            {activity.reason}
-                                        </p>
+
+                                        {/* AI Match Feedback */}
+                                        {activity.matchPercentage ? (
+                                            <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 mt-1 mb-1">
+                                                <div className="flex items-center gap-1 mb-0.5">
+                                                    <Sparkles className="w-3 h-3 text-primary" />
+                                                    <span className="text-[10px] font-bold text-primary">{activity.matchPercentage}% AI Match</span>
+                                                </div>
+                                                <p className="text-[10px] text-primary/80 leading-tight italic line-clamp-1">{activity.reason}</p>
+                                            </div>
+                                        ) : activity.reason && !activity.isCustom ? (
+                                            <p className="text-xs text-slate-500 line-clamp-1 italic mt-1">
+                                                {activity.reason}
+                                            </p>
+                                        ) : null}
+
                                     </div>
 
-                                    <div className="flex flex-col justify-center items-end pl-4" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex flex-col justify-center items-end pl-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
