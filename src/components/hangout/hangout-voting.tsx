@@ -295,13 +295,24 @@ export function HangoutVoting({
                         >
                             <div className="flex gap-4 p-4 pb-2">
                                 {/* Image / Icon Placeholder */}
-                                <div className="w-20 h-20 rounded-xl bg-muted/50 shrink-0 flex items-center justify-center border border-white/10 text-muted-foreground">
-                                    <MapPin className="w-8 h-8" />
+                                <div className="w-20 h-20 rounded-xl bg-slate-800 shrink-0 flex items-center justify-center border border-white/10 text-muted-foreground overflow-hidden">
+                                    {option.activity.imageUrl ? (
+                                        <img src={option.activity.imageUrl} alt={option.activity.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <MapPin className="w-8 h-8" />
+                                    )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-semibold text-foreground truncate pr-2">{option.activity.name}</h3>
+                                    <div className="flex justify-between items-start mb-1 gap-2">
+                                        <a
+                                            href={`https://www.google.com/search?q=${encodeURIComponent(option.activity.name + ' ' + (option.activity.address || ''))}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="font-bold text-slate-200 hover:text-violet-400 transition-colors truncate block"
+                                        >
+                                            {option.activity.name}
+                                        </a>
                                         {option.activity.rating && (
                                             <div className="flex items-center gap-1 text-primary text-xs font-bold bg-primary/10 px-1.5 py-0.5 rounded">
                                                 <Star className="w-3 h-3 fill-current" />
