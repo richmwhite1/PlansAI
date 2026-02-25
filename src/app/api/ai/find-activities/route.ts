@@ -55,19 +55,27 @@ export async function POST(req: NextRequest) {
         // 3. AI Fallback if Google/Cache fails
         if (candidates.length < 3) {
             console.log("Insufficient results from Google/Cache. AI Fallback triggered.");
-            const { findPlacesWithAI } = await import("@/lib/ai/gemini");
-            const aiPlaces = await findPlacesWithAI(aiEnhancedQuery, latitude, longitude, fullContext);
+            const { findPlacesWithAI, findEventsWithAI } = await import("@/lib/ai/gemini");
 
-            // Seed these into the DB so they are real selectable options
+            // Determine a target date for event search (use provided or default to today)
+            const eventTargetDate = targetDate
+                ? new Date(targetDate).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0];
+
+            // Run places + real events search in parallel
+            const [aiPlaces, aiEvents] = await Promise.all([
+                findPlacesWithAI(aiEnhancedQuery, latitude, longitude, fullContext),
+                findEventsWithAI(aiEnhancedQuery, latitude, longitude, eventTargetDate, 50, fullContext),
+            ]);
+
+            // Seed AI places into the DB so they are selectable
             for (const place of aiPlaces) {
                 try {
-                    // Create a deterministic but unique ID for the "googlePlaceId" field to avoid collisions
-                    // We use a prefix to identify it as AI generated
                     const aiId = `ai_gen_${place.name.replace(/\s+/g, '_').toLowerCase()}_${Math.floor(place.lat * 100)}_${Math.floor(place.lng * 100)}`;
 
                     const saved = await prisma.cachedEvent.upsert({
                         where: { googlePlaceId: aiId },
-                        update: {}, // If exists, just use it
+                        update: {},
                         create: {
                             googlePlaceId: aiId,
                             name: place.name,
@@ -77,16 +85,24 @@ export async function POST(req: NextRequest) {
                             address: place.address,
                             latitude: place.lat,
                             longitude: place.lng,
-                            rating: 4.5, // AI confidence assumption
+                            rating: 4.5,
                             reviewCount: 10,
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+                            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                             staleAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-                            imageUrl: undefined // We don't have a photo yet
+                            imageUrl: undefined
                         }
                     });
                     candidates.push(saved);
                 } catch (err) {
                     console.error("Failed to seed AI place:", place.name, err);
+                }
+            }
+
+            // Merge AI event results (already cached in DB by findEventsWithAI)
+            for (const event of aiEvents) {
+                // Avoid duplicates
+                if (!candidates.some(c => c.id === event.id)) {
+                    candidates.push(event);
                 }
             }
         }
