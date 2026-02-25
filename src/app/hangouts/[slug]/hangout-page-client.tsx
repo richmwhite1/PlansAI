@@ -204,7 +204,7 @@ export function HangoutPageClient({
             </div>
 
             <div className="container mx-auto max-w-2xl p-6 space-y-8">
-     {/* Activity Details & Voting */}
+                {/* Activity Details & Voting */}
                 {(hangout.status === "PLANNING" || hangout.status === "VOTING") && hangout.activityOptions.length > 1 ? (
                     <div className="space-y-8">
                         <HangoutVoting
@@ -272,13 +272,16 @@ export function HangoutPageClient({
                                     </div>
                                     <div>
                                         <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name + ' ' + (act.address || ''))}`}
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(act.name + ' ' + (act.address || ''))}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="group/link"
+                                            className="group/link block mb-2"
                                         >
                                             <h3 className="font-bold text-slate-200 group-hover/link:text-violet-400 transition-colors">{act.name}</h3>
-                                            <p className="text-sm text-slate-400 mb-2 group-hover/link:text-slate-300 transition-colors">{act.address}</p>
+                                            <p className="text-sm text-slate-400 group-hover/link:text-slate-300 transition-colors flex items-start gap-1 mt-0.5">
+                                                <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                <span>{act.address}</span>
+                                            </p>
                                         </a>
                                         <div className="flex gap-2">
                                             {act.rating && (
@@ -306,6 +309,16 @@ export function HangoutPageClient({
                                 </div>
                             );
                         })()}
+
+                        {/* RSVP INTEGRATED INTO PLAN */}
+                        {currentUserParticipant && hangout.status !== "VOTING" && (
+                            <div className="mt-6 pt-6 border-t border-white/10">
+                                <h3 className="text-sm font-bold text-slate-400 mb-3">Your Response</h3>
+                                <div className="flex gap-4">
+                                    <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -315,24 +328,19 @@ export function HangoutPageClient({
                 ) : (
                     <>
                         {/* Your RSVP & Description */}
+                        {/* Your Description / Note Container */}
                         <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                            <h2 className="text-lg font-semibold text-white mb-4">Your Response</h2>
-                            <div className="flex gap-4 mb-8">
-                                {hangout.status !== "VOTING" && <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />}
-                            </div>
-
-                            {/* Polaroid Vibe Section */}
-                            <div className="mb-8 relative group">
-                                <div className="absolute inset-0 bg-white transform rotate-1 rounded-xl shadow-xl z-0 transition-transform group-hover:rotate-2 duration-500" />
-                                <div className="relative z-10 bg-[#fafafa] p-6 pb-12 rounded-xl shadow-inner border border-stone-200">
-                                    <div className="flex items-center justify-between mb-4 border-b border-stone-300 pb-2 border-dashed">
-                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-widest flex items-center gap-2">
-                                            <span className="text-lg">📸</span> The Note
+                            {/* Glass Note Section */}
+                            <div className="relative group">
+                                <div className="relative z-10 bg-white/5 p-5 rounded-xl border border-white/10">
+                                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            <span className="text-base">📝</span> The Note
                                         </label>
                                         {userId === hangout.creator.clerkId && !isEditingDescription && (
                                             <button
                                                 onClick={() => setIsEditingDescription(true)}
-                                                className="text-xs font-bold text-stone-400 hover:text-stone-600 uppercase tracking-wider"
+                                                className="text-xs font-bold text-violet-400 hover:text-violet-300 uppercase tracking-wider transition-colors"
                                             >
                                                 Edit Note
                                             </button>
@@ -344,49 +352,47 @@ export function HangoutPageClient({
                                             <textarea
                                                 value={editedDescription}
                                                 onChange={(e) => setEditedDescription(e.target.value)}
-                                                className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-lg font-serif text-stone-800 focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-500 resize-none h-32 leading-relaxed"
+                                                className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 resize-none h-32 leading-relaxed"
                                                 placeholder="Write a note about the plan..."
                                                 autoFocus
                                             />
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => setIsEditingDescription(false)}
-                                                    className="px-3 py-1.5 text-xs font-bold text-stone-500 hover:text-stone-800 uppercase"
+                                                    className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
                                                 >
                                                     Discard
                                                 </button>
                                                 <button
                                                     onClick={handleSaveDescription}
                                                     disabled={isSaving}
-                                                    className="px-4 py-1.5 text-xs bg-stone-800 text-white rounded-lg font-bold hover:bg-stone-700 disabled:opacity-50 uppercase tracking-wider"
+                                                    className="px-4 py-1.5 text-xs bg-violet-600/20 text-violet-400 border border-violet-500/30 rounded-lg font-bold hover:bg-violet-600/40 hover:text-violet-300 transition-all disabled:opacity-50 uppercase tracking-wider"
                                                 >
-                                                    {isSaving ? "Saving..." : "Pin Note"}
+                                                    {isSaving ? "Saving..." : "Save Note"}
                                                 </button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="relative min-h-[60px]">
+                                        <div className="relative min-h-[40px]">
                                             {hangout.description ? (
-                                                <p className="text-xl font-serif text-stone-800 leading-relaxed italic opacity-90">
+                                                <p className="text-sm text-slate-300 leading-relaxed italic">
                                                     "{hangout.description}"
                                                 </p>
                                             ) : (
                                                 userId === hangout.creator.clerkId ? (
                                                     <button
                                                         onClick={() => setIsEditingDescription(true)}
-                                                        className="text-stone-400 italic text-lg hover:text-stone-600 w-full text-left"
+                                                        className="text-slate-500 italic text-sm hover:text-slate-300 w-full text-left transition-colors"
                                                     >
-                                                        Add a handwritten note...
+                                                        Add a note about the plan...
                                                     </button>
                                                 ) : (
-                                                    <span className="text-stone-400 italic">No note attached yet.</span>
+                                                    <span className="text-slate-500 italic text-sm">No note attached yet.</span>
                                                 )
                                             )}
                                         </div>
                                     )}
                                 </div>
-                                {/* Tape effect */}
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/20 backdrop-blur-sm border border-white/30 skew-y-1 shadow-sm z-20" />
                             </div>
                         </div>
                     </>
@@ -572,6 +578,6 @@ export function HangoutPageClient({
                 )}
             </div>
 
-            </div>
+        </div>
     );
 }
