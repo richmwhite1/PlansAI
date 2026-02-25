@@ -40,7 +40,7 @@ export async function POST(
                     hangoutId,
                     guestId: guest.id,
                     role: "MEMBER",
-                    rsvpStatus: "GOING" // Auto-RSVP as going when joining
+                    rsvpStatus: "PENDING" // Let them explicitly choose afterwards
                 }
             });
 

@@ -212,6 +212,15 @@ export function HangoutPageClient({
                 {/* Activity Details & Voting */}
                 {(hangout.status === "PLANNING" || hangout.status === "VOTING") && hangout.activityOptions.length > 1 ? (
                     <div className="space-y-8">
+                        {currentUserParticipant && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <h3 className="text-sm font-bold text-slate-400 mb-3">Your Response</h3>
+                                <div className="flex gap-4">
+                                    <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />
+                                </div>
+                            </div>
+                        )}
+
                         <HangoutVoting
                             hangoutId={hangout.id}
                             currentUserIds={profile ? [profile.id] : currentUserParticipant?.guestId ? [currentUserParticipant.guestId] : []}
@@ -316,7 +325,7 @@ export function HangoutPageClient({
                         })()}
 
                         {/* RSVP INTEGRATED INTO PLAN */}
-                        {currentUserParticipant && hangout.status !== "VOTING" && (
+                        {currentUserParticipant && (
                             <div className="mt-6 pt-6 border-t border-white/10">
                                 <h3 className="text-sm font-bold text-slate-400 mb-3">Your Response</h3>
                                 <div className="flex gap-4">
