@@ -136,41 +136,14 @@ export default async function JoinPage({ params }: JoinPageProps) {
                         </span>
                     </div>
 
-                    {/* RSVP Buttons */}
+                    {/* View Hangout Button */}
                     <div className="space-y-3">
-                        <form action={`/api/join/${token}/rsvp`} method="POST">
-                            <input type="hidden" name="status" value="GOING" />
-                            <button
-                                type="submit"
-                                className="w-full py-3 px-4 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Check className="w-5 h-5" />
-                                I'm Going!
-                            </button>
-                        </form>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <form action={`/api/join/${token}/rsvp`} method="POST">
-                                <input type="hidden" name="status" value="MAYBE" />
-                                <button
-                                    type="submit"
-                                    className="w-full py-2.5 px-4 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <HelpCircle className="w-4 h-4" />
-                                    Maybe
-                                </button>
-                            </form>
-                            <form action={`/api/join/${token}/rsvp`} method="POST">
-                                <input type="hidden" name="status" value="NOT_GOING" />
-                                <button
-                                    type="submit"
-                                    className="w-full py-2.5 px-4 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                    Can't Make It
-                                </button>
-                            </form>
-                        </div>
+                        <Link
+                            href={`/hangouts/${hangout.slug}`}
+                            className="w-full py-3 px-4 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/30 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                            View Hangout & RSVP
+                        </Link>
                     </div>
 
                     {/* Sign In Prompt */}
