@@ -387,7 +387,7 @@ export function HangoutPageClient({
                             {(hangout.finalActivityId || (hangout.activityOptions.length === 1 && hangout.activityOptions[0].id)) && (
                                 <SaveTemplateButton
                                     hangoutId={hangout.id}
-                                    title={hangout.title}
+                                    title={hangout.finalActivity?.name || (hangout.activityOptions.length > 0 ? hangout.activityOptions[0].cachedEvent?.name : hangout.title) || hangout.title}
                                     type={hangout.type}
                                     activityId={hangout.finalActivityId || hangout.activityOptions[0].cachedEventId}
                                 />
