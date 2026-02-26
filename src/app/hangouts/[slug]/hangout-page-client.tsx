@@ -49,7 +49,28 @@ export function HangoutPageClient({
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [editedDescription, setEditedDescription] = useState(hangout.description || "");
     const [isSaving, setIsSaving] = useState(false);
+    const [allowParticipantSuggestions, setAllowParticipantSuggestions] = useState(hangout.allowParticipantSuggestions ?? true);
     const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
+
+    const handleToggleGuestSuggestions = async (current: boolean) => {
+        const newValue = !current;
+        setAllowParticipantSuggestions(newValue);
+
+        try {
+            const res = await fetch(`/api/hangouts/${hangout.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ allowParticipantSuggestions: newValue })
+            });
+            if (!res.ok) {
+                setAllowParticipantSuggestions(current); // revert on failure
+                toast.error("Failed to update settings");
+            }
+        } catch (error) {
+            console.error("Failed to update guest suggestions:", error);
+            setAllowParticipantSuggestions(current); // revert on failure
+        }
+    };
 
     const handleSaveDescription = async () => {
         setIsSaving(true);
@@ -336,7 +357,7 @@ export function HangoutPageClient({
                                 votes: opt.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value })),
                                 userVote: opt.votes.find((v: any) => v.profileId === profile?.id || (currentUserParticipant && v.guestId === currentUserParticipant.guestId))?.value || 0
                             }))}
-                            allowParticipantSuggestions={hangout.allowParticipantSuggestions}
+                            allowParticipantSuggestions={allowParticipantSuggestions}
                             votingEndsAt={hangout.votingEndsAt}
                             isCreator={userId === hangout.creator.clerkId}
                             initialThreshold={hangout.consensusThreshold}
@@ -502,6 +523,38 @@ export function HangoutPageClient({
                                                 )}
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Host Controls */}
+                        {userId === hangout.creator.clerkId && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                    <Zap className="w-4 h-4" /> Host Controls
+                                </label>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10">
+                                        <div className="space-y-0.5 pr-4">
+                                            <label className="text-sm font-medium text-slate-200 block">Allow Guests to Suggest Options</label>
+                                            <p className="text-xs text-slate-500">Enable to let anyone add their own ideas to the vote.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleToggleGuestSuggestions(allowParticipantSuggestions)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0",
+                                                allowParticipantSuggestions ? "bg-primary" : "bg-slate-700"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                    allowParticipantSuggestions ? "translate-x-6" : "translate-x-1"
+                                                )}
+                                            />
+                                        </button>
                                     </div>
                                 </div>
                             </div>

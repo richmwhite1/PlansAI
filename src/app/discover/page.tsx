@@ -125,6 +125,7 @@ export default function DiscoverPage() {
     const [startDatePickerValue, setStartDatePickerValue] = useState<string>("");
     const [isMultiDay, setIsMultiDay] = useState(false);
     const [endDatePickerValue, setEndDatePickerValue] = useState<string>("");
+    const [allowParticipantSuggestions, setAllowParticipantSuggestions] = useState(true);
 
     // User location (could be improved with geolocation API)
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -265,6 +266,7 @@ export default function DiscoverPage() {
                     friendIds: selectedFriends.filter(f => !f.isGuest).map(f => f.id),
                     guests: selectedFriends.filter(f => f.isGuest).map(f => ({ name: f.name })),
                     visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY",
+                    allowParticipantSuggestions,
                     when: startDatePickerValue || undefined,
                     endDate: isMultiDay && endDatePickerValue ? new Date(endDatePickerValue).toISOString() : undefined
                 })
@@ -902,6 +904,30 @@ export default function DiscoverPage() {
                                                 className={cn(
                                                     "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
                                                     isPublic ? "translate-x-6" : "translate-x-1"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Allow Suggestions Toggle */}
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <div className="space-y-0.5">
+                                            <label className="text-sm font-medium text-slate-200">Allow Guests to Suggest Options?</label>
+                                            <p className="text-xs text-slate-500">Enable to let anyone add their own ideas to the vote.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setAllowParticipantSuggestions(!allowParticipantSuggestions)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                                                allowParticipantSuggestions ? "bg-primary" : "bg-slate-700"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                    allowParticipantSuggestions ? "translate-x-6" : "translate-x-1"
                                                 )}
                                             />
                                         </button>

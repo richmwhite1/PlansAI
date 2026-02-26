@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
             isVotingEnabled,
             allowGuestsToInvite, // Added
             visibility, // Added: "PUBLIC" or "FRIENDS_ONLY"
+            allowParticipantSuggestions, // Added
             endDate // Added for Phase 9
         } = body;
 
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest) {
                 creatorId: creator.id,
                 status: status || (effectiveVotingEnabled ? "VOTING" : "PLANNING"),
                 isVotingEnabled: effectiveVotingEnabled,
+                allowParticipantSuggestions: allowParticipantSuggestions ?? true,
                 allowGuestsToInvite: allowGuestsToInvite || false,
                 visibility: effectiveVisibility, // Added
                 consensusThreshold: 60,
