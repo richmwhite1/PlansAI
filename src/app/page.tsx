@@ -4,6 +4,8 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { DashboardEngine } from "@/components/dashboard/dashboard-engine";
 import { ArrowRight, Calendar, Download } from "lucide-react";
+import { AnimatedBackground } from "@/components/ui/animated-background";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
@@ -90,10 +92,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background overflow-hidden">
       {/* Ambient background gradients */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-violet-500/5 rounded-full blur-[120px]" />
-      </div>
+      <AnimatedBackground />
 
       <motion.div
         variants={container}
@@ -136,10 +135,13 @@ export default function Home() {
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="w-full max-w-xs py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl shadow-primary/25 transition-colors flex items-center justify-center gap-3"
+                className="relative w-full max-w-xs py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 group animate-glow overflow-hidden"
               >
-                Get Started
-                <ArrowRight className="w-5 h-5" />
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <span className="relative z-10 flex items-center gap-3">
+                  Get Started
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
               </motion.button>
             </SignInButton>
 
@@ -198,18 +200,17 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 + i * 0.1 }}
-              className="group p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors relative overflow-hidden"
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-
-              <div className="relative space-y-3">
-                <h3 className="text-xl font-serif font-bold text-white tracking-wide">
-                  {feature.title}
-                </h3>
-                <p className="text-base text-slate-400 leading-relaxed max-w-md">
-                  {feature.description}
-                </p>
-              </div>
+              <SpotlightCard className="group p-8" gradient={feature.gradient}>
+                <div className="relative space-y-3">
+                  <h3 className="text-xl font-serif font-bold text-white tracking-wide">
+                    {feature.title}
+                  </h3>
+                  <p className="text-base text-slate-400 leading-relaxed max-w-md">
+                    {feature.description}
+                  </p>
+                </div>
+              </SpotlightCard>
             </motion.div>
           ))}
         </motion.section>
@@ -245,10 +246,13 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="w-full max-w-xs mx-auto py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl shadow-primary/25 transition-colors flex items-center justify-center gap-3"
+              className="relative w-full max-w-xs mx-auto py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 group animate-glow overflow-hidden"
             >
-              Create Your First Plan
-              <Calendar className="w-5 h-5" />
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <span className="relative z-10 flex items-center gap-3">
+                Create Your First Plan
+                <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </span>
             </motion.button>
           </SignInButton>
 

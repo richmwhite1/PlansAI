@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, MessageSquare } from "lucide-react";
+import { Zap, MessageSquare } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
 
 interface FeedbackTriggerProps {
@@ -19,13 +19,13 @@ export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, 
 
     return (
         <>
-            <div className="glass p-6 rounded-2xl border border-violet-500/30 bg-violet-500/5 relative overflow-hidden group">
+            <div className="glass p-6 rounded-2xl border border-primary/30 bg-primary/5 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Sparkles className="w-12 h-12 text-violet-400" />
+                    <Zap className="w-12 h-12 text-primary" />
                 </div>
 
                 <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-violet-400" />
+                    <Zap className="w-5 h-5 text-primary" />
                     How was the Activity?
                 </h2>
                 <p className="text-sm text-slate-400 mb-4 max-w-md">
@@ -34,7 +34,7 @@ export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, 
 
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-violet-500/20 active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
                 >
                     <MessageSquare className="w-4 h-4" />
                     Give Feedback

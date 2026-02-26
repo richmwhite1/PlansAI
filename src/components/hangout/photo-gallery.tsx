@@ -73,13 +73,13 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-violet-400" />
+                    <Camera className="w-5 h-5 text-primary" />
                     Shared Gallery
                 </h2>
                 {isParticipant && (
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="text-xs font-medium text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
+                        className="text-xs font-medium text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
                     >
                         <Plus className="w-3.5 h-3.5" />
                         Add Photo
@@ -109,7 +109,7 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
                             ) : (
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="aspect-video bg-slate-900/50 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:border-violet-500/50 hover:bg-violet-500/5 cursor-pointer transition-all"
+                                    className="aspect-video bg-slate-900/50 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all"
                                 >
                                     <Plus className="w-8 h-8 mb-2 opacity-20" />
                                     <p className="text-sm font-medium">Click to upload photo</p>
@@ -129,7 +129,7 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
                                 value={caption}
                                 onChange={(e) => setCaption(e.target.value)}
                                 placeholder="Add a caption (optional)"
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500/50"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-primary/50"
                             />
                             <div className="flex justify-end gap-2">
                                 <button
@@ -144,7 +144,7 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
                                 <button
                                     onClick={handleAddPhoto}
                                     disabled={(!preview && !url) || isSubmitting}
-                                    className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                                    className="px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground text-sm font-bold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                                 >
                                     {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
                                     Post Photo
@@ -181,7 +181,7 @@ export function PhotoGallery({ hangoutId, initialPhotos, isParticipant, onPhotoC
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
                                 {p.caption && <p className="text-[10px] text-white line-clamp-1 mb-1">{p.caption}</p>}
                                 <div className="flex items-center gap-1">
-                                    <div className="w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center text-[8px] font-bold text-white">
+                                    <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground">
                                         {p.uploader.displayName?.slice(0, 1).toUpperCase() || "?"}
                                     </div>
                                     <span className="text-[8px] text-slate-300">

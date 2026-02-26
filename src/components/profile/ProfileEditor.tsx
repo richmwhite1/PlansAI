@@ -123,8 +123,8 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-8">
                         <div className="space-y-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-violet-500/10 rounded-xl">
-                                    <Zap className="w-5 h-5 text-violet-400" />
+                                <div className="p-2 bg-primary/10 rounded-xl">
+                                    <Zap className="w-5 h-5 text-primary" />
                                 </div>
                                 <h3 className="text-xl font-serif font-bold text-white">Personality</h3>
                             </div>
@@ -658,7 +658,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     <div className="space-y-2">
                         {funFacts.map((fact, i) => (
                             <div key={i} className="flex items-start gap-2">
-                                <div className="flex-1 px-4 py-3 bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10 rounded-2xl rounded-tl-sm text-sm text-foreground">
+                                <div className="flex-1 px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 rounded-2xl rounded-tl-sm text-sm text-foreground">
                                     💬 {fact}
                                 </div>
                                 <button

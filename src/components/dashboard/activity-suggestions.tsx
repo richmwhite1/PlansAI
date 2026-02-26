@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, MapPin, Search, X, Loader2, Check, Plus, Link } from "lucide-react";
+import { BrainCircuit, Star, MapPin, Search, X, Loader2, Check, Plus, Link } from "lucide-react";
 import { cn, calculateDistance } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -517,7 +517,7 @@ export function ActivitySuggestions({
                                             <img src={activity.imageUrl} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-slate-900 text-primary">
-                                                {activity.isCustom ? <Sparkles size={28} /> : <MapPin size={28} className="text-muted-foreground" />}
+                                                {activity.isCustom ? <Star size={28} /> : <MapPin size={28} className="text-muted-foreground" />}
                                             </div>
                                         )}
                                     </div>
@@ -558,7 +558,7 @@ export function ActivitySuggestions({
                                         {activity.matchPercentage ? (
                                             <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 mt-1 mb-1">
                                                 <div className="flex items-center gap-1 mb-0.5">
-                                                    <Sparkles className="w-3 h-3 text-primary" />
+                                                    <BrainCircuit className="w-3 h-3 text-primary" />
                                                     <span className="text-[10px] font-bold text-primary">{activity.matchPercentage}% AI Match</span>
                                                 </div>
                                                 <p className="text-[10px] text-primary/80 leading-tight italic line-clamp-1">{activity.reason}</p>
@@ -606,7 +606,7 @@ export function ActivitySuggestions({
                         className="w-full p-4 mt-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-3 text-left group"
                     >
                         <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
-                            <Sparkles className="w-5 h-5" />
+                            <BrainCircuit className="w-5 h-5" />
                         </div>
                         <div>
                             <p className="text-sm font-bold text-primary-foreground group-hover:text-white transition-colors">

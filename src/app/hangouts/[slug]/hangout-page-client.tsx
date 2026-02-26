@@ -208,7 +208,33 @@ export function HangoutPageClient({
                 </div>
             </div>
 
-            <div className="container mx-auto max-w-2xl p-6 space-y-8">
+            {!currentUserParticipant && (
+                <div className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-black/60 backdrop-blur-[20px] overflow-y-auto px-4 py-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="w-full max-w-md flex flex-col items-center"
+                    >
+                        <div className="text-center mb-10 w-full">
+                            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-2xl leading-tight">
+                                {hangout.title}
+                            </h2>
+                            {hangout.scheduledFor && (
+                                <p className="text-white/90 font-medium text-lg drop-shadow-md flex items-center justify-center gap-2 bg-black/20 py-2 px-4 rounded-full border border-white/10 w-fit mx-auto">
+                                    <Calendar className="w-5 h-5 text-primary" />
+                                    {format(new Date(hangout.scheduledFor), "EEEE, MMM do @ h:mm a")}
+                                </p>
+                            )}
+                        </div>
+                        <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(139,92,246,0.3)' }}>
+                            <GuestJoinForm hangoutId={hangout.id} guestsToClaim={guestsToClaim} />
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            <div className={cn("container mx-auto max-w-2xl p-6 space-y-8 relative", !currentUserParticipant && "pointer-events-none select-none blur-[10px] opacity-30 h-[70vh] overflow-hidden")}>
                 {/* Participants */}
                 <div className="glass-card p-6 rounded-2xl">
                     <div className="flex items-center justify-between mb-4">
@@ -410,9 +436,7 @@ export function HangoutPageClient({
                 )}
 
                 {/* Guest Join / Participation */}
-                {!currentUserParticipant ? (
-                    <GuestJoinForm hangoutId={hangout.id} guestsToClaim={guestsToClaim} />
-                ) : (
+                {currentUserParticipant && (
                     <>
                         {/* Your RSVP & Description */}
                         {/* Your Description / Note Container */}

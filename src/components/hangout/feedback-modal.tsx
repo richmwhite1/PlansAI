@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Loader2, Sparkles, X } from "lucide-react";
+import { Star, Loader2, BrainCircuit, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -51,8 +51,8 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
             >
                 {extracted ? (
                     <div className="p-8 text-center space-y-6">
-                        <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto">
-                            <Sparkles className="w-8 h-8 text-violet-400" />
+                        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+                            <BrainCircuit className="w-8 h-8 text-primary" />
                         </div>
                         <div className="space-y-2">
                             <h2 className="text-2xl font-bold text-white">Feedback Analyzed!</h2>
@@ -61,7 +61,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
 
                         <div className="flex flex-wrap justify-center gap-2">
                             {extracted.vibes.map(v => (
-                                <span key={v} className="px-3 py-1 bg-violet-500/10 text-violet-300 rounded-full border border-violet-500/20 text-xs font-medium">
+                                <span key={v} className="px-3 py-1 bg-primary/10 text-primary rounded-full border border-primary/20 text-xs font-medium">
                                     {v}
                                 </span>
                             ))}
@@ -93,7 +93,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
                                 value={reflection}
                                 onChange={(e) => setReflection(e.target.value)}
                                 placeholder="E.g. The sushi was incredible and the experience was super chill. Loved the outdoor seating."
-                                className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-200 placeholder:text-slate-600 focus:border-violet-500/50 outline-none transition-colors resize-none"
+                                className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-200 placeholder:text-slate-600 focus:border-primary/50 outline-none transition-colors resize-none"
                             />
                         </div>
 
@@ -118,7 +118,7 @@ export function FeedbackModal({ hangoutId, hangoutTitle, isOpen, onClose }: Feed
                             <button
                                 onClick={handleSubmit}
                                 disabled={isSubmitting || !reflection}
-                                className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20"
+                                className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                             >
                                 {isSubmitting ? (
                                     <>

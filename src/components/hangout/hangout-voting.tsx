@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { useState, useEffect } from "react";
-import { ThumbsUp, ThumbsDown, Share2, MapPin, Star, MoreVertical, Plus, Search, Sparkles } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share2, MapPin, Star, MoreVertical, Plus, Search, Zap, Trash2 } from "lucide-react";
 import { ShareButton } from "./share-button";
 import { ActivitySuggestions } from "../dashboard/activity-suggestions";
 import { cn } from "@/lib/utils";
@@ -190,6 +190,25 @@ export function HangoutVoting({
         }
     };
 
+    const handleRemoveOption = async (optionId: string) => {
+        if (!confirm("Are you sure you want to remove this option?")) return;
+
+        // Optimistic UI update
+        setOptions(prev => prev.filter(opt => opt.id !== optionId));
+
+        try {
+            const res = await fetch(`/api/hangouts/${hangoutId}/options/${optionId}`, {
+                method: "DELETE"
+            });
+
+            if (!res.ok) {
+                // Should probably revert or show toast here, but for now we refresh or let polling fix it
+                console.error("Failed to remove option");
+            }
+        } catch (err) {
+            console.error("Error removing option:", err);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -207,7 +226,7 @@ export function HangoutVoting({
                         {isCreator && (
                             <EndVotingButton hangoutId={hangoutId} />
                         )}
-                        {allowParticipantSuggestions && (
+                        {(allowParticipantSuggestions || isCreator) && (
                             <button
                                 onClick={() => setIsSuggesting(true)}
                                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
@@ -224,7 +243,7 @@ export function HangoutVoting({
                     <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-3">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                <Sparkles className="w-3 h-3" />
+                                <Zap className="w-3 h-3" />
                                 Consensus Threshold
                             </label>
                             <span className="text-sm font-bold text-primary">{consensusThreshold}%</span>
@@ -258,7 +277,7 @@ export function HangoutVoting({
                         <div className="bg-card border border-primary/20 rounded-2xl p-4 mb-6">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                    <Sparkles className="w-3 h-3" />
+                                    <Zap className="w-3 h-3" />
                                     Suggest something else
                                 </span>
                                 <button onClick={() => setIsSuggesting(false)} className="text-muted-foreground hover:text-foreground">
@@ -309,7 +328,7 @@ export function HangoutVoting({
                                             href={`https://www.google.com/search?q=${encodeURIComponent(option.activity.name + ' ' + (option.activity.address || ''))}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="font-bold text-slate-200 hover:text-violet-400 transition-colors truncate block"
+                                            className="font-bold text-slate-200 hover:text-primary transition-colors truncate block"
                                         >
                                             {option.activity.name}
                                         </a>
@@ -320,7 +339,18 @@ export function HangoutVoting({
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground mb-3 truncate">{option.activity.address}</p>
+                                    <div className="flex justify-between items-end">
+                                        <p className="text-xs text-muted-foreground mb-3 truncate pr-4">{option.activity.address}</p>
+                                        {isCreator && (
+                                            <button
+                                                onClick={() => handleRemoveOption(option.id)}
+                                                className="p-1.5 mb-2 -mr-1.5 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                title="Remove this option"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
 
                                     <div className="flex items-center gap-3">
                                         <button

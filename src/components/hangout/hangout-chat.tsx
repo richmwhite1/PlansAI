@@ -125,7 +125,7 @@ export function HangoutChat({ hangoutId, currentUserId }: HangoutChatProps) {
                                     <div className={cn(
                                         "px-3 py-2 rounded-2xl text-sm",
                                         isOwn
-                                            ? "bg-violet-600 text-white rounded-br-sm"
+                                            ? "bg-primary text-primary-foreground rounded-br-sm"
                                             : "bg-white/10 text-slate-200 rounded-bl-sm"
                                     )}>
                                         {msg.content}
@@ -153,12 +153,12 @@ export function HangoutChat({ hangoutId, currentUserId }: HangoutChatProps) {
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-primary/50 transition-colors"
                     />
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || isSending}
-                        className="px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors"
+                        className="px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-xl transition-colors"
                     >
                         {isSending ? (
                             <Loader2 className="w-4 h-4 animate-spin text-white" />

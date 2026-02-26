@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Calendar, ArrowRight } from "lucide-react";
+import { Zap, Calendar, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useUser, SignInButton } from "@clerk/nextjs";
@@ -276,7 +276,7 @@ export function DashboardEngine() {
                                                     "bg-primary/20 border-primary/50 text-primary shadow-[0_0_10px_rgba(251,191,36,0.2)]"
                                                 )}
                                             >
-                                                <Sparkles className="w-3 h-3 text-primary" />
+                                                <Zap className="w-3 h-3 text-primary" />
                                                 Vote Mode
                                             </div>
                                         )}
@@ -317,7 +317,7 @@ export function DashboardEngine() {
                             className="mt-8 space-y-8"
                         >
                             <div className="space-y-4">
-                                <label className="text-xs font-semibold text-violet-300 uppercase tracking-wider block">
+                                <label className="text-xs font-semibold text-primary uppercase tracking-wider block">
                                     Add a Note (Optional)
                                 </label>
                                 <textarea
@@ -387,7 +387,7 @@ export function DashboardEngine() {
                                                     : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
                                             )}
                                         >
-                                            <Sparkles className="w-4 h-4" />
+                                            <Zap className="w-4 h-4" />
                                             Tonight
                                         </button>
                                         <button

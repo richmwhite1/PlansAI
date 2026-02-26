@@ -39,11 +39,11 @@ export function TagInput({ name, label, initialTags = [], placeholder, className
     return (
         <div className={`space-y-2 ${className}`}>
             <label className="block text-sm font-medium text-slate-400">{label}</label>
-            <div className="flex flex-wrap gap-2 p-2 bg-slate-900/50 border border-white/10 rounded-xl min-h-[48px] focus-within:border-violet-500/50 transition-colors">
+            <div className="flex flex-wrap gap-2 p-2 bg-slate-900/50 border border-white/10 rounded-xl min-h-[48px] focus-within:border-primary/50 transition-colors">
                 {tags.map((tag) => (
                     <span
                         key={tag}
-                        className="flex items-center gap-1 px-2 py-1 bg-violet-500/20 text-violet-300 text-sm font-medium rounded-lg border border-violet-500/30"
+                        className="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary-foreground text-sm font-medium rounded-lg border border-primary/30"
                     >
                         #{tag}
                         <button

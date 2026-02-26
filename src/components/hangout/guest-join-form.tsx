@@ -98,17 +98,17 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
                                 disabled={isClaiming || (!!claimingId && claimingId !== guest.id)}
                                 className={cn(
                                     "w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group",
-                                    claimingId === guest.id && "ring-2 ring-violet-500 bg-violet-500/10"
+                                    claimingId === guest.id && "ring-2 ring-primary bg-primary/10"
                                 )}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-300 group-hover:bg-violet-500/30">
+                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary/30">
                                         <User className="w-5 h-5" />
                                     </div>
                                     <span className="font-medium text-slate-200">{guest.displayName}</span>
                                 </div>
                                 {claimingId === guest.id ? (
-                                    <Check className="w-5 h-5 text-violet-400" />
+                                    <Check className="w-5 h-5 text-primary" />
                                 ) : (
                                     <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Check className="w-4 h-4 text-emerald-400" />
@@ -117,14 +117,14 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
                             </button>
 
                             {claimingId === guest.id && (
-                                <div className="p-4 bg-slate-900/50 rounded-xl border border-violet-500/20 animate-in slide-in-from-top-2 fade-in space-y-3">
-                                    <label className="text-xs font-bold text-violet-300 uppercase tracking-wider block">
+                                <div className="p-4 bg-slate-900/50 rounded-xl border border-primary/20 animate-in slide-in-from-top-2 fade-in space-y-3">
+                                    <label className="text-xs font-bold text-primary uppercase tracking-wider block">
                                         Update Name (Optional)
                                     </label>
                                     <input
                                         type="text"
                                         placeholder={guest.displayName}
-                                        className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+                                        className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 handleClaim(guest, (e.target as HTMLInputElement).value);
@@ -138,7 +138,7 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
                                             handleClaim(guest, input.value);
                                         }}
                                         disabled={isClaiming}
-                                        className="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
                                         {isClaiming ? <Loader2 className="w-5 h-5 animate-spin" /> : `Join as ${guest.displayName.split(' ')[0]}`}
                                     </button>

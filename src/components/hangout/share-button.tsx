@@ -86,7 +86,7 @@ export function ShareButton({ hangoutId, variant = "button", className }: ShareB
         <button
             onClick={handleShare}
             disabled={isLoading}
-            className={`flex items-center gap-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 p-2 pr-4 rounded-full border border-violet-500/30 transition-colors text-sm font-medium disabled:opacity-50 ${className || ''}`}
+            className={`flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary p-2 pr-4 rounded-full border border-primary/30 transition-colors text-sm font-medium disabled:opacity-50 ${className || ''}`}
         >
             {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

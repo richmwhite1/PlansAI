@@ -84,6 +84,50 @@
   box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
 }
 
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 20px rgba(212, 163, 115, 0.4), 0 0 40px rgba(212, 163, 115, 0.2);
+  }
+
+  100% {
+    box-shadow: 0 0 30px rgba(212, 163, 115, 0.6), 0 0 60px rgba(212, 163, 115, 0.4);
+  }
+}
+
+@utility animate-blob {
+  animation: blob 7s infinite;
+}
+
+@utility animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+@utility animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+@utility animate-glow {
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
 body {
   background-color: var(--background);
 }

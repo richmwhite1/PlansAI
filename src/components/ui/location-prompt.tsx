@@ -27,7 +27,7 @@ export function LocationPrompt({
                 "flex items-center gap-3 p-3 rounded-xl text-sm",
                 permissionStatus === "denied"
                     ? "bg-rose-500/10 border border-rose-500/20 text-rose-300"
-                    : "bg-violet-500/10 border border-violet-500/20 text-violet-300"
+                    : "bg-primary/10 border border-primary/20 text-primary"
             )}
         >
             {permissionStatus === "denied" ? (
@@ -46,7 +46,7 @@ export function LocationPrompt({
                     <button
                         onClick={onRequestLocation}
                         disabled={loading}
-                        className="px-3 py-1 bg-violet-500/20 hover:bg-violet-500/30 rounded-lg font-medium transition-colors disabled:opacity-50"
+                        className="px-3 py-1 bg-primary/20 hover:bg-primary/30 rounded-lg font-medium transition-colors disabled:opacity-50 text-foreground"
                     >
                         {loading ? "..." : "Enable"}
                     </button>
