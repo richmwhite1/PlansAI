@@ -512,38 +512,46 @@ export function ActivitySuggestions({
 
                                 <div className="flex gap-4 w-full cursor-pointer" onClick={() => window.open(activity.websiteUrl || activity.locationUrl || `https://www.google.com/search?q=${encodeURIComponent(activity.title + ' ' + (activity.address || ''))}`, '_blank')}>
 
-                                    <div className="w-16 h-16 rounded-xl bg-slate-800 shrink-0 overflow-hidden relative border border-white/5">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-slate-800 shrink-0 overflow-hidden relative border border-white/5">
                                         {activity.imageUrl ? (
                                             <img src={activity.imageUrl} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-slate-900 text-primary">
-                                                {activity.isCustom ? <Sparkles size={24} /> : <MapPin size={24} className="text-muted-foreground" />}
+                                                {activity.isCustom ? <Sparkles size={28} /> : <MapPin size={28} className="text-muted-foreground" />}
                                             </div>
                                         )}
-
                                     </div>
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2 mb-1">
-                                            <h4 className="font-bold text-slate-200 truncate">{activity.title}</h4>
+                                            <h4 className="font-bold text-slate-200 text-base sm:text-lg leading-tight w-full break-words">{activity.title}</h4>
                                             {activity.rating && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 shrink-0">
                                                     ★ {activity.rating.toFixed(1)}
                                                 </span>
                                             )}
-                                            {activity.distance !== undefined && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/5">
+                                        </div>
+                                        {activity.distance !== undefined && (
+                                            <div className="mb-2">
+                                                <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/5">
                                                     {activity.distance < 0.1 ? "Here" : `${activity.distance.toFixed(1)} mi`}
                                                 </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 mb-2">
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
                                             <span className={cn(
-                                                "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
+                                                "text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
                                                 activity.isCustom ? "bg-primary/20 text-primary" : "bg-slate-800 text-muted-foreground"
                                             )}>
                                                 {activity.type}
                                             </span>
+                                            {activity.address && !activity.isCustom && (
+                                                <div className="flex items-center gap-1 text-[10px] sm:text-xs text-slate-400 truncate max-w-full">
+                                                    <MapPin className="w-3 h-3 shrink-0" />
+                                                    <span className="truncate">{activity.address}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* AI Match Feedback */}
