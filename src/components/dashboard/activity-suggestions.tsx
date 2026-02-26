@@ -58,9 +58,13 @@ export function ActivitySuggestions({
     const customInputRef = useRef<HTMLInputElement>(null);
 
     // Filter State
-    const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife' | 'Events'>('All');
+    const [activeFilter, setActiveFilter] = useState<'All' | 'Food' | 'Activity' | 'Nightlife' | 'Events' | 'Templates'>('All');
     const [distanceFilter, setDistanceFilter] = useState<5 | 10 | 25>(10);
     const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+
+    // Templates State
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
     // Search State
     const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +83,18 @@ export function ActivitySuggestions({
             .catch(console.error)
             .finally(() => setIsLoadingTrending(false));
     }, [location.lat, location.lng, distanceFilter, targetDate]);
+
+    // Fetch User Templates
+    useEffect(() => {
+        setIsLoadingTemplates(true);
+        fetch("/api/templates")
+            .then(res => res.json())
+            .then(data => {
+                if (data.templates) setTemplates(data.templates);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoadingTemplates(false));
+    }, []);
 
     // Fetch AI Suggestions (Initial)
     const getAiRecommendations = () => {
@@ -308,16 +324,34 @@ export function ActivitySuggestions({
         ...baseOptions
     ];
 
-    const filteredOptions = allOptions.filter(a =>
-        activeFilter === 'All' || a.isCustom || (activeFilter === 'Events' ? a.type === 'Event' || a.type === 'Festival' || a.type === 'Concerts' || a.websiteUrl : a.type === activeFilter)
-    ).map(activity => {
-        // Calculate distance if coordinates exist
-        let dist = activity.distance;
-        if (!dist && activity.latitude && activity.longitude && location.lat && location.lng) {
-            dist = calculateDistance(location.lat, location.lng, activity.latitude, activity.longitude);
-        }
-        return { ...activity, distance: dist };
-    });
+    // Format templates into Activity shape
+    const templateOptions: Activity[] = templates.filter(t => t.activity).map(t => ({
+        id: t.activity.id,
+        title: t.name, // Template name
+        type: "Saved Template", // Identify it as a template
+        matchPercentage: 100,
+        reason: t.activity.name, // Show the original activity name as the reason
+        imageUrl: t.activity.imageUrl,
+        rating: t.activity.rating,
+        address: t.activity.address,
+        latitude: t.activity.latitude,
+        longitude: t.activity.longitude,
+        websiteUrl: t.activity.websiteUrl || t.activity.locationUrl
+    }));
+
+    // If 'Templates' is selected, ONLY show templates + custom. Else filter normally.
+    const filteredOptions = activeFilter === 'Templates'
+        ? [...visibleCustomOptions, ...templateOptions]
+        : allOptions.filter(a =>
+            activeFilter === 'All' || a.isCustom || (activeFilter === 'Events' ? a.type === 'Event' || a.type === 'Festival' || a.type === 'Concerts' || a.websiteUrl : a.type === activeFilter)
+        ).map(activity => {
+            // Calculate distance if coordinates exist
+            let dist = activity.distance;
+            if (!dist && activity.latitude && activity.longitude && location.lat && location.lng) {
+                dist = calculateDistance(location.lat, location.lng, activity.latitude, activity.longitude);
+            }
+            return { ...activity, distance: dist };
+        });
 
     return (
         <div className={cn(
@@ -451,19 +485,24 @@ export function ActivitySuggestions({
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-white/5 text-xs overflow-x-auto scrollbar-none">
-                    {(['All', 'Food', 'Activity', 'Nightlife', 'Events'] as const).map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setActiveFilter(f)}
-                            className={cn(
-                                "px-3 py-1.5 rounded-md font-bold uppercase tracking-tight transition-all shrink-0",
-                                activeFilter === f ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            {f}
-                        </button>
-                    ))}
+                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-white/5 text-xs overflow-x-auto scrollbar-none max-w-full">
+                    {(['All', 'Food', 'Activity', 'Nightlife', 'Events', 'Templates'] as const).map((f) => {
+                        // Don't show templates filter if they have none
+                        if (f === 'Templates' && templates.length === 0) return null;
+
+                        return (
+                            <button
+                                key={f}
+                                onClick={() => setActiveFilter(f)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-md font-bold uppercase tracking-tight transition-all shrink-0",
+                                    activeFilter === f ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                {f}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {activeFilter === 'Events' && (
