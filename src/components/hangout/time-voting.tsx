@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Check, Sparkles } from "lucide-react";
+import { Clock, Check, Star } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +100,7 @@ export function TimeVoting({ hangoutId, options, isParticipant, currentUserId }:
 
                             {isBest && (
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20 text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                                    <Sparkles className="w-3 h-3" />
+                                    <Star className="w-3 h-3" />
                                     AI Recommended
                                 </div>
                             )}

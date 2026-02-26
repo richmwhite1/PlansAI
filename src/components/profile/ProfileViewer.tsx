@@ -4,7 +4,7 @@
 import { ProfileHero } from "./ProfileHero";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Sparkles, Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign, Calendar } from "lucide-react";
+import { Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useEffect } from "react";

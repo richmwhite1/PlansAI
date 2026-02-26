@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Compass, Calendar, Sparkles, Users, User, Home } from "lucide-react";
+import { Compass, Calendar, Users, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {

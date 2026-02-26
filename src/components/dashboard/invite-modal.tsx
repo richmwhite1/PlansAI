@@ -59,7 +59,7 @@ export function InviteModal({ isOpen, onClose, inviteUrl, guests, onDone }: Invi
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="w-full max-w-md bg-slate-900 border border-violet-500/20 rounded-2xl shadow-xl overflow-hidden pointer-events-auto relative"
+                            className="w-full max-w-md bg-slate-900 border border-primary/20 rounded-2xl shadow-xl overflow-hidden pointer-events-auto relative"
                         >
                             <div className="p-6 space-y-6">
                                 <div className="flex items-start justify-between">
@@ -115,7 +115,7 @@ export function InviteModal({ isOpen, onClose, inviteUrl, guests, onDone }: Invi
                                 <div className="space-y-3 pt-4">
                                     <button
                                         onClick={onDone}
-                                        className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-900/20"
+                                        className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                                     >
                                         Done <ArrowRight className="w-4 h-4" />
                                     </button>

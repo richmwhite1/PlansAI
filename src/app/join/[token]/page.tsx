@@ -87,7 +87,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
                 <div className="glass p-8 rounded-3xl border border-white/10 bg-slate-900/60 text-center space-y-6">
                     {/* Creator */}
                     <div className="flex flex-col items-center gap-2">
-                        <div className="w-16 h-16 rounded-full bg-slate-800 overflow-hidden ring-4 ring-violet-500/30">
+                        <div className="w-16 h-16 rounded-full bg-slate-800 overflow-hidden ring-4 ring-primary/30">
                             {hangout.creator.avatarUrl && (
                                 <img src={hangout.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
                             )}
@@ -104,13 +104,13 @@ export default async function JoinPage({ params }: JoinPageProps) {
                         <div className="flex flex-wrap gap-3 justify-center text-sm text-slate-400">
                             {hangout.scheduledFor && (
                                 <div className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4 text-violet-400" />
+                                    <Calendar className="w-4 h-4 text-primary" />
                                     {format(new Date(hangout.scheduledFor), "EEE, MMM d 'at' h:mm a")}
                                 </div>
                             )}
                             {hangout.finalActivity && (
                                 <div className="flex items-center gap-1.5">
-                                    <MapPin className="w-4 h-4 text-violet-400" />
+                                    <MapPin className="w-4 h-4 text-primary" />
                                     {hangout.finalActivity.name}
                                 </div>
                             )}
@@ -140,7 +140,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
                     <div className="space-y-3">
                         <Link
                             href={`/hangouts/${hangout.slug}`}
-                            className="w-full py-3 px-4 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/30 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                            className="w-full py-3 px-4 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             View Hangout & RSVP
                         </Link>
@@ -149,7 +149,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
                     {/* Sign In Prompt */}
                     {!userId && (
                         <p className="text-xs text-slate-500">
-                            <Link href="/sign-in" className="text-violet-400 hover:underline">Sign in</Link> to sync with your account
+                            <Link href="/sign-in" className="text-primary hover:underline">Sign in</Link> to sync with your account
                         </p>
                     )}
                 </div>

@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { updateProfile } from "@/app/actions/profile-actions";
 import { useRouter } from "next/navigation";
 import { TagInput } from "@/components/ui/tag-input";
-import { Sparkles, Brain, Star, Fingerprint, Plus, Zap, Heart, Clock, DollarSign, ShieldAlert, MessageCircle, MapPin, Wine, Utensils } from "lucide-react";
+import { Brain, Star, Fingerprint, Plus, Zap, Heart, Clock, DollarSign, ShieldAlert, MessageCircle, MapPin, Wine, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProfileHero } from "./ProfileHero";
 
@@ -538,7 +538,7 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                 {/* Planning Priorities */}
                 <div className="space-y-3 border-b border-border pb-6">
                     <label className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5" /> Planning Priorities
+                        <Zap className="w-3.5 h-3.5" /> Planning Priorities
                     </label>
                     <div className="flex flex-wrap gap-2">
                         {VIBE_TAG_OPTIONS.map((tag) => (

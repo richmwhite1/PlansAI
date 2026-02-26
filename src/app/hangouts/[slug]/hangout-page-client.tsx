@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { MapPin, Calendar, Sparkles, Users } from "lucide-react";
+import { MapPin, Calendar, Users, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -199,7 +199,7 @@ export function HangoutPageClient({
                             )}
                             {hangout.status === "VOTING" && (
                                 <div className="flex items-center gap-3 text-primary bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20 backdrop-blur-md border-dashed shadow-xl">
-                                    <Sparkles className="w-4 h-4 animate-pulse" />
+                                    <Zap className="w-4 h-4 animate-pulse" />
                                     <span className="font-bold uppercase tracking-[0.1em] text-xs">Deciding the activity</span>
                                 </div>
                             )}
@@ -227,7 +227,7 @@ export function HangoutPageClient({
                                 </p>
                             )}
                         </div>
-                        <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(139,92,246,0.3)' }}>
+                        <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(212,163,115,0.3)' }}>
                             <GuestJoinForm hangoutId={hangout.id} guestsToClaim={guestsToClaim} />
                         </div>
                     </motion.div>
@@ -259,7 +259,7 @@ export function HangoutPageClient({
                                         </Avatar>
                                         {p.isMandatory && (
                                             <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-slate-900 shadow-lg">
-                                                <Sparkles className="w-2.5 h-2.5 text-white" />
+                                                <Star className="w-2.5 h-2.5 text-white" />
                                             </div>
                                         )}
                                     </div>
@@ -390,7 +390,7 @@ export function HangoutPageClient({
                                             rel="noopener noreferrer"
                                             className="group/link block mb-2"
                                         >
-                                            <h3 className="font-bold text-slate-200 group-hover/link:text-violet-400 transition-colors">{act.name}</h3>
+                                            <h3 className="font-bold text-slate-200 group-hover/link:text-primary transition-colors">{act.name}</h3>
                                             <p className="text-sm text-slate-400 group-hover/link:text-slate-300 transition-colors flex items-start gap-1 mt-0.5">
                                                 <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                                 <span>{act.address}</span>
@@ -452,7 +452,7 @@ export function HangoutPageClient({
                                             {userId === hangout.creator.clerkId && !isEditingDescription && (
                                                 <button
                                                     onClick={() => setIsEditingDescription(true)}
-                                                    className="text-xs font-bold text-violet-400 hover:text-violet-300 uppercase tracking-wider transition-colors"
+                                                    className="text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors"
                                                 >
                                                     Edit Note
                                                 </button>
@@ -464,7 +464,7 @@ export function HangoutPageClient({
                                                 <textarea
                                                     value={editedDescription}
                                                     onChange={(e) => setEditedDescription(e.target.value)}
-                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 resize-none h-32 leading-relaxed"
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none h-32 leading-relaxed"
                                                     placeholder="Write a note about the plan..."
                                                     autoFocus
                                                 />
@@ -478,7 +478,7 @@ export function HangoutPageClient({
                                                     <button
                                                         onClick={handleSaveDescription}
                                                         disabled={isSaving}
-                                                        className="px-4 py-1.5 text-xs bg-violet-600/20 text-violet-400 border border-violet-500/30 rounded-lg font-bold hover:bg-violet-600/40 hover:text-violet-300 transition-all disabled:opacity-50 uppercase tracking-wider"
+                                                        className="px-4 py-1.5 text-xs bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary/40 hover:text-primary transition-all disabled:opacity-50 uppercase tracking-wider"
                                                     >
                                                         {isSaving ? "Saving..." : "Save Note"}
                                                     </button>

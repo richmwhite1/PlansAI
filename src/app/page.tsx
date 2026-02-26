@@ -80,7 +80,7 @@ export default function Home() {
     {
       title: "Democratic Voting",
       description: "Stop the endless debate. Everyone swipes on options, and the best plan wins automatically.",
-      gradient: "from-violet-500/20 to-purple-500/20",
+      gradient: "from-primary/20 to-primary/5",
     },
     {
       title: "Instant Invites",
