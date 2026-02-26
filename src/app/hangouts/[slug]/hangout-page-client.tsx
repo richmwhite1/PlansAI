@@ -209,6 +209,79 @@ export function HangoutPageClient({
             </div>
 
             <div className="container mx-auto max-w-2xl p-6 space-y-8">
+                {/* Participants */}
+                <div className="glass-card p-6 rounded-2xl">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
+                            Who's Going?
+                            <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
+                        </h2>
+                        {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
+                            <ShareButton hangoutId={hangout.id} variant="button" />
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+                        {participants.map((p: any) => (
+                            <div key={p.id} className="flex items-center justify-between bg-white/5 p-2 pr-4 rounded-full border border-white/5 group/p">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                        <Avatar className="w-10 h-10 border border-white/10">
+                                            <AvatarImage src={p.profile?.avatarUrl || undefined} />
+                                            <AvatarFallback className="text-xs bg-slate-800 text-slate-400">
+                                                {p.profile?.displayName?.slice(0, 2).toUpperCase() || "??"}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        {p.isMandatory && (
+                                            <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-slate-900 shadow-lg">
+                                                <Sparkles className="w-2.5 h-2.5 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-foreground">
+                                            {p.profile?.displayName || p.guest?.displayName || "Guest"}
+                                            {p.role === "CREATOR" && <span className="ml-2 text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Host</span>}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "text-[10px] uppercase tracking-wider",
+                                                p.rsvpStatus === "GOING" ? "text-emerald-400 font-bold" : "text-slate-500"
+                                            )}>
+                                                {p.rsvpStatus}
+                                            </span>
+                                            {/* Show SMS Invite Button for Guests who haven't RSVP'd */}
+                                            {p.guest && p.rsvpStatus === "PENDING" && (userId === hangout.creator.clerkId || hangout.allowGuestsToInvite) && (
+                                                <a
+                                                    href={`sms:${p.guest.phone || ''}?body=${encodeURIComponent(`Hey ${p.guest.displayName}, join my hangout here: https://plans.ai/h/${hangout.slug}?guestToken=${p.guest.token}`)}`}
+                                                    className="ml-2 text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-full transition-colors flex items-center gap-1"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    Tap to Invite
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {userId === hangout.creator.clerkId && p.profileId !== profile?.id && (
+                                    <button
+                                        onClick={() => handleToggleMandatory(p.id, p.isMandatory)}
+                                        className={cn(
+                                            "transition-all px-3 py-1 rounded-full text-[10px] font-bold uppercase border",
+                                            p.isMandatory
+                                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30 opacity-100"
+                                                : "bg-white/5 text-slate-500 hover:text-slate-300 border-transparent hover:border-white/10"
+                                        )}
+                                    >
+                                        {p.isMandatory ? "Mandatory" : "Optional"}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Activity Details & Voting */}
                 {(hangout.status === "PLANNING" || hangout.status === "VOTING") && hangout.activityOptions.length > 1 ? (
                     <div className="space-y-8">
@@ -343,147 +416,77 @@ export function HangoutPageClient({
                     <>
                         {/* Your RSVP & Description */}
                         {/* Your Description / Note Container */}
-                        <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                            {/* Glass Note Section */}
-                            <div className="relative group">
-                                <div className="relative z-10 bg-white/5 p-5 rounded-xl border border-white/10">
-                                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                            <span className="text-base">📝</span> The Note
-                                        </label>
-                                        {userId === hangout.creator.clerkId && !isEditingDescription && (
-                                            <button
-                                                onClick={() => setIsEditingDescription(true)}
-                                                className="text-xs font-bold text-violet-400 hover:text-violet-300 uppercase tracking-wider transition-colors"
-                                            >
-                                                Edit Note
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {isEditingDescription ? (
-                                        <div className="space-y-3">
-                                            <textarea
-                                                value={editedDescription}
-                                                onChange={(e) => setEditedDescription(e.target.value)}
-                                                className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 resize-none h-32 leading-relaxed"
-                                                placeholder="Write a note about the plan..."
-                                                autoFocus
-                                            />
-                                            <div className="flex justify-end gap-2">
+                        {(hangout.description || userId === hangout.creator.clerkId) && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                {/* Glass Note Section */}
+                                <div className="relative group">
+                                    <div className="relative z-10 bg-white/5 p-5 rounded-xl border border-white/10">
+                                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <span className="text-base">📝</span> The Note
+                                            </label>
+                                            {userId === hangout.creator.clerkId && !isEditingDescription && (
                                                 <button
-                                                    onClick={() => setIsEditingDescription(false)}
-                                                    className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
+                                                    onClick={() => setIsEditingDescription(true)}
+                                                    className="text-xs font-bold text-violet-400 hover:text-violet-300 uppercase tracking-wider transition-colors"
                                                 >
-                                                    Discard
+                                                    Edit Note
                                                 </button>
-                                                <button
-                                                    onClick={handleSaveDescription}
-                                                    disabled={isSaving}
-                                                    className="px-4 py-1.5 text-xs bg-violet-600/20 text-violet-400 border border-violet-500/30 rounded-lg font-bold hover:bg-violet-600/40 hover:text-violet-300 transition-all disabled:opacity-50 uppercase tracking-wider"
-                                                >
-                                                    {isSaving ? "Saving..." : "Save Note"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="relative min-h-[40px]">
-                                            {hangout.description ? (
-                                                <p className="text-sm text-slate-300 leading-relaxed italic">
-                                                    "{hangout.description}"
-                                                </p>
-                                            ) : (
-                                                userId === hangout.creator.clerkId ? (
-                                                    <button
-                                                        onClick={() => setIsEditingDescription(true)}
-                                                        className="text-slate-500 italic text-sm hover:text-slate-300 w-full text-left transition-colors"
-                                                    >
-                                                        Add a note about the plan...
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-slate-500 italic text-sm">No note attached yet.</span>
-                                                )
                                             )}
                                         </div>
-                                    )}
+
+                                        {isEditingDescription ? (
+                                            <div className="space-y-3">
+                                                <textarea
+                                                    value={editedDescription}
+                                                    onChange={(e) => setEditedDescription(e.target.value)}
+                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 resize-none h-32 leading-relaxed"
+                                                    placeholder="Write a note about the plan..."
+                                                    autoFocus
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setIsEditingDescription(false)}
+                                                        className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
+                                                    >
+                                                        Discard
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSaveDescription}
+                                                        disabled={isSaving}
+                                                        className="px-4 py-1.5 text-xs bg-violet-600/20 text-violet-400 border border-violet-500/30 rounded-lg font-bold hover:bg-violet-600/40 hover:text-violet-300 transition-all disabled:opacity-50 uppercase tracking-wider"
+                                                    >
+                                                        {isSaving ? "Saving..." : "Save Note"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative min-h-[40px]">
+                                                {hangout.description ? (
+                                                    <p className="text-sm text-slate-300 leading-relaxed italic">
+                                                        "{hangout.description}"
+                                                    </p>
+                                                ) : (
+                                                    userId === hangout.creator.clerkId ? (
+                                                        <button
+                                                            onClick={() => setIsEditingDescription(true)}
+                                                            className="text-slate-500 italic text-sm hover:text-slate-300 w-full text-left transition-colors"
+                                                        >
+                                                            Add a note about the plan...
+                                                        </button>
+                                                    ) : null
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
 
                 {/* Participants */}
-                <div className="glass-card p-6 rounded-2xl">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
-                            Who's Going?
-                            <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
-                        </h2>
-                        {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
-                            <ShareButton hangoutId={hangout.id} variant="button" />
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        {participants.map((p: any) => (
-                            <div key={p.id} className="flex items-center justify-between bg-white/5 p-2 pr-4 rounded-full border border-white/5 group/p">
-                                <div className="flex items-center gap-2">
-                                    <div className="relative">
-                                        <Avatar className="w-10 h-10 border border-white/10">
-                                            <AvatarImage src={p.profile?.avatarUrl || undefined} />
-                                            <AvatarFallback className="text-xs bg-slate-800 text-slate-400">
-                                                {p.profile?.displayName?.slice(0, 2).toUpperCase() || "??"}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        {p.isMandatory && (
-                                            <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-slate-900 shadow-lg">
-                                                <Sparkles className="w-2.5 h-2.5 text-white" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-foreground">
-                                            {p.profile?.displayName || p.guest?.displayName || "Guest"}
-                                            {p.role === "CREATOR" && <span className="ml-2 text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Host</span>}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn(
-                                                "text-[10px] uppercase tracking-wider",
-                                                p.rsvpStatus === "GOING" ? "text-emerald-400 font-bold" : "text-slate-500"
-                                            )}>
-                                                {p.rsvpStatus}
-                                            </span>
-                                            {/* Show SMS Invite Button for Guests who haven't RSVP'd */}
-                                            {p.guest && p.rsvpStatus === "PENDING" && (userId === hangout.creator.clerkId || hangout.allowGuestsToInvite) && (
-                                                <a
-                                                    href={`sms:${p.guest.phone || ''}?body=${encodeURIComponent(`Hey ${p.guest.displayName}, join my hangout here: https://plans.ai/h/${hangout.slug}?guestToken=${p.guest.token}`)}`}
-                                                    className="ml-2 text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-full transition-colors flex items-center gap-1"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    Tap to Invite
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {userId === hangout.creator.clerkId && p.profileId !== profile?.id && (
-                                    <button
-                                        onClick={() => handleToggleMandatory(p.id, p.isMandatory)}
-                                        className={cn(
-                                            "transition-all px-3 py-1 rounded-full text-[10px] font-bold uppercase border",
-                                            p.isMandatory
-                                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30 opacity-100"
-                                                : "bg-white/5 text-slate-500 hover:text-slate-300 border-transparent hover:border-white/10"
-                                        )}
-                                    >
-                                        {p.isMandatory ? "Mandatory" : "Optional"}
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
                 {/* Feedback Trigger (Post-Hangout) */}
                 <FeedbackTrigger
