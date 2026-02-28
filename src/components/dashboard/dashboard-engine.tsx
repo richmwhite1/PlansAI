@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Calendar, ArrowRight } from "lucide-react";
+import { Zap, Calendar, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useUser, SignInButton } from "@clerk/nextjs";
@@ -35,13 +35,62 @@ export function DashboardEngine() {
     }
 
     const [currentStep, setCurrentStep] = useState(1);
+    const [isMultiDay, setIsMultiDay] = useState(false);
+    const [endDatePickerValue, setEndDatePickerValue] = useState("");
 
-    // Determine effective location: Browser > Profile > Default
-    const effectiveLocation = (location.permissionStatus === 'granted' && location.coords.lat !== 37.7749)
-        ? location.coords
-        : (profile?.homeLatitude && profile?.homeLongitude)
-            ? { lat: profile.homeLatitude, lng: profile.homeLongitude }
-            : location.coords;
+    // Zip Code Override State
+    const [zipOverride, setZipOverride] = useState<{
+        zip: string;
+        city: string;
+        state: string;
+        lat: number;
+        lng: number;
+    } | null>(null);
+    const [isEditingZip, setIsEditingZip] = useState(false);
+    const [newZip, setNewZip] = useState("");
+    const [isResolvingZip, setIsResolvingZip] = useState(false);
+
+    // Determine effective location: Override > Browser > Profile > Default
+    const effectiveLocation = zipOverride
+        ? { lat: zipOverride.lat, lng: zipOverride.lng }
+        : (location.permissionStatus === 'granted' && location.coords.lat !== 37.7749)
+            ? location.coords
+            : (profile?.homeLatitude && profile?.homeLongitude)
+                ? { lat: profile.homeLatitude, lng: profile.homeLongitude }
+                : location.coords;
+
+    const handleZipSubmit = async () => {
+        if (newZip.trim().length !== 5) {
+            toast.error("Please enter a valid 5-digit zip code");
+            return;
+        }
+
+        setIsResolvingZip(true);
+        try {
+            const res = await fetch(`https://api.zippopotam.us/us/${newZip.trim()}`);
+            const data = await res.json();
+
+            if (data.places && data.places.length > 0) {
+                const place = data.places[0];
+                setZipOverride({
+                    zip: newZip.trim(),
+                    city: place["place name"],
+                    state: place["state abbreviation"],
+                    lat: parseFloat(place["latitude"]),
+                    lng: parseFloat(place["longitude"])
+                });
+                setIsEditingZip(false);
+                toast.success(`Location set to ${place["place name"]}, ${place["state abbreviation"]}`);
+            } else {
+                toast.error("Could not find that zip code");
+            }
+        } catch (err) {
+            console.error("Zip lookup failed:", err);
+            toast.error("Failed to lookup zip code");
+        } finally {
+            setIsResolvingZip(false);
+        }
+    };
 
     const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
     const [allowGuestsToInvite, setAllowGuestsToInvite] = useState(false);
@@ -55,8 +104,6 @@ export function DashboardEngine() {
     const [isCreating, setIsCreating] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
-    const [isMultiDay, setIsMultiDay] = useState(false);
-    const [endDatePickerValue, setEndDatePickerValue] = useState("");
 
     // Sync voting mode with selection count
     const handleToggleActivity = (activity: any) => {
@@ -150,20 +197,14 @@ export function DashboardEngine() {
                 // Construct invite message
                 const inviteUrl = `${window.location.origin}/hangouts/${data.slug}`;
 
-                // Display date logic
-                const displayDate = selectedDate ? new Date(selectedDate).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : "soon";
-                const shareText = `Let's hang out! 📅 ${displayDate}\n${description ? `"${description}"\n` : ""}🔗 ${inviteUrl}`;
-
                 // Check for guests (non-app users)
                 const guests = selectedFriends.filter(f => f.isGuest);
 
                 if (guests.length > 0 && !isMultiDay) {
-                    // Show modal for manual invites ONLY if it's NOT a multi-day event
                     setCreatedHangoutData({ inviteUrl, slug: data.slug });
                     setShowInviteModal(true);
                     toast.success("Hangout created! Invite your guests.");
                 } else {
-                    // All invitees are app users, OR it's a multi-day event — skip sharing, redirect to event page
                     toast.success("Hangout created!");
                     router.push(`/hangouts/${data.slug}`);
                 }
@@ -179,13 +220,6 @@ export function DashboardEngine() {
             setIsCreating(false);
         }
     };
-
-    // Auto-advance removed to allow multi-select
-    // useEffect(() => {
-    //     if (selectedFriends.length > 0 && currentStep === 1) {
-    //         setCurrentStep(2);
-    //     }
-    // }, [selectedFriends]);
 
     return (
         <div className="glass p-1 rounded-[24px] relative group transition-all duration-500">
@@ -276,7 +310,7 @@ export function DashboardEngine() {
                 />
 
                 {/* Step 2: WHAT (AI Suggestions) */}
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                     {(selectedFriends.length > 0 || isMultiDay) && (
                         <motion.div
                             key="step-2"
@@ -298,6 +332,39 @@ export function DashboardEngine() {
                                     </h2>
 
                                     <div className="flex items-center gap-3">
+                                        {/* Zip Location Display */}
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all cursor-pointer group"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsEditingZip(true);
+                                                setNewZip(zipOverride?.zip || "");
+                                            }}>
+                                            <MapPin className="w-3 h-3 text-primary" />
+                                            {isEditingZip ? (
+                                                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                                    <input
+                                                        autoFocus
+                                                        value={newZip}
+                                                        onChange={e => setNewZip(e.target.value)}
+                                                        onKeyDown={e => e.key === 'Enter' && handleZipSubmit()}
+                                                        className="w-16 bg-transparent border-none outline-none text-[10px] font-bold text-white placeholder:text-slate-600"
+                                                        placeholder="Zip..."
+                                                    />
+                                                    <button
+                                                        onClick={handleZipSubmit}
+                                                        disabled={isResolvingZip}
+                                                        className="text-[10px] font-black text-primary uppercase"
+                                                    >
+                                                        {isResolvingZip ? "..." : "Set"}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-200">
+                                                    {zipOverride ? `${zipOverride.city}, ${zipOverride.state}` : (profile?.homeCity || "Nearby")}
+                                                </span>
+                                            )}
+                                        </div>
+
                                         {currentStep > 2 && (
                                             <button
                                                 onClick={() => setCurrentStep(2)}

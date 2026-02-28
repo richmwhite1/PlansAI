@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { MapPin, Calendar, Users, Star, Zap } from "lucide-react";
+import { MapPin, Calendar, Users, Star, Zap, Camera, Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -140,7 +140,6 @@ export function HangoutPageClient({
     const handleGenerateInvite = async () => {
         setIsGeneratingLink(true);
         try {
-            // Using the existing hangout add guest route
             const res = await fetch(`/api/hangouts/${hangout.id}/guests`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -149,7 +148,6 @@ export function HangoutPageClient({
             if (res.ok) {
                 const data = await res.json();
                 setGuestsToInvite([{ name: data.guest.displayName }]);
-                // Refresh participants optimistic or via reload
                 setIsInviteModalOpen(true);
             } else {
                 toast.error("Failed to generate invite link");
@@ -162,7 +160,6 @@ export function HangoutPageClient({
     };
 
     const handleToggleMandatory = async (participantId: string, current: boolean) => {
-        // Optimistic update
         setParticipants((prev: any[]) => prev.map((p: any) =>
             p.id === participantId ? { ...p, isMandatory: !current } : p
         ));
@@ -176,7 +173,6 @@ export function HangoutPageClient({
             if (res.ok) {
                 toast.success(!current ? "Marked as mandatory" : "Removed mandatory status");
             } else {
-                // Revert on failure
                 setParticipants((prev: any[]) => prev.map((p: any) =>
                     p.id === participantId ? { ...p, isMandatory: current } : p
                 ));
@@ -184,15 +180,39 @@ export function HangoutPageClient({
             }
         } catch (error) {
             console.error("Failed to toggle mandatory:", error);
-            // Revert on failure
             setParticipants((prev: any[]) => prev.map((p: any) =>
                 p.id === participantId ? { ...p, isMandatory: current } : p
             ));
         }
     };
 
-    const heroImage = hangout.finalActivity?.imageUrl ||
+    const heroImage = hangout.photos?.[0]?.url || hangout.finalActivity?.imageUrl ||
         (hangout.activityOptions && hangout.activityOptions.length > 0 ? hangout.activityOptions[0].cachedEvent?.imageUrl : null);
+
+    const isOrganizer = userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER";
+
+    // Helper to check if a section should be shown
+    const shouldShowSection = (hasContent: boolean) => {
+        if (hasContent) return true;
+        if (isOrganizer) return true;
+        return false;
+    };
+
+    // Helper for minimized organizer empty state
+    const EmptySectionButton = ({ label, onClick, icon: Icon }: { label: string, onClick: () => void, icon?: any }) => (
+        <button
+            onClick={onClick}
+            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group"
+        >
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                    {Icon ? <Icon className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+                <span className="text-sm font-medium text-slate-300">Add {label}</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
+        </button>
+    );
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
@@ -219,6 +239,24 @@ export function HangoutPageClient({
                         />
                     )}
                 </div>
+
+                {/* Update Photo Button (Organizer only) */}
+                {isOrganizer && (
+                    <div className="absolute top-6 right-6 z-30">
+                        <button
+                            onClick={() => {
+                                const gallerySection = document.getElementById('gallery-section');
+                                if (gallerySection) {
+                                    gallerySection.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 rounded-xl text-white text-xs font-bold transition-all"
+                        >
+                            <Camera className="w-4 h-4" />
+                            Update Photo
+                        </button>
+                    </div>
+                )}
 
                 {/* Advanced Gradient Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
@@ -332,7 +370,7 @@ export function HangoutPageClient({
                             <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
                         </h2>
                         <div className="flex items-center gap-2">
-                            {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER") && (
+                            {(hangout.visibility === "PUBLIC" || isOrganizer) && (
                                 <button
                                     onClick={handleGenerateInvite}
                                     disabled={isGeneratingLink}
@@ -378,7 +416,7 @@ export function HangoutPageClient({
                                             {/* Show SMS Invite Button for Guests who haven't RSVP'd */}
                                             {p.guest && p.rsvpStatus === "PENDING" && (userId === hangout.creator.clerkId || hangout.allowGuestsToInvite) && (
                                                 <a
-                                                    href={`sms:${p.guest.phone || ''}?body=${encodeURIComponent(`Hey ${p.guest.displayName}, join my hangout here: https://plans.ai/h/${hangout.slug}?guestToken=${p.guest.token}`)}`}
+                                                    href={`sms:${p.guest.phone || ''}?body=${encodeURIComponent(`Hey ${p.guest.displayName}, join my hangout here: ${typeof window !== 'undefined' ? window.location.origin : ''}/hangouts/${hangout.slug}?guestToken=${p.guest.token}`)}`}
                                                     className="ml-2 text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-full transition-colors flex items-center gap-1"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
@@ -535,26 +573,30 @@ export function HangoutPageClient({
                     </div>
                 )}
 
-                {/* Guest Join / Participation */}
+                {/* Coordination Components (Conditionally rendered to keep UI clean) */}
                 {currentUserParticipant && (
-                    <>
-                        {/* Your RSVP & Description */}
-                        {/* Your Description / Note Container */}
-                        {(hangout.description || userId === hangout.creator.clerkId) && (
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2">
+                            <div className="h-px bg-white/10 flex-1" />
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Coordination</span>
+                            <div className="h-px bg-white/10 flex-1" />
+                        </div>
+
+                        {/* Note Section */}
+                        {shouldShowSection(!!hangout.description) && (
                             <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                {/* Glass Note Section */}
                                 <div className="relative group">
                                     <div className="relative z-10 bg-white/5 p-5 rounded-xl border border-white/10">
-                                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                <span className="text-base">📝</span> The Note
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                Note
                                             </label>
-                                            {userId === hangout.creator.clerkId && !isEditingDescription && (
+                                            {isOrganizer && !isEditingDescription && (
                                                 <button
                                                     onClick={() => setIsEditingDescription(true)}
-                                                    className="text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors"
+                                                    className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors"
                                                 >
-                                                    Edit Note
+                                                    {hangout.description ? "Edit" : "+ Add Note"}
                                                 </button>
                                             )}
                                         </div>
@@ -571,51 +613,127 @@ export function HangoutPageClient({
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         onClick={() => setIsEditingDescription(false)}
-                                                        className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
+                                                        className="px-3 py-1.5 text-[10px] font-bold text-slate-400 hover:text-white uppercase transition-colors"
                                                     >
                                                         Discard
                                                     </button>
                                                     <button
                                                         onClick={handleSaveDescription}
                                                         disabled={isSaving}
-                                                        className="px-4 py-1.5 text-xs bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary/40 hover:text-primary transition-all disabled:opacity-50 uppercase tracking-wider"
+                                                        className="px-4 py-1.5 text-[10px] bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary/40 hover:text-primary transition-all disabled:opacity-50 uppercase tracking-wider"
                                                     >
-                                                        {isSaving ? "Saving..." : "Save Note"}
+                                                        {isSaving ? "Saving..." : "Save"}
                                                     </button>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="relative min-h-[40px]">
-                                                {hangout.description ? (
-                                                    <p className="text-sm text-slate-300 leading-relaxed italic">
-                                                        "{hangout.description}"
-                                                    </p>
-                                                ) : (
-                                                    userId === hangout.creator.clerkId ? (
-                                                        <button
-                                                            onClick={() => setIsEditingDescription(true)}
-                                                            className="text-slate-500 italic text-sm hover:text-slate-300 w-full text-left transition-colors"
-                                                        >
-                                                            Add a note about the plan...
-                                                        </button>
-                                                    ) : null
-                                                )}
-                                            </div>
-                                        )}
+                                        ) : hangout.description ? (
+                                            <p className="text-sm text-slate-300 leading-relaxed italic">
+                                                "{hangout.description}"
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* Itinerary Dashboard — only for multi-day events */}
+                        {hangout.isMultiDay && shouldShowSection(hangout.itineraryDays?.[0]?.activities?.length > 0) && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                                    <Calendar className="w-4 h-4 text-primary" /> Itinerary
+                                </h3>
+                                <ItineraryDashboard
+                                    hangoutId={hangout.id}
+                                    initialDays={hangout.itineraryDays}
+                                    isOrganizer={isOrganizer}
+                                />
+                            </div>
+                        )}
+
+                        {/* Tasks */}
+                        {shouldShowSection(hangout.tasks?.length > 0) && (
+                            <HangoutTasks
+                                hangoutId={hangout.id}
+                                participants={hangout.participants
+                                    .filter((p: any) => p.profile)
+                                    .map((p: any) => ({
+                                        id: p.profile.id,
+                                        displayName: p.profile.displayName,
+                                        avatarUrl: p.profile.avatarUrl,
+                                    }))}
+                                isParticipant={!!currentUserParticipant}
+                                currentUserId={currentUserParticipant?.profileId}
+                            />
+                        )}
+
+                        {/* Expenses */}
+                        {shouldShowSection(hangout.expenses?.length > 0) && (
+                            <HangoutExpenses
+                                hangoutId={hangout.id}
+                                participants={hangout.participants
+                                    .filter((p: any) => p.profile)
+                                    .map((p: any) => ({
+                                        id: p.profile.id,
+                                        displayName: p.profile.displayName,
+                                        avatarUrl: p.profile.avatarUrl,
+                                        venmoHandle: p.profile.venmoHandle,
+                                        paypalHandle: p.profile.paypalHandle,
+                                        zelleHandle: p.profile.zelleHandle,
+                                        cashappHandle: p.profile.cashappHandle,
+                                        applePayHandle: p.profile.applePayHandle,
+                                    }))}
+                                isParticipant={!!currentUserParticipant}
+                            />
+                        )}
+
+                        {/* Event Budget */}
+                        {shouldShowSection(!!hangout.budget) && (
+                            <>
+                                {hangout.budget || isOrganizer ? (
+                                    <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                        <EventBudget
+                                            hangoutId={hangout.id}
+                                            participants={hangout.participants
+                                                .filter((p: any) => p.profile)
+                                                .map((p: any) => ({
+                                                    id: p.profile.id,
+                                                    displayName: p.profile.displayName,
+                                                    avatarUrl: p.profile.avatarUrl,
+                                                    venmoHandle: p.profile.venmoHandle,
+                                                    paypalHandle: p.profile.paypalHandle,
+                                                    zelleHandle: p.profile.zelleHandle,
+                                                    cashappHandle: p.profile.cashappHandle,
+                                                    applePayHandle: p.profile.applePayHandle,
+                                                }))}
+                                            isOrganizer={isOrganizer}
+                                            isParticipant={!!currentUserParticipant}
+                                            currentUserId={currentUserParticipant?.profileId}
+                                        />
+                                    </div>
+                                ) : null}
+                            </>
+                        )}
+
+                        {/* Shared Documents */}
+                        {shouldShowSection(hangout.documents?.length > 0) && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <SharedDocuments
+                                    hangoutId={hangout.id}
+                                    isParticipant={!!currentUserParticipant}
+                                    isOrganizer={isOrganizer}
+                                    currentUserId={currentUserParticipant?.profileId}
+                                />
+                            </div>
+                        )}
+
                         {/* Host Controls */}
-                        {userId === hangout.creator.clerkId && (
+                        {isOrganizer && (
                             <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4">
                                     <Zap className="w-4 h-4" /> Host Controls
                                 </label>
 
                                 <div className="space-y-4">
-                                    {/* Date Controls */}
                                     <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/10 gap-3">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5 pr-4">
@@ -695,11 +813,8 @@ export function HangoutPageClient({
                                 </div>
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
-
-                {/* Participants */}
-
 
                 {/* Feedback Trigger (Post-Hangout) */}
                 <FeedbackTrigger
@@ -710,96 +825,8 @@ export function HangoutPageClient({
                     isPast={!!hangout.scheduledFor && new Date(hangout.scheduledFor) < new Date()}
                 />
 
-                {/* Tasks & Expenses */}
-                {currentUserParticipant && (
-                    <>
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2">
-                                <div className="h-px bg-white/10 flex-1" />
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Coordination</span>
-                                <div className="h-px bg-white/10 flex-1" />
-                            </div>
-
-                            {/* Itinerary Dashboard — only for multi-day events */}
-                            {hangout.isMultiDay && hangout.itineraryDays && hangout.itineraryDays.length > 0 && (
-                                <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-                                        <Calendar className="w-4 h-4 text-primary" /> Itinerary
-                                    </h3>
-                                    <ItineraryDashboard
-                                        hangoutId={hangout.id}
-                                        initialDays={hangout.itineraryDays}
-                                        isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
-                                    />
-                                </div>
-                            )}
-
-                            <HangoutTasks
-                                hangoutId={hangout.id}
-                                participants={hangout.participants
-                                    .filter((p: any) => p.profile)
-                                    .map((p: any) => ({
-                                        id: p.profile.id,
-                                        displayName: p.profile.displayName,
-                                        avatarUrl: p.profile.avatarUrl,
-                                    }))}
-                                isParticipant={!!currentUserParticipant}
-                                currentUserId={currentUserParticipant?.profileId}
-                            />
-                            <HangoutExpenses
-                                hangoutId={hangout.id}
-                                participants={hangout.participants
-                                    .filter((p: any) => p.profile)
-                                    .map((p: any) => ({
-                                        id: p.profile.id,
-                                        displayName: p.profile.displayName,
-                                        avatarUrl: p.profile.avatarUrl,
-                                        venmoHandle: p.profile.venmoHandle,
-                                        paypalHandle: p.profile.paypalHandle,
-                                        zelleHandle: p.profile.zelleHandle,
-                                        cashappHandle: p.profile.cashappHandle,
-                                        applePayHandle: p.profile.applePayHandle,
-                                    }))}
-                                isParticipant={!!currentUserParticipant}
-                            />
-
-                            {/* Event Budget */}
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <EventBudget
-                                    hangoutId={hangout.id}
-                                    participants={hangout.participants
-                                        .filter((p: any) => p.profile)
-                                        .map((p: any) => ({
-                                            id: p.profile.id,
-                                            displayName: p.profile.displayName,
-                                            avatarUrl: p.profile.avatarUrl,
-                                            venmoHandle: p.profile.venmoHandle,
-                                            paypalHandle: p.profile.paypalHandle,
-                                            zelleHandle: p.profile.zelleHandle,
-                                            cashappHandle: p.profile.cashappHandle,
-                                            applePayHandle: p.profile.applePayHandle,
-                                        }))}
-                                    isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
-                                    isParticipant={!!currentUserParticipant}
-                                    currentUserId={currentUserParticipant?.profileId}
-                                />
-                            </div>
-
-                            {/* Shared Documents */}
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <SharedDocuments
-                                    hangoutId={hangout.id}
-                                    isParticipant={!!currentUserParticipant}
-                                    isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
-                                    currentUserId={currentUserParticipant?.profileId}
-                                />
-                            </div>
-                        </div>
-                    </>
-                )}
-
                 {/* Shared Gallery */}
-                <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                <div id="gallery-section" className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
                     <PhotoGallery
                         hangoutId={hangout.id}
                         initialPhotos={hangout.photos.map((p: any) => ({
@@ -807,8 +834,8 @@ export function HangoutPageClient({
                             url: p.url,
                             caption: p.caption,
                             uploader: {
-                                displayName: p.uploader.displayName,
-                                avatarUrl: p.uploader.avatarUrl
+                                displayName: p.uploader?.displayName || "Guest",
+                                avatarUrl: p.uploader?.avatarUrl || null
                             }
                         }))}
                         isParticipant={!!currentUserParticipant}
@@ -840,10 +867,10 @@ export function HangoutPageClient({
                             )}
                             <div className="mt-2 flex items-center gap-2 text-white/60 text-sm">
                                 <Avatar className="w-6 h-6 border border-white/10">
-                                    <AvatarImage src={selectedPhoto.uploader.avatarUrl} />
-                                    <AvatarFallback>{selectedPhoto.uploader.displayName?.[0]}</AvatarFallback>
+                                    <AvatarImage src={selectedPhoto.uploader?.avatarUrl} />
+                                    <AvatarFallback>{selectedPhoto.uploader?.displayName?.[0]}</AvatarFallback>
                                 </Avatar>
-                                <span>Uploaded by {selectedPhoto.uploader.displayName}</span>
+                                <span>Uploaded by {selectedPhoto.uploader?.displayName}</span>
                             </div>
                         </div>
                     </div>
@@ -868,15 +895,13 @@ export function HangoutPageClient({
             <InviteModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                inviteUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/h/${hangout.slug}`}
+                inviteUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/hangouts/${hangout.slug}`}
                 guests={guestsToInvite}
                 onDone={() => {
                     setIsInviteModalOpen(false);
-                    // Optionally force a reload to show the new pending guest
                     window.location.reload();
                 }}
             />
-
         </div>
     );
 }

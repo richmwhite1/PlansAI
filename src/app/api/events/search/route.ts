@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
                         latitude: place.lat || latitude,
                         longitude: place.lng || longitude,
                         rating: null,
+                        timesSelected: 0,
                         source: "AI_EPHEMERAL",
                     } as any);
                 }
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
         // 3. Calculate Trust Scores (if we have friends)
         let results = candidates.map(c => ({
             ...c,
+            timesSelected: (c as any).timesSelected || 0,
             matchPercentage: 0,
             reason: "Found via search"
         }));

@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
                 reason: trendingCount > 0 ? "Trending in your area" : "Global Trending",
                 imageUrl: a.imageUrl,
                 rating: a.rating,
-                address: a.address
+                address: a.address,
+                timesSelected: a.timesSelected
             }))
         });
 

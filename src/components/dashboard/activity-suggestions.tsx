@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { BrainCircuit, Star, MapPin, Search, X, Loader2, Check, Plus, Link } from "lucide-react";
+import { BrainCircuit, Star, MapPin, Search, X, Loader2, Check, Plus, Link, Users } from "lucide-react";
 import { cn, calculateDistance } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -23,6 +23,7 @@ interface Activity {
     longitude?: number;
     websiteUrl?: string;
     locationUrl?: string;
+    timesSelected?: number;
 }
 
 interface ActivitySuggestionsProps {
@@ -606,6 +607,22 @@ export function ActivitySuggestions({
                                             <p className="text-xs text-slate-500 line-clamp-1 italic mt-1">
                                                 {activity.reason}
                                             </p>
+                                        ) : null}
+
+                                        {/* Popularity Indicator */}
+                                        {activity.timesSelected && activity.timesSelected > 0 ? (
+                                            <div className="flex items-center gap-1.5 mt-2">
+                                                <div className="flex -space-x-1">
+                                                    {[1, 2, 3].map((i) => (
+                                                        <div key={i} className="w-4 h-4 rounded-full border border-slate-900 bg-slate-800 flex items-center justify-center">
+                                                            <Users className="w-2 h-2 text-slate-500" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                                                    Picked {activity.timesSelected} {activity.timesSelected === 1 ? 'time' : 'times'}
+                                                </span>
+                                            </div>
                                         ) : null}
 
                                     </div>
