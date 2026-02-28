@@ -14,7 +14,7 @@ export async function PATCH(
 
         const { hangoutId } = await context.params;
         const body = await req.json();
-        const { description, consensusThreshold, allowParticipantSuggestions } = body;
+        const { description, consensusThreshold, allowParticipantSuggestions, scheduledFor, endDate } = body;
 
         // 1. Get Hangout to verify ownership
         const hangout = await prisma.hangout.findUnique({
@@ -36,7 +36,9 @@ export async function PATCH(
             data: {
                 description: description !== undefined ? description : undefined,
                 consensusThreshold: consensusThreshold !== undefined ? consensusThreshold : undefined,
-                allowParticipantSuggestions: allowParticipantSuggestions !== undefined ? allowParticipantSuggestions : undefined
+                allowParticipantSuggestions: allowParticipantSuggestions !== undefined ? allowParticipantSuggestions : undefined,
+                scheduledFor: scheduledFor !== undefined ? (scheduledFor ? new Date(scheduledFor) : null) : undefined,
+                endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : undefined
             }
         });
 

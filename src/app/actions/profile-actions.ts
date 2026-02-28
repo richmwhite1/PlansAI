@@ -18,6 +18,13 @@ export async function updateProfile(formData: FormData) {
     const customPersonality = formData.get("customPersonality") as string;
     const scheduleFlexibility = formData.get("scheduleFlexibility") as string;
 
+    // Payment handles
+    const venmoHandle = formData.get("venmoHandle") as string;
+    const paypalHandle = formData.get("paypalHandle") as string;
+    const zelleHandle = formData.get("zelleHandle") as string;
+    const cashappHandle = formData.get("cashappHandle") as string;
+    const applePayHandle = formData.get("applePayHandle") as string;
+
     // Handle array fields (comma-separated)
     const parseArray = (key: string): string[] => {
         const raw = formData.get(key) as string;
@@ -75,6 +82,11 @@ export async function updateProfile(formData: FormData) {
             homeState,
             homeZipcode,
             avatarUrl,
+            venmoHandle,
+            paypalHandle,
+            zelleHandle,
+            cashappHandle,
+            applePayHandle,
         };
 
         if (existingProfile) {

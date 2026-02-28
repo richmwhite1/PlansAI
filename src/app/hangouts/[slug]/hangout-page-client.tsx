@@ -20,6 +20,10 @@ import { GuestJoinForm } from "@/components/hangout/guest-join-form";
 import { setGuestCookie } from "@/app/actions/guest-actions";
 import { HangoutTasks } from "@/components/hangout/hangout-tasks";
 import { HangoutExpenses } from "@/components/hangout/hangout-expenses";
+import { ItineraryDashboard } from "@/components/hangout/itinerary-dashboard";
+import { SharedDocuments } from "@/components/hangout/shared-documents";
+import { EventBudget } from "@/components/hangout/event-budget";
+import { InviteModal } from "@/components/dashboard/invite-modal";
 
 interface HangoutPageClientProps {
     hangout: any;
@@ -72,6 +76,41 @@ export function HangoutPageClient({
         }
     };
 
+    const [isEditingDates, setIsEditingDates] = useState(false);
+    const [isSavingDates, setIsSavingDates] = useState(false);
+
+    const formatDateForInput = (dateString?: string | null) => {
+        if (!dateString) return "";
+        const d = new Date(dateString);
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    };
+
+    const [editedStartDate, setEditedStartDate] = useState(formatDateForInput(hangout.scheduledFor));
+    const [editedEndDate, setEditedEndDate] = useState(formatDateForInput(hangout.endDate));
+
+    const handleSaveDates = async () => {
+        setIsSavingDates(true);
+        try {
+            const res = await fetch(`/api/hangouts/${hangout.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    scheduledFor: editedStartDate ? new Date(editedStartDate).toISOString() : null,
+                    endDate: editedEndDate ? new Date(editedEndDate).toISOString() : null
+                })
+            });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                toast.error("Failed to update dates");
+            }
+        } catch (error) {
+            toast.error("Error saving dates");
+        } finally {
+            setIsSavingDates(false);
+        }
+    };
+
     const handleSaveDescription = async () => {
         setIsSaving(true);
         try {
@@ -92,6 +131,35 @@ export function HangoutPageClient({
     };
 
     const [participants, setParticipants] = useState(hangout.participants);
+
+    // Invite Modal State
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [guestsToInvite, setGuestsToInvite] = useState<{ name: string, phone?: string }[]>([]);
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
+    const handleGenerateInvite = async () => {
+        setIsGeneratingLink(true);
+        try {
+            // Using the existing hangout add guest route
+            const res = await fetch(`/api/hangouts/${hangout.id}/guests`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: "Guest" }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setGuestsToInvite([{ name: data.guest.displayName }]);
+                // Refresh participants optimistic or via reload
+                setIsInviteModalOpen(true);
+            } else {
+                toast.error("Failed to generate invite link");
+            }
+        } catch (error) {
+            toast.error("Failed to generate invite");
+        } finally {
+            setIsGeneratingLink(false);
+        }
+    };
 
     const handleToggleMandatory = async (participantId: string, current: boolean) => {
         // Optimistic update
@@ -263,9 +331,20 @@ export function HangoutPageClient({
                             Who's Going?
                             <span className="text-xs font-sans font-normal text-muted-foreground bg-white/5 px-2 py-1 rounded-full">{participants.length}</span>
                         </h2>
-                        {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
-                            <ShareButton hangoutId={hangout.id} variant="button" />
-                        )}
+                        <div className="flex items-center gap-2">
+                            {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER") && (
+                                <button
+                                    onClick={handleGenerateInvite}
+                                    disabled={isGeneratingLink}
+                                    className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 transition-colors"
+                                >
+                                    {isGeneratingLink ? "..." : "+ Add Guest"}
+                                </button>
+                            )}
+                            {(hangout.visibility === "PUBLIC" || userId === hangout.creator.clerkId) && (
+                                <ShareButton hangoutId={hangout.id} variant="button" />
+                            )}
+                        </div>
                     </div>
                     <div className="flex flex-col gap-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
                         {participants.map((p: any) => (
@@ -536,6 +615,63 @@ export function HangoutPageClient({
                                 </label>
 
                                 <div className="space-y-4">
+                                    {/* Date Controls */}
+                                    <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/10 gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5 pr-4">
+                                                <label className="text-sm font-medium text-slate-200 block">Event Dates</label>
+                                                <p className="text-xs text-slate-500">Update the actual date and time of the event.</p>
+                                            </div>
+                                            {!isEditingDates ? (
+                                                <button
+                                                    onClick={() => setIsEditingDates(true)}
+                                                    className="px-3 py-1 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg uppercase transition-colors shrink-0"
+                                                >
+                                                    Edit Dates
+                                                </button>
+                                            ) : (
+                                                <div className="flex gap-2 shrink-0">
+                                                    <button
+                                                        onClick={() => setIsEditingDates(false)}
+                                                        className="px-3 py-1 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSaveDates}
+                                                        disabled={isSavingDates}
+                                                        className="px-3 py-1 text-xs font-bold text-primary bg-primary/20 hover:bg-primary/30 rounded-lg uppercase transition-colors disabled:opacity-50"
+                                                    >
+                                                        {isSavingDates ? "Saving..." : "Save"}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {isEditingDates && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-medium text-slate-400 ml-1">Start Date</label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={editedStartDate}
+                                                        onChange={(e) => setEditedStartDate(e.target.value)}
+                                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-primary/50"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-medium text-slate-400 ml-1">End Date (Optional)</label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={editedEndDate}
+                                                        onChange={(e) => setEditedEndDate(e.target.value)}
+                                                        className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-primary/50"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10">
                                         <div className="space-y-0.5 pr-4">
                                             <label className="text-sm font-medium text-slate-200 block">Allow Guests to Suggest Options</label>
@@ -583,6 +719,21 @@ export function HangoutPageClient({
                                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Coordination</span>
                                 <div className="h-px bg-white/10 flex-1" />
                             </div>
+
+                            {/* Itinerary Dashboard — only for multi-day events */}
+                            {hangout.isMultiDay && hangout.itineraryDays && hangout.itineraryDays.length > 0 && (
+                                <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                    <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                                        <Calendar className="w-4 h-4 text-primary" /> Itinerary
+                                    </h3>
+                                    <ItineraryDashboard
+                                        hangoutId={hangout.id}
+                                        initialDays={hangout.itineraryDays}
+                                        isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
+                                    />
+                                </div>
+                            )}
+
                             <HangoutTasks
                                 hangoutId={hangout.id}
                                 participants={hangout.participants
@@ -603,9 +754,46 @@ export function HangoutPageClient({
                                         id: p.profile.id,
                                         displayName: p.profile.displayName,
                                         avatarUrl: p.profile.avatarUrl,
+                                        venmoHandle: p.profile.venmoHandle,
+                                        paypalHandle: p.profile.paypalHandle,
+                                        zelleHandle: p.profile.zelleHandle,
+                                        cashappHandle: p.profile.cashappHandle,
+                                        applePayHandle: p.profile.applePayHandle,
                                     }))}
                                 isParticipant={!!currentUserParticipant}
                             />
+
+                            {/* Event Budget */}
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <EventBudget
+                                    hangoutId={hangout.id}
+                                    participants={hangout.participants
+                                        .filter((p: any) => p.profile)
+                                        .map((p: any) => ({
+                                            id: p.profile.id,
+                                            displayName: p.profile.displayName,
+                                            avatarUrl: p.profile.avatarUrl,
+                                            venmoHandle: p.profile.venmoHandle,
+                                            paypalHandle: p.profile.paypalHandle,
+                                            zelleHandle: p.profile.zelleHandle,
+                                            cashappHandle: p.profile.cashappHandle,
+                                            applePayHandle: p.profile.applePayHandle,
+                                        }))}
+                                    isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
+                                    isParticipant={!!currentUserParticipant}
+                                    currentUserId={currentUserParticipant?.profileId}
+                                />
+                            </div>
+
+                            {/* Shared Documents */}
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <SharedDocuments
+                                    hangoutId={hangout.id}
+                                    isParticipant={!!currentUserParticipant}
+                                    isOrganizer={userId === hangout.creator.clerkId || currentUserParticipant?.role === "ORGANIZER"}
+                                    currentUserId={currentUserParticipant?.profileId}
+                                />
+                            </div>
                         </div>
                     </>
                 )}
@@ -676,6 +864,18 @@ export function HangoutPageClient({
                     </div>
                 )}
             </div>
+
+            <InviteModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                inviteUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/h/${hangout.slug}`}
+                guests={guestsToInvite}
+                onDone={() => {
+                    setIsInviteModalOpen(false);
+                    // Optionally force a reload to show the new pending guest
+                    window.location.reload();
+                }}
+            />
 
         </div>
     );

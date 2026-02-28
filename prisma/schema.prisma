@@ -49,6 +49,11 @@ model Profile {
   mbti                String?
   websiteUrl          String?
   zodiac              String?
+  venmoHandle         String?
+  paypalHandle        String?
+  zelleHandle         String?
+  cashappHandle       String?
+  applePayHandle      String?
   conversationsA      Conversation[]         @relation("ConversationA")
   conversationsB      Conversation[]         @relation("ConversationB")
   directMessages      DirectMessage[]
@@ -67,6 +72,8 @@ model Profile {
   pushSubscriptions   PushSubscription[]
   timeVotes           TimeVote[]
   votes               Vote[]
+  paymentsSent        PaymentTransfer[]      @relation("PaymentSender")
+  paymentsReceived    PaymentTransfer[]      @relation("PaymentReceiver")
 
   @@index([clerkId])
   @@index([homeLatitude, homeLongitude])
@@ -132,6 +139,7 @@ model Hangout {
   consensusThreshold          Int                     @default(60)
   isVotingEnabled             Boolean                 @default(false)
   allowGuestsToInvite         Boolean                 @default(false)
+  isMultiDay                  Boolean                 @default(false)
   discoverable                DiscoverableHangout?
   creator                     Profile                 @relation("HangoutCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   finalActivity               CachedEvent?            @relation(fields: [finalActivityId], references: [id])
@@ -144,6 +152,10 @@ model Hangout {
   timeOptions                 HangoutTimeOption[]
   messages                    Message[]
   votes                       Vote[]
+  paymentTransfers            PaymentTransfer[]
+  itineraryDays               ItineraryDay[]
+  documents                   HangoutDocument[]
+  budget                      HangoutBudget?
 
   @@index([creatorId])
   @@index([status])
@@ -429,6 +441,26 @@ model PushSubscription {
   @@index([profileId])
 }
 
+model PaymentTransfer {
+  id          String        @id @default(cuid())
+  hangoutId   String
+  senderId    String
+  receiverId  String
+  amount      Float
+  status      PaymentStatus @default(PENDING)
+  method      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  hangout     Hangout       @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  sender      Profile       @relation("PaymentSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    Profile       @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
 model Conversation {
   id             String          @id @default(cuid())
   participantAId String
@@ -459,6 +491,66 @@ model DirectMessage {
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+}
+
+model ItineraryDay {
+  id             String              @id @default(cuid())
+  hangoutId      String
+  dayNumber      Int
+  date           DateTime
+  title          String?
+  location       String?
+  accommodations String?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  hangout        Hangout             @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  activities     ItineraryActivity[]
+
+  @@unique([hangoutId, dayNumber])
+  @@index([hangoutId])
+}
+
+model ItineraryActivity {
+  id             String        @id @default(cuid())
+  itineraryDayId String
+  title          String
+  description    String?
+  startTime      String?
+  duration       Int?
+  location       String?
+  isRequired     Boolean       @default(true)
+  displayOrder   Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  itineraryDay   ItineraryDay  @relation(fields: [itineraryDayId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryDayId])
+}
+
+model HangoutDocument {
+  id          String   @id @default(cuid())
+  hangoutId   String
+  title       String
+  url         String?
+  description String?
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+  hangout     Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+
+  @@index([hangoutId])
+}
+
+model HangoutBudget {
+  id        String   @id @default(cuid())
+  hangoutId String   @unique
+  totalCost Float
+  currency  String   @default("USD")
+  notes     String?
+  isFlatFee Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  hangout   Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
 }
 
 enum HangoutType {
@@ -528,6 +620,14 @@ enum NotificationType {
   HANGOUT_REMINDER
   SYSTEM
   NEW_MESSAGE
+  PAYMENT_RECEIVED
+  PAYMENT_SENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REJECTED
 }
 
 enum SocialBattery {

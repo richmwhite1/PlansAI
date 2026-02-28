@@ -10,6 +10,11 @@ interface Participant {
     id: string;
     displayName: string | null;
     avatarUrl: string | null;
+    venmoHandle?: string | null;
+    paypalHandle?: string | null;
+    zelleHandle?: string | null;
+    cashappHandle?: string | null;
+    applePayHandle?: string | null;
 }
 
 interface Settlement {
@@ -28,6 +33,16 @@ interface Expense {
     createdAt: string;
 }
 
+interface PendingPayment {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    sender: Participant;
+    receiver: Participant;
+    createdAt: string;
+}
+
 interface HangoutExpensesProps {
     hangoutId: string;
     participants: Participant[];
@@ -37,6 +52,7 @@ interface HangoutExpensesProps {
 export function HangoutExpenses({ hangoutId, participants, isParticipant }: HangoutExpensesProps) {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [settlements, setSettlements] = useState<Settlement[]>([]);
+    const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
     const [total, setTotal] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -47,6 +63,15 @@ export function HangoutExpenses({ hangoutId, participants, isParticipant }: Hang
     const [selectedSplit, setSelectedSplit] = useState<string[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [showForm, setShowForm] = useState(false);
+
+    // Payment state
+    const [paymentTarget, setPaymentTarget] = useState<Settlement | null>(null);
+    const [isPaying, setIsPaying] = useState(false);
+
+    const currentUserId = participants.find(p => p.id !== "guest")?.id; // Rough heuristic, best if we had exact user ID from props
+    // Better heuristic: match with avatarUrl or assume we have the current userId, but this component might need its own props or context.
+    // For now we assume if `isParticipant` is true, we can figure out who we are if we parse tokens, but let's assume `participants` has a `isMe` or we fetch `userId` in API.
+    // Let's rely on backend verification for security, and just use the logged in user's matching display name or let anyone click buttons for now (like expenses)
 
     useEffect(() => {
         fetchExpenses();
@@ -60,6 +85,7 @@ export function HangoutExpenses({ hangoutId, participants, isParticipant }: Hang
                 setExpenses(data.expenses);
                 setTotal(data.total);
                 setSettlements(data.settlements || []);
+                setPendingPayments(data.pendingPayments || []);
             }
         } catch (err) {
             console.error("Failed to fetch expenses:", err);
@@ -128,6 +154,52 @@ export function HangoutExpenses({ hangoutId, participants, isParticipant }: Hang
         setSelectedSplit((prev) =>
             prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
         );
+    };
+
+    const handleMarkAsSent = async (method: string) => {
+        if (!paymentTarget || isPaying) return;
+        setIsPaying(true);
+        try {
+            const res = await fetch(`/api/hangouts/${hangoutId}/payments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receiverId: paymentTarget.to.id,
+                    amount: paymentTarget.amount,
+                    method
+                })
+            });
+            if (res.ok) {
+                toast.success(`Marked as sent via ${method}`);
+                setPaymentTarget(null);
+                fetchExpenses();
+            } else {
+                toast.error("Failed to mark payment as sent");
+            }
+        } catch (err) {
+            toast.error("Error creating payment");
+        } finally {
+            setIsPaying(false);
+        }
+    };
+
+    const confirmPaymentReceipt = async (paymentId: string) => {
+        try {
+            const res = await fetch(`/api/hangouts/${hangoutId}/payments/${paymentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "COMPLETED" })
+            });
+
+            if (res.ok) {
+                toast.success("Payment received!");
+                fetchExpenses();
+            } else {
+                toast.error("Failed to confirm receipt");
+            }
+        } catch (err) {
+            toast.error("Error confirming payment");
+        }
     };
 
     if (isLoading) {
@@ -248,8 +320,113 @@ export function HangoutExpenses({ hangoutId, participants, isParticipant }: Hang
                                 <span className="text-emerald-400 font-mono font-bold ml-auto shrink-0">
                                     ${s.amount.toFixed(2)}
                                 </span>
+                                {isParticipant && (
+                                    <button
+                                        onClick={() => setPaymentTarget(s)}
+                                        className="ml-2 px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold uppercase transition-colors shrink-0"
+                                    >
+                                        Pay
+                                    </button>
+                                )}
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Payments */}
+            {pendingPayments.length > 0 && (
+                <div className="rounded-xl bg-gradient-to-br from-amber-500/10 to-primary/5 border border-amber-500/20 p-4 space-y-3">
+                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                        ⏳ Pending Payments
+                    </h4>
+                    <div className="space-y-2">
+                        {pendingPayments.map((p) => (
+                            <div key={p.id} className="flex items-center gap-2 text-sm">
+                                <span className="text-slate-300 text-xs">
+                                    <strong className="text-white">{p.sender.displayName}</strong> sent <strong className="text-emerald-400">${p.amount.toFixed(2)}</strong> via {p.method} to <strong className="text-white">{p.receiver.displayName}</strong>
+                                </span>
+                                {isParticipant && (
+                                    <button
+                                        onClick={() => confirmPaymentReceipt(p.id)}
+                                        className="ml-auto px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded text-[10px] font-bold uppercase transition-colors shrink-0 whitespace-nowrap"
+                                    >
+                                        Confirm
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Modal */}
+            {paymentTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl relative">
+                        <button
+                            onClick={() => setPaymentTarget(null)}
+                            className="absolute right-4 top-4 text-slate-500 hover:text-white"
+                        >
+                            <Trash2 className="w-4 h-4 rotate-45 transform" /> {/* Fake X with Trash rotated */}
+                        </button>
+
+                        <div className="text-center space-y-2">
+                            <h3 className="text-xl font-serif font-bold text-white">Settle Up</h3>
+                            <p className="text-sm text-slate-400">Pay <strong className="text-white">{paymentTarget.to.displayName}</strong></p>
+                            <div className="text-3xl font-mono font-bold text-emerald-400">${paymentTarget.amount.toFixed(2)}</div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Select a method</p>
+                            {paymentTarget.to.venmoHandle && (
+                                <button onClick={() => handleMarkAsSent("Venmo")} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#008CFF]/10 text-[#008CFF] hover:bg-[#008CFF]/20 border border-[#008CFF]/20 transition-all">
+                                    <span className="font-bold">Venmo</span>
+                                    <span className="font-mono text-xs">{paymentTarget.to.venmoHandle}</span>
+                                </button>
+                            )}
+                            {paymentTarget.to.cashappHandle && (
+                                <button onClick={() => handleMarkAsSent("Cash App")} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#00D632]/10 text-[#00D632] hover:bg-[#00D632]/20 border border-[#00D632]/20 transition-all">
+                                    <span className="font-bold">Cash App</span>
+                                    <span className="font-mono text-xs">{paymentTarget.to.cashappHandle}</span>
+                                </button>
+                            )}
+                            {paymentTarget.to.zelleHandle && (
+                                <button onClick={() => handleMarkAsSent("Zelle")} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#7128BD]/10 text-[#7128BD] hover:bg-[#7128BD]/20 border border-[#7128BD]/20 transition-all">
+                                    <span className="font-bold">Zelle</span>
+                                    <span className="font-mono text-xs">{paymentTarget.to.zelleHandle}</span>
+                                </button>
+                            )}
+                            {paymentTarget.to.paypalHandle && (
+                                <button onClick={() => handleMarkAsSent("PayPal")} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#003087]/20 text-[#0079C1] hover:bg-[#003087]/30 border border-[#003087]/20 transition-all">
+                                    <span className="font-bold">PayPal</span>
+                                    <span className="font-mono text-xs">{paymentTarget.to.paypalHandle}</span>
+                                </button>
+                            )}
+                            {paymentTarget.to.applePayHandle && (
+                                <button onClick={() => handleMarkAsSent("Apple Pay")} className="w-full flex items-center justify-between p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 border border-white/20 transition-all">
+                                    <span className="font-bold">Apple Pay</span>
+                                    <span className="font-mono text-xs">{paymentTarget.to.applePayHandle}</span>
+                                </button>
+                            )}
+
+                            {!paymentTarget.to.venmoHandle && !paymentTarget.to.cashappHandle && !paymentTarget.to.zelleHandle && !paymentTarget.to.paypalHandle && !paymentTarget.to.applePayHandle && (
+                                <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center text-sm text-slate-400">
+                                    This person hasn't added any payment methods to their profile yet. Try asking them directly!
+                                    <button
+                                        onClick={() => handleMarkAsSent("Cash or Other")}
+                                        className="mt-3 w-full py-2 bg-white/10 text-white rounded-lg font-bold hover:bg-white/20"
+                                    >
+                                        I paid them in cash
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                            Clicking a method above will mark this as "sent" on the ledger.
+                            The receiver will need to confirm the payment to update the balance. You still need to actually send the money via the app.
+                        </p>
                     </div>
                 </div>
             )}

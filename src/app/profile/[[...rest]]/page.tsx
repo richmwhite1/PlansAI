@@ -84,6 +84,11 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
                         transportMode: myProfile.transportMode,
                         cuisinePreferences: myProfile.cuisinePreferences,
                         drinkPreferences: myProfile.drinkPreferences,
+                        venmoHandle: myProfile.venmoHandle,
+                        paypalHandle: myProfile.paypalHandle,
+                        zelleHandle: myProfile.zelleHandle,
+                        cashappHandle: myProfile.cashappHandle,
+                        applePayHandle: myProfile.applePayHandle,
                         _count: myProfile._count,
                     }}
                 />

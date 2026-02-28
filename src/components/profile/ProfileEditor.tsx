@@ -32,6 +32,11 @@ interface ProfileEditorProps {
         transportMode?: string | null;
         cuisinePreferences?: string[];
         drinkPreferences?: string[];
+        venmoHandle?: string | null;
+        paypalHandle?: string | null;
+        zelleHandle?: string | null;
+        cashappHandle?: string | null;
+        applePayHandle?: string | null;
         _count?: {
             friendshipsA: number;
             friendshipsB: number;
@@ -343,6 +348,8 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     formData.set("budgetComfort", String(budgetComfort));
                     formData.set("avatarUrl", avatarUrl);
 
+                    // Optional handles are added directly via form inputs
+
                     setLoading(true);
                     try {
                         await updateProfile(formData);
@@ -531,6 +538,62 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                                     {label.split(" ")[0]}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Payment Methods Section */}
+                <div className="space-y-6 border-b border-border pb-6">
+                    <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5" /> Payment Methods
+                        <span className="text-[10px] text-muted-foreground font-normal normal-case">(For easy hangout splitting)</span>
+                    </h3>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Venmo</label>
+                            <input
+                                name="venmoHandle"
+                                defaultValue={initialData.venmoHandle || ""}
+                                placeholder="@username"
+                                className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cash App</label>
+                            <input
+                                name="cashappHandle"
+                                defaultValue={initialData.cashappHandle || ""}
+                                placeholder="$cashtag"
+                                className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">PayPal</label>
+                            <input
+                                name="paypalHandle"
+                                defaultValue={initialData.paypalHandle || ""}
+                                placeholder="@username or email"
+                                className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Zelle</label>
+                            <input
+                                name="zelleHandle"
+                                defaultValue={initialData.zelleHandle || ""}
+                                placeholder="Email or Phone"
+                                className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Apple Pay</label>
+                            <input
+                                name="applePayHandle"
+                                defaultValue={initialData.applePayHandle || ""}
+                                placeholder="Phone number"
+                                className="w-full bg-input/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            />
                         </div>
                     </div>
                 </div>

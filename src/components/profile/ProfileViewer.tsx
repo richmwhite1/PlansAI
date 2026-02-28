@@ -244,6 +244,50 @@ export function ProfileViewer({ profile }: ProfileViewerProps) {
                     </div>
                 </div>
 
+                {/* Payment Methods */}
+                {(profile.venmoHandle || profile.cashappHandle || profile.paypalHandle || profile.zelleHandle || profile.applePayHandle) && (
+                    <div className="md:col-span-2 bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                <DollarSign className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold text-white">Payment Methods</h3>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {profile.venmoHandle && (
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Venmo</span>
+                                    <span className="text-sm font-mono text-white">{profile.venmoHandle}</span>
+                                </div>
+                            )}
+                            {profile.cashappHandle && (
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Cash App</span>
+                                    <span className="text-sm font-mono text-white">{profile.cashappHandle}</span>
+                                </div>
+                            )}
+                            {profile.paypalHandle && (
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">PayPal</span>
+                                    <span className="text-sm font-mono text-white">{profile.paypalHandle}</span>
+                                </div>
+                            )}
+                            {profile.zelleHandle && (
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Zelle</span>
+                                    <span className="text-sm font-mono text-white">{profile.zelleHandle}</span>
+                                </div>
+                            )}
+                            {profile.applePayHandle && (
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1 font-bold">Apple Pay</span>
+                                    <span className="text-sm font-mono text-white">{profile.applePayHandle}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* ─── Past Adventures (Full Width) ─── */}
                 {hangoutHistory.length > 0 && (
                     <div className="md:col-span-2 bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">

@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
             allowGuestsToInvite, // Added
             visibility, // Added: "PUBLIC" or "FRIENDS_ONLY"
             allowParticipantSuggestions, // Added
-            endDate // Added for Phase 9
+            endDate, // Added for Phase 9
+            isMultiDay, // Events feature
         } = body;
 
         const effectiveVisibility = visibility === "PUBLIC" ? "PUBLIC" : "FRIENDS_ONLY";
@@ -201,6 +202,7 @@ export async function POST(req: NextRequest) {
                 scheduledFor: effectiveWhen ? new Date(effectiveWhen) : undefined,
                 // @ts-ignore - Prisma cache issue
                 endDate: endDate ? new Date(endDate) : undefined,
+                isMultiDay: isMultiDay || false,
                 votingEndsAt: effectiveVotingEnabled ? (
                     effectiveWhen
                         ? new Date(new Date(effectiveWhen).getTime() - 1000 * 60 * 60 * 2) // 2 hours before event
@@ -265,7 +267,32 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 5. Send Notifications to all real users
+        // 5a. Auto-generate itinerary days for multi-day events
+        if (isMultiDay && hangout.scheduledFor && endDate) {
+            try {
+                const start = new Date(hangout.scheduledFor);
+                const end = new Date(endDate);
+                const dayCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                const maxDays = Math.min(dayCount, 60); // Cap at 60 days
+
+                for (let i = 0; i < maxDays; i++) {
+                    const dayDate = new Date(start);
+                    dayDate.setDate(dayDate.getDate() + i);
+                    await prisma.itineraryDay.create({
+                        data: {
+                            hangoutId: hangout.id,
+                            dayNumber: i + 1,
+                            date: dayDate,
+                        },
+                    });
+                }
+                console.log(`Auto-generated ${maxDays} itinerary days for hangout ${hangout.id}`);
+            } catch (err) {
+                console.error("Failed to auto-generate itinerary days:", err);
+            }
+        }
+
+        // 6. Send Notifications to all real users
         for (const pid of participantProfileIds) {
             await prisma.notification.create({
                 data: {

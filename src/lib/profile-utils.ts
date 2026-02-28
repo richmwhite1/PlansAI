@@ -22,6 +22,11 @@ export type ExtendedProfile = Profile & {
     transportMode?: string | null;
     cuisinePreferences?: string[];
     drinkPreferences?: string[];
+    venmoHandle?: string | null;
+    paypalHandle?: string | null;
+    zelleHandle?: string | null;
+    cashappHandle?: string | null;
+    applePayHandle?: string | null;
 
     _count: {
         friendshipsA: number;

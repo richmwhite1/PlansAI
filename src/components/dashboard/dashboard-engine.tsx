@@ -119,6 +119,10 @@ export function DashboardEngine() {
             toast.error("Please select a date/time.");
             return;
         }
+        if (isMultiDay && !endDatePickerValue) {
+            toast.error("Please select an end date for the multi-day event.");
+            return;
+        }
 
         setIsCreating(true);
 
@@ -132,6 +136,7 @@ export function DashboardEngine() {
                     activities: selectedActivities, // Send full objects
                     when: selectedDate,
                     endDate: isMultiDay && endDatePickerValue ? new Date(endDatePickerValue).toISOString() : undefined,
+                    isMultiDay,
                     description,
                     isVotingEnabled,
                     allowGuestsToInvite,
@@ -152,14 +157,14 @@ export function DashboardEngine() {
                 // Check for guests (non-app users)
                 const guests = selectedFriends.filter(f => f.isGuest);
 
-                if (guests.length > 0) {
-                    // Show modal for manual invites
+                if (guests.length > 0 && !isMultiDay) {
+                    // Show modal for manual invites ONLY if it's NOT a multi-day event
                     setCreatedHangoutData({ inviteUrl, slug: data.slug });
                     setShowInviteModal(true);
                     toast.success("Hangout created! Invite your guests.");
                 } else {
-                    // All invitees are app users — skip sharing, just redirect
-                    toast.success("Hangout created! Your friends have been notified.");
+                    // All invitees are app users, OR it's a multi-day event — skip sharing, redirect to event page
+                    toast.success("Hangout created!");
                     router.push(`/hangouts/${data.slug}`);
                 }
             } else {
@@ -202,35 +207,67 @@ export function DashboardEngine() {
 
                 {location.permissionStatus !== "granted" && <div className="h-4" />}
 
+                {/* Multi-Day Toggle */}
+                <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-white/5 mb-6">
+                    <div className="space-y-0.5">
+                        <label className="text-sm font-medium text-slate-200">Planning a Multi-Day Event?</label>
+                        <p className="text-xs text-slate-500">Skip the crew selection for now and build your itinerary first.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            const nextState = !isMultiDay;
+                            setIsMultiDay(nextState);
+                            if (nextState) {
+                                setCurrentStep(2); // Skip 'Who'
+                            } else if (currentStep === 2 && selectedFriends.length === 0) {
+                                setCurrentStep(1); // Go back to 'Who' if unchecked and no friends selected
+                            }
+                        }}
+                        className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4",
+                            isMultiDay ? "bg-primary" : "bg-slate-700"
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                isMultiDay ? "translate-x-6" : "translate-x-1"
+                            )}
+                        />
+                    </button>
+                </div>
+
                 {/* Step 1: WHO */}
-                <div className={cn("space-y-6 transition-all duration-500", currentStep > 1 && "opacity-50 pointer-events-none")}>
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
-                            Who's joining you?
-                        </h2>
-                        {currentStep > 1 && (
-                            <button
-                                onClick={() => setCurrentStep(1)}
-                                className="text-xs font-medium text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline underline-offset-4"
+                {!isMultiDay && (
+                    <div className={cn("space-y-6 transition-all duration-500", currentStep > 1 && "opacity-50 pointer-events-none")}>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
+                                Who's joining you?
+                            </h2>
+                            {currentStep > 1 && (
+                                <button
+                                    onClick={() => setCurrentStep(1)}
+                                    className="text-xs font-medium text-primary hover:text-primary/80 pointer-events-auto cursor-pointer underline underline-offset-4"
+                                >
+                                    Edit Crew
+                                </button>
+                            )}
+                        </div>
+
+                        <FriendSelector selected={selectedFriends} onSelect={setSelectedFriends} />
+
+                        {selectedFriends.length > 0 && currentStep === 1 && (
+                            <motion.button
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                onClick={() => setCurrentStep(2)}
+                                className="w-full py-4 rounded-2xl bg-white text-black font-bold text-lg shadow-xl shadow-white/10 hover:scale-[1.01] hover:shadow-white/20 transition-all flex items-center justify-center gap-2"
                             >
-                                Edit Crew
-                            </button>
+                                Let's Pick a Plan <ArrowRight className="w-5 h-5" />
+                            </motion.button>
                         )}
                     </div>
-
-                    <FriendSelector selected={selectedFriends} onSelect={setSelectedFriends} />
-
-                    {selectedFriends.length > 0 && currentStep === 1 && (
-                        <motion.button
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            onClick={() => setCurrentStep(2)}
-                            className="w-full py-4 rounded-2xl bg-white text-black font-bold text-lg shadow-xl shadow-white/10 hover:scale-[1.01] hover:shadow-white/20 transition-all flex items-center justify-center gap-2"
-                        >
-                            Let's Pick a Plan <ArrowRight className="w-5 h-5" />
-                        </motion.button>
-                    )}
-                </div>
+                )}
 
                 {/* Divider */}
                 <motion.div
@@ -240,7 +277,7 @@ export function DashboardEngine() {
 
                 {/* Step 2: WHAT (AI Suggestions) */}
                 <AnimatePresence>
-                    {selectedFriends.length > 0 && (
+                    {(selectedFriends.length > 0 || isMultiDay) && (
                         <motion.div
                             key="step-2"
                             initial={{ opacity: 0, height: 0, y: 20 }}
@@ -284,7 +321,7 @@ export function DashboardEngine() {
                                 </div>
 
                                 <ActivitySuggestions
-                                    hasFriendsSelected={selectedFriends.length > 0}
+                                    hasFriendsSelected={selectedFriends.length > 0 || isMultiDay}
                                     onSelectCallback={handleToggleActivity}
                                     location={effectiveLocation}
                                     friendIds={selectedFriends.map(f => f.id)}
@@ -377,32 +414,34 @@ export function DashboardEngine() {
                                         When's it happening?
                                     </h2>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            onClick={() => handleDateSelect('tonight')}
-                                            className={cn(
-                                                "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
-                                                selectionMode === 'tonight'
-                                                    ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
-                                                    : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
-                                            )}
-                                        >
-                                            <Zap className="w-4 h-4" />
-                                            Tonight
-                                        </button>
-                                        <button
-                                            onClick={() => handleDateSelect('tomorrow')}
-                                            className={cn(
-                                                "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
-                                                selectionMode === 'tomorrow'
-                                                    ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
-                                                    : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
-                                            )}
-                                        >
-                                            <Calendar className="w-4 h-4" />
-                                            Tomorrow
-                                        </button>
-                                    </div>
+                                    {!isMultiDay && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                onClick={() => handleDateSelect('tonight')}
+                                                className={cn(
+                                                    "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
+                                                    selectionMode === 'tonight'
+                                                        ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
+                                                        : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
+                                                )}
+                                            >
+                                                <Zap className="w-4 h-4" />
+                                                Tonight
+                                            </button>
+                                            <button
+                                                onClick={() => handleDateSelect('tomorrow')}
+                                                className={cn(
+                                                    "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
+                                                    selectionMode === 'tomorrow'
+                                                        ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
+                                                        : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
+                                                )}
+                                            >
+                                                <Calendar className="w-4 h-4" />
+                                                Tomorrow
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <div className="relative group">
                                         <label className="text-xs text-slate-400 mb-1 block">Start Date & Time</label>
@@ -416,28 +455,6 @@ export function DashboardEngine() {
                                             }}
                                         />
                                         <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-[38px] pointer-events-none group-focus-within:text-primary transition-colors" />
-                                    </div>
-
-                                    {/* Multi-Day Toggle */}
-                                    <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-white/5">
-                                        <div className="space-y-0.5">
-                                            <label className="text-sm font-medium text-slate-200">Is this a multi-day event?</label>
-                                            <p className="text-xs text-slate-500">Enable an end date for trips, festivals, etc.</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsMultiDay(!isMultiDay)}
-                                            className={cn(
-                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4",
-                                                isMultiDay ? "bg-primary" : "bg-slate-700"
-                                            )}
-                                        >
-                                            <span
-                                                className={cn(
-                                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                                                    isMultiDay ? "translate-x-6" : "translate-x-1"
-                                                )}
-                                            />
-                                        </button>
                                     </div>
 
                                     <AnimatePresence>
@@ -470,7 +487,7 @@ export function DashboardEngine() {
                                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <span>Send Invites</span>
+                                            <span>{isMultiDay ? "Create Event" : "Send Invites"}</span>
                                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}

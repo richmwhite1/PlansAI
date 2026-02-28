@@ -65,7 +65,18 @@ export default async function HangoutPage(props: HangoutPageProps) {
             creator: true,
             participants: {
                 include: {
-                    profile: true,
+                    profile: {
+                        select: {
+                            id: true,
+                            displayName: true,
+                            avatarUrl: true,
+                            venmoHandle: true,
+                            paypalHandle: true,
+                            zelleHandle: true,
+                            cashappHandle: true,
+                            applePayHandle: true,
+                        }
+                    },
                     guest: true
                 }
             },
@@ -96,7 +107,25 @@ export default async function HangoutPage(props: HangoutPageProps) {
                 orderBy: {
                     createdAt: 'desc'
                 }
-            }
+            },
+            itineraryDays: {
+                include: {
+                    activities: {
+                        orderBy: {
+                            displayOrder: 'asc'
+                        }
+                    }
+                },
+                orderBy: {
+                    dayNumber: 'asc'
+                }
+            },
+            documents: {
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            },
+            budget: true
         }
     });
 
@@ -185,7 +214,7 @@ export default async function HangoutPage(props: HangoutPageProps) {
 
     return (
         <HangoutPageClient
-            hangout={hangout}
+            hangout={hangout as any}
             userId={userId}
             profile={profile}
             currentUserParticipant={currentUserParticipant}

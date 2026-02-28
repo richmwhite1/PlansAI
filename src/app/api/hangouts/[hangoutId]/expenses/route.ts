@@ -20,10 +20,32 @@ export async function GET(request: Request, context: RouteContext) {
             orderBy: { createdAt: "desc" },
         });
 
+        const payments = await prisma.paymentTransfer.findMany({
+            where: { hangoutId },
+            include: {
+                sender: { select: { id: true, displayName: true, avatarUrl: true } },
+                receiver: { select: { id: true, displayName: true, avatarUrl: true } },
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
         // Get all participants
         const participants = await prisma.hangoutParticipant.findMany({
             where: { hangoutId },
-            include: { profile: { select: { id: true, displayName: true, avatarUrl: true } } },
+            include: {
+                profile: {
+                    select: {
+                        id: true,
+                        displayName: true,
+                        avatarUrl: true,
+                        venmoHandle: true,
+                        paypalHandle: true,
+                        zelleHandle: true,
+                        cashappHandle: true,
+                        applePayHandle: true,
+                    }
+                }
+            },
         });
 
         const participantProfiles = participants
@@ -60,6 +82,14 @@ export async function GET(request: Request, context: RouteContext) {
             }
         }
 
+        for (const payment of payments) {
+            if (payment.status === "COMPLETED") {
+                // Sender paid receiver: Sender is owed more/owes less, Receiver is owed less/owes more
+                balances[payment.senderId] = (balances[payment.senderId] || 0) + payment.amount;
+                balances[payment.receiverId] = (balances[payment.receiverId] || 0) - payment.amount;
+            }
+        }
+
         // Build settlements: simplify debts
         const settlements: { from: any; to: any; amount: number }[] = [];
         const debtors = Object.entries(balances)
@@ -88,7 +118,8 @@ export async function GET(request: Request, context: RouteContext) {
         }
 
         console.log("[Expenses GET] Found", expenses.length, "expenses, total:", total);
-        return NextResponse.json({ expenses, total, settlements, participantCount: participantProfiles.length });
+        const pendingPayments = payments.filter((p: any) => p.status === "PENDING");
+        return NextResponse.json({ expenses, total, settlements, pendingPayments, participantCount: participantProfiles.length });
     } catch (err) {
         console.error("Failed to fetch expenses:", err);
         return NextResponse.json({ error: "Failed to fetch expenses" }, { status: 500 });
