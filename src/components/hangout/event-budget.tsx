@@ -217,7 +217,6 @@ export function EventBudget({ hangoutId, participants, isOrganizer, isParticipan
                                     onChange={(e) => setTotalCost(e.target.value)}
                                     placeholder="0.00"
                                     className="w-full bg-slate-800/50 border border-white/10 rounded-lg pl-7 pr-3 py-2.5 text-lg font-bold text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/50"
-                                    autoFocus
                                 />
                             </div>
                             <textarea
