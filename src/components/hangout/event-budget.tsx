@@ -165,14 +165,33 @@ export function EventBudget({ hangoutId, participants, isOrganizer, isParticipan
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-6">
                 <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
             </div>
         );
     }
 
+    // Collapsed empty state for organizer — show one compact button
+    if (!budget && !editing) {
+        if (!isOrganizer) return null;
+        return (
+            <button
+                onClick={() => setEditing(true)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform">
+                        <DollarSign className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-300">Set Event Budget</span>
+                </div>
+                <span className="text-xs text-primary font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">+ Add</span>
+            </button>
+        );
+    }
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 p-5">
             <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-green-400" />
@@ -190,7 +209,7 @@ export function EventBudget({ hangoutId, participants, isOrganizer, isParticipan
 
             {/* Budget Setup / Edit */}
             <AnimatePresence>
-                {(editing || (!budget && isOrganizer)) && (
+                {(editing) && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}

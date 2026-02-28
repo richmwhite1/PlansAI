@@ -573,100 +573,59 @@ export function HangoutPageClient({
                     </div>
                 )}
 
-                {/* Coordination Components (Conditionally rendered to keep UI clean) */}
+                {/* Coordination Components — expand on demand, clean by default */}
                 {currentUserParticipant && (
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                            <div className="h-px bg-white/10 flex-1" />
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Coordination</span>
-                            <div className="h-px bg-white/10 flex-1" />
-                        </div>
+                    <div className="space-y-3">
 
-                        {/* Note Section */}
+                        {/* Note Section — shown if has content, or organizer can add */}
                         {shouldShowSection(!!hangout.description) && (
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <div className="relative group">
-                                    <div className="relative z-10 bg-white/5 p-5 rounded-xl border border-white/10">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                                                Note
-                                            </label>
-                                            {isOrganizer && !isEditingDescription && (
-                                                <button
-                                                    onClick={() => setIsEditingDescription(true)}
-                                                    className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors"
-                                                >
-                                                    {hangout.description ? "Edit" : "+ Add Note"}
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {isEditingDescription ? (
-                                            <div className="space-y-3">
-                                                <textarea
-                                                    value={editedDescription}
-                                                    onChange={(e) => setEditedDescription(e.target.value)}
-                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none h-32 leading-relaxed"
-                                                    placeholder="Write a note about the plan..."
-                                                    autoFocus
-                                                />
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => setIsEditingDescription(false)}
-                                                        className="px-3 py-1.5 text-[10px] font-bold text-slate-400 hover:text-white uppercase transition-colors"
-                                                    >
-                                                        Discard
-                                                    </button>
-                                                    <button
-                                                        onClick={handleSaveDescription}
-                                                        disabled={isSaving}
-                                                        className="px-4 py-1.5 text-[10px] bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary/40 hover:text-primary transition-all disabled:opacity-50 uppercase tracking-wider"
-                                                    >
-                                                        {isSaving ? "Saving..." : "Save"}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : hangout.description ? (
-                                            <p className="text-sm text-slate-300 leading-relaxed italic">
-                                                "{hangout.description}"
-                                            </p>
-                                        ) : null}
-                                    </div>
+                            <div className="glass p-4 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Note</label>
+                                    {isOrganizer && !isEditingDescription && (
+                                        <button
+                                            onClick={() => setIsEditingDescription(true)}
+                                            className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors"
+                                        >
+                                            {hangout.description ? "Edit" : "+ Add"}
+                                        </button>
+                                    )}
                                 </div>
+                                {isEditingDescription ? (
+                                    <div className="space-y-3">
+                                        <textarea
+                                            value={editedDescription}
+                                            onChange={(e) => setEditedDescription(e.target.value)}
+                                            className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none h-32 leading-relaxed"
+                                            placeholder="Write a note about the plan..."
+                                            autoFocus
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => setIsEditingDescription(false)} className="px-3 py-1.5 text-[10px] font-bold text-slate-400 hover:text-white uppercase transition-colors">Discard</button>
+                                            <button onClick={handleSaveDescription} disabled={isSaving} className="px-4 py-1.5 text-[10px] bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary/40 transition-all disabled:opacity-50 uppercase tracking-wider">
+                                                {isSaving ? "Saving..." : "Save"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : hangout.description ? (
+                                    <p className="text-sm text-slate-300 leading-relaxed italic">"{hangout.description}"</p>
+                                ) : null}
                             </div>
                         )}
 
-                        {/* Itinerary Dashboard — only for multi-day events */}
-                        {hangout.isMultiDay && shouldShowSection(hangout.itineraryDays?.[0]?.activities?.length > 0) && (
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-                                    <Calendar className="w-4 h-4 text-primary" /> Itinerary
-                                </h3>
-                                <ItineraryDashboard
-                                    hangoutId={hangout.id}
-                                    initialDays={hangout.itineraryDays}
-                                    isOrganizer={isOrganizer}
-                                />
-                            </div>
-                        )}
-
-                        {/* Tasks */}
+                        {/* Tasks — HangoutTasks handles its own empty vs. full state with a + button */}
                         {shouldShowSection(hangout.tasks?.length > 0) && (
                             <HangoutTasks
                                 hangoutId={hangout.id}
                                 participants={hangout.participants
                                     .filter((p: any) => p.profile)
-                                    .map((p: any) => ({
-                                        id: p.profile.id,
-                                        displayName: p.profile.displayName,
-                                        avatarUrl: p.profile.avatarUrl,
-                                    }))}
+                                    .map((p: any) => ({ id: p.profile.id, displayName: p.profile.displayName, avatarUrl: p.profile.avatarUrl }))}
                                 isParticipant={!!currentUserParticipant}
                                 currentUserId={currentUserParticipant?.profileId}
                             />
                         )}
 
-                        {/* Expenses */}
+                        {/* Expenses — HangoutExpenses handles its own empty vs. full state with a + button */}
                         {shouldShowSection(hangout.expenses?.length > 0) && (
                             <HangoutExpenses
                                 hangoutId={hangout.id}
@@ -686,42 +645,52 @@ export function HangoutPageClient({
                             />
                         )}
 
-                        {/* Event Budget */}
-                        {shouldShowSection(!!hangout.budget) && (
-                            <>
-                                {hangout.budget || isOrganizer ? (
-                                    <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                        <EventBudget
-                                            hangoutId={hangout.id}
-                                            participants={hangout.participants
-                                                .filter((p: any) => p.profile)
-                                                .map((p: any) => ({
-                                                    id: p.profile.id,
-                                                    displayName: p.profile.displayName,
-                                                    avatarUrl: p.profile.avatarUrl,
-                                                    venmoHandle: p.profile.venmoHandle,
-                                                    paypalHandle: p.profile.paypalHandle,
-                                                    zelleHandle: p.profile.zelleHandle,
-                                                    cashappHandle: p.profile.cashappHandle,
-                                                    applePayHandle: p.profile.applePayHandle,
-                                                }))}
-                                            isOrganizer={isOrganizer}
-                                            isParticipant={!!currentUserParticipant}
-                                            currentUserId={currentUserParticipant?.profileId}
-                                        />
-                                    </div>
-                                ) : null}
-                            </>
+                        {/* Event Budget — only show when has budget data (guests) or always for organizer */}
+                        {(hangout.budget || isOrganizer) && (
+                            <div className="glass rounded-2xl border border-white/5 bg-slate-900/50 overflow-hidden">
+                                <EventBudget
+                                    hangoutId={hangout.id}
+                                    participants={hangout.participants
+                                        .filter((p: any) => p.profile)
+                                        .map((p: any) => ({
+                                            id: p.profile.id,
+                                            displayName: p.profile.displayName,
+                                            avatarUrl: p.profile.avatarUrl,
+                                            venmoHandle: p.profile.venmoHandle,
+                                            paypalHandle: p.profile.paypalHandle,
+                                            zelleHandle: p.profile.zelleHandle,
+                                            cashappHandle: p.profile.cashappHandle,
+                                            applePayHandle: p.profile.applePayHandle,
+                                        }))}
+                                    isOrganizer={isOrganizer}
+                                    isParticipant={!!currentUserParticipant}
+                                    currentUserId={currentUserParticipant?.profileId}
+                                />
+                            </div>
                         )}
 
-                        {/* Shared Documents */}
-                        {shouldShowSection(hangout.documents?.length > 0) && (
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                        {/* Shared Documents — only show when has docs (guests) or always for organizer */}
+                        {(hangout.documents?.length > 0 || isOrganizer) && (
+                            <div className="glass p-4 rounded-2xl border border-white/5 bg-slate-900/50">
                                 <SharedDocuments
                                     hangoutId={hangout.id}
                                     isParticipant={!!currentUserParticipant}
                                     isOrganizer={isOrganizer}
                                     currentUserId={currentUserParticipant?.profileId}
+                                />
+                            </div>
+                        )}
+
+                        {/* Itinerary Dashboard — only for multi-day events with content */}
+                        {hangout.isMultiDay && shouldShowSection(hangout.itineraryDays?.[0]?.activities?.length > 0) && (
+                            <div className="glass p-4 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                                    <Calendar className="w-4 h-4 text-primary" /> Itinerary
+                                </h3>
+                                <ItineraryDashboard
+                                    hangoutId={hangout.id}
+                                    initialDays={hangout.itineraryDays}
+                                    isOrganizer={isOrganizer}
                                 />
                             </div>
                         )}

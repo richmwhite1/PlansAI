@@ -88,6 +88,25 @@ export function SharedDocuments({ hangoutId, isParticipant, isOrganizer, current
         }
     };
 
+    // Collapsed empty state: no docs yet and not adding
+    if (!loading && documents.length === 0 && !showAdd) {
+        if (!isOrganizer) return null;
+        return (
+            <button
+                onClick={() => setShowAdd(true)}
+                className="w-full flex items-center justify-between text-left group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                        <FileText className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-300">Shared Documents</span>
+                </div>
+                <span className="text-xs text-primary font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">+ Add</span>
+            </button>
+        );
+    }
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -153,13 +172,7 @@ export function SharedDocuments({ hangoutId, isParticipant, isOrganizer, current
                 <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
                 </div>
-            ) : documents.length === 0 ? (
-                <div className="text-center py-8 bg-white/5 rounded-xl border border-dashed border-white/10">
-                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground text-xs italic">No documents shared yet.</p>
-                    <p className="text-muted-foreground text-[10px] mt-1">Add waivers, packing lists, maps, or other resources.</p>
-                </div>
-            ) : (
+            ) : documents.length === 0 ? null : (
                 <div className="space-y-2">
                     {documents.map(doc => (
                         <motion.div
