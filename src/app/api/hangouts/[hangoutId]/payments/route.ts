@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProfile } from "@/lib/profile-utils";
+import { sendPushToUser } from "@/lib/push/send-push";
 
 type RouteContext = { params: Promise<{ hangoutId: string }> };
 
@@ -46,6 +47,12 @@ export async function POST(request: Request, context: RouteContext) {
                 content: `${profile.displayName} sent you $${payment.amount.toFixed(2)} for ${payment.method}. Please confirm receipt.`,
                 link: `/messages/${hangoutId}/expenses`, // Fallback link
             }
+        });
+
+        await sendPushToUser(receiverId, {
+            title: "Payment Received 💸",
+            body: `${profile.displayName} sent you $${payment.amount.toFixed(2)} via ${payment.method}`,
+            url: `/messages/${hangoutId}/expenses`,
         });
 
         return NextResponse.json({ payment });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { sendPushToUser } from "@/lib/push/send-push";
 
 // GET — Fetch budget with per-person calculation
 export async function GET(
@@ -134,6 +135,12 @@ export async function POST(
                             link: `/hangouts/${hangout?.slug}`,
                         },
                     }).catch(err => console.error("Failed to send budget notification:", err));
+
+                    await sendPushToUser(p.profileId, {
+                        title: "Budget Updated 💰",
+                        body: `${hangout?.title}: Your share is $${costPerPerson}.`,
+                        url: `/hangouts/${hangout?.slug}?tab=budget`,
+                    }).catch(err => console.error("Failed to send push:", err));
                 }
             }
         }

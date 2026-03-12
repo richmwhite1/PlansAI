@@ -55,6 +55,10 @@ self.addEventListener("fetch", (event) => {
 
 // Push Notification Handler
 self.addEventListener("push", (event) => {
+    if (navigator.setAppBadge) {
+        navigator.setAppBadge().catch(console.error);
+    }
+
     const defaultData = {
         title: "Plans",
         body: "You have a new update",

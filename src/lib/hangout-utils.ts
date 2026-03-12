@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push/send-push";
 
 export async function resolveHangoutVote(hangoutId: string) {
     // 1. Fetch Hangout and Options
@@ -76,6 +77,14 @@ export async function resolveHangoutVote(hangoutId: string) {
                 content: `Voting closed! The plan is set for: ${winner.cachedEvent.name}. Tap to RSVP.`,
                 link: `/hangouts/${hangout.slug}`
             }))
+        });
+
+        // Push to users
+        await sendPushToUsers(participantProfileIds, {
+            title: "Plan Confirmed! ✅",
+            body: `Voting closed! The plan is set for: ${winner.cachedEvent.name}. Tap to RSVP.`,
+            url: `/hangouts/${hangout.slug}`,
+            icon: "/icon-192x192.png",
         });
     }
 

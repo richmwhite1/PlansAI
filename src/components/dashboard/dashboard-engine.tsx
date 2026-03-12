@@ -10,6 +10,7 @@ import { FriendSelector } from "./friend-selector";
 import { ActivitySuggestions } from "./activity-suggestions";
 import { InviteModal } from "./invite-modal";
 import { LocationPrompt } from "@/components/ui/location-prompt";
+import { LocationSearch } from "@/components/ui/location-search";
 import { useLocation } from "@/hooks/use-location";
 import { useProfile } from "@/hooks/use-profile";
 import { cn } from "@/lib/utils";
@@ -47,8 +48,6 @@ export function DashboardEngine() {
         lng: number;
     } | null>(null);
     const [isEditingZip, setIsEditingZip] = useState(false);
-    const [newZip, setNewZip] = useState("");
-    const [isResolvingZip, setIsResolvingZip] = useState(false);
 
     // Determine effective location: Override > Browser > Profile > Default
     const effectiveLocation = zipOverride
@@ -59,37 +58,9 @@ export function DashboardEngine() {
                 ? { lat: profile.homeLatitude, lng: profile.homeLongitude }
                 : location.coords;
 
-    const handleZipSubmit = async () => {
-        if (newZip.trim().length !== 5) {
-            toast.error("Please enter a valid 5-digit zip code");
-            return;
-        }
-
-        setIsResolvingZip(true);
-        try {
-            const res = await fetch(`https://api.zippopotam.us/us/${newZip.trim()}`);
-            const data = await res.json();
-
-            if (data.places && data.places.length > 0) {
-                const place = data.places[0];
-                setZipOverride({
-                    zip: newZip.trim(),
-                    city: place["place name"],
-                    state: place["state abbreviation"],
-                    lat: parseFloat(place["latitude"]),
-                    lng: parseFloat(place["longitude"])
-                });
-                setIsEditingZip(false);
-                toast.success(`Location set to ${place["place name"]}, ${place["state abbreviation"]}`);
-            } else {
-                toast.error("Could not find that zip code");
-            }
-        } catch (err) {
-            console.error("Zip lookup failed:", err);
-            toast.error("Failed to lookup zip code");
-        } finally {
-            setIsResolvingZip(false);
-        }
+    const handleLocationSelect = (loc: any) => {
+        setZipOverride(loc);
+        setIsEditingZip(false);
     };
 
     const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
@@ -333,33 +304,27 @@ export function DashboardEngine() {
 
                                     <div className="flex items-center gap-3">
                                         {/* Zip Location Display */}
-                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all cursor-pointer group"
+                                        <div className={cn(
+                                            "flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all cursor-pointer group",
+                                            isEditingZip ? "w-48 sm:w-64" : "w-auto"
+                                        )}
                                             onClick={(e) => {
-                                                e.stopPropagation();
-                                                setIsEditingZip(true);
-                                                setNewZip(zipOverride?.zip || "");
+                                                if (!isEditingZip) {
+                                                    e.stopPropagation();
+                                                    setIsEditingZip(true);
+                                                }
                                             }}>
-                                            <MapPin className="w-3 h-3 text-primary" />
+                                            <MapPin className="w-3 h-3 text-primary shrink-0" />
                                             {isEditingZip ? (
-                                                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                                    <input
-                                                        autoFocus
-                                                        value={newZip}
-                                                        onChange={e => setNewZip(e.target.value)}
-                                                        onKeyDown={e => e.key === 'Enter' && handleZipSubmit()}
-                                                        className="w-16 bg-transparent border-none outline-none text-[10px] font-bold text-white placeholder:text-slate-600"
-                                                        placeholder="Zip..."
+                                                <div className="flex-1" onClick={e => e.stopPropagation()}>
+                                                    <LocationSearch
+                                                        onSelect={handleLocationSelect}
+                                                        placeholder="City or Zip..."
+                                                        className="h-6"
                                                     />
-                                                    <button
-                                                        onClick={handleZipSubmit}
-                                                        disabled={isResolvingZip}
-                                                        className="text-[10px] font-black text-primary uppercase"
-                                                    >
-                                                        {isResolvingZip ? "..." : "Set"}
-                                                    </button>
                                                 </div>
                                             ) : (
-                                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-200">
+                                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-200 truncate">
                                                     {zipOverride ? `${zipOverride.city}, ${zipOverride.state}` : (profile?.homeCity || "Nearby")}
                                                 </span>
                                             )}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { sendPushToUser } from "@/lib/push/send-push";
 
 export async function POST(req: NextRequest) {
     try {
@@ -56,6 +57,13 @@ export async function POST(req: NextRequest) {
                     content: `${profile.displayName} accepted your friend request`,
                     link: `/friends`
                 }
+            });
+
+            // Trigger Push Notification
+            await sendPushToUser(friendship.profileAId, {
+                title: "Friend Request Accepted 🎉",
+                body: `${profile.displayName} is now your friend on Plans!`,
+                url: "/friends"
             });
 
             return NextResponse.json({ success: true, message: "Friend request accepted" });

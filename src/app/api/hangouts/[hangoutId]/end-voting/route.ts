@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { resolveHangoutVote } from "@/lib/hangout-utils";
+import { sendPushToUsers } from "@/lib/push/send-push";
 
 export async function POST(
     req: NextRequest,
@@ -77,6 +78,13 @@ export async function POST(
                 content: `Voting closed! The plan is set for: ${winner.cachedEvent.name}. Tap to RSVP.`,
                 link: `/hangouts/${hangout.slug}`
             }))
+        });
+
+        // Trigger Push Notifications
+        await sendPushToUsers(participantProfileIds, {
+            title: "Plan Confirmed! ✅",
+            body: `Voting closed! The plan is set for: ${winner.cachedEvent.name}. Tap to RSVP.`,
+            url: `/hangouts/${hangout.slug}`
         });
 
         return NextResponse.json({

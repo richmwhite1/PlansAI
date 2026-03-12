@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth, currentUser, createClerkClient } from "@clerk/nextjs/server";
+import { sendPushToUsers } from "@/lib/push/send-push";
 
 export async function POST(req: NextRequest) {
     try {
@@ -303,6 +304,13 @@ export async function POST(req: NextRequest) {
                 }
             }).catch(err => console.error("Failed to send notification:", err));
         }
+
+        // Trigger Push Notifications
+        await sendPushToUsers(participantProfileIds, {
+            title: "New Hangout Invite 🗓️",
+            body: `${creator.displayName} invited you to: ${title}`,
+            url: `/hangouts/${hangout.slug}`
+        });
 
         // 6. Increment usage counts
         prisma.cachedEvent.updateMany({

@@ -113,6 +113,15 @@ function NotificationsDropdown() {
                 const data = await res.json();
                 setNotifications(data.notifications || []);
                 setUnreadCount(data.unreadCount || 0);
+
+                // Update App Badge
+                if (navigator.setAppBadge) {
+                    if (data.unreadCount > 0) {
+                        navigator.setAppBadge(data.unreadCount).catch(console.error);
+                    } else if (navigator.clearAppBadge) {
+                        navigator.clearAppBadge().catch(console.error);
+                    }
+                }
             }
         } catch { }
     };
@@ -135,7 +144,17 @@ function NotificationsDropdown() {
 
     const markAsRead = async (id: string, link?: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (navigator.setAppBadge) {
+                if (newCount > 0) {
+                    navigator.setAppBadge(newCount).catch(console.error);
+                } else if (navigator.clearAppBadge) {
+                    navigator.clearAppBadge().catch(console.error);
+                }
+            }
+            return newCount;
+        });
         if (link) setIsOpen(false);
 
         try {
@@ -150,6 +169,10 @@ function NotificationsDropdown() {
     const markAllRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         setUnreadCount(0);
+        
+        if (navigator.clearAppBadge) {
+            navigator.clearAppBadge().catch(console.error);
+        }
 
         try {
             await fetch("/api/notifications/read", {

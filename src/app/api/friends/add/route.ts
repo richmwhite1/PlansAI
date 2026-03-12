@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { getOrCreateProfile, ensureProfileByClerkId } from "@/lib/profile-utils";
+import { sendPushToUser } from "@/lib/push/send-push";
 
 export async function POST(req: NextRequest) {
     try {
@@ -124,6 +125,13 @@ export async function POST(req: NextRequest) {
                 content: `${currentProfile.displayName} sent you a friend request`,
                 link: "/friends"
             }
+        });
+
+        // Trigger Push Notification
+        await sendPushToUser(friendProfile.id, {
+            title: "New Friend Request 👋",
+            body: `${currentProfile.displayName} wants to connect on Plans!`,
+            url: "/friends"
         });
 
         return NextResponse.json({

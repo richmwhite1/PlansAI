@@ -14,9 +14,10 @@ interface Guest {
 interface GuestJoinFormProps {
     hangoutId: string;
     guestsToClaim?: Guest[];
+    currentGuest?: any;
 }
 
-export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormProps) {
+export function GuestJoinForm({ hangoutId, guestsToClaim = [], currentGuest }: GuestJoinFormProps) {
     const router = useRouter();
     const [name, setName] = useState("");
     const [isJoining, setIsJoining] = useState(false);
@@ -29,6 +30,24 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
 
         setIsJoining(true);
         try {
+            // If updating an existing guest placeholder
+            if (currentGuest?.displayName === "Guest") {
+                const res = await fetch(`/api/hangouts/${hangoutId}/claim`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        guestId: currentGuest.id,
+                        displayName: name
+                    })
+                });
+
+                if (res.ok) {
+                    toast.success("Name updated!");
+                    window.location.reload();
+                    return;
+                }
+            }
+
             const res = await fetch(`/api/hangouts/${hangoutId}/join-guest`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -81,11 +100,15 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [] }: GuestJoinFormPr
     return (
         <div className="glass-card p-8 rounded-3xl border border-white/10 shadow-2xl max-w-md mx-auto text-center space-y-6">
             <div className="space-y-2">
-                <h2 className="text-2xl font-serif font-bold text-foreground tracking-tight">Join the Plan</h2>
+                <h2 className="text-2xl font-serif font-bold text-foreground tracking-tight">
+                    {currentGuest?.displayName === "Guest" ? "Welcome! Set your name" : "Join the Plan"}
+                </h2>
                 <p className="text-muted-foreground text-sm">
-                    {guestsToClaim.length > 0
-                        ? "Are you one of these guests? Select your name to join, or enter a new one below."
-                        : "Enter your name to join this hangout as a guest. No signup required."}
+                    {currentGuest?.displayName === "Guest"
+                        ? "You've been invited! Enter your name below to let everyone know who you are."
+                        : guestsToClaim.length > 0
+                            ? "Are you one of these guests? Select your name to join, or enter a new one below."
+                            : "Enter your name to join this hangout as a guest. No signup required."}
                 </p>
             </div>
 

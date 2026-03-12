@@ -7,6 +7,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { Brain, Star, Fingerprint, Plus, Zap, Heart, Clock, DollarSign, ShieldAlert, MessageCircle, MapPin, Wine, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProfileHero } from "./ProfileHero";
+import { LocationSearch } from "@/components/ui/location-search";
 
 interface ProfileEditorProps {
     initialData: {
@@ -101,19 +102,11 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
     const [homeState, setHomeState] = useState(initialData.homeState || "");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (homeZipcode.trim().length === 5 && /^\d+$/.test(homeZipcode.trim())) {
-            fetch(`https://api.zippopotam.us/us/${homeZipcode.trim()}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.places && data.places.length > 0) {
-                        setHomeCity(data.places[0]["place name"]);
-                        setHomeState(data.places[0]["state abbreviation"]);
-                    }
-                })
-                .catch(err => console.error("Failed to fetch zip code details", err));
-        }
-    }, [homeZipcode]);
+    const handleLocationSelect = (loc: any) => {
+        setHomeCity(loc.city);
+        setHomeState(loc.state);
+        setHomeZipcode(loc.zip);
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -698,36 +691,41 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                         <MapPin className="w-4 h-4" />
                         Home Base
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-slate-400">City</label>
-                            <input
-                                name="homeCity"
-                                value={homeCity}
-                                onChange={(e) => setHomeCity(e.target.value)}
-                                placeholder="e.g. Austin"
-                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-slate-400">State</label>
-                            <input
-                                name="homeState"
-                                value={homeState}
-                                onChange={(e) => setHomeState(e.target.value)}
-                                placeholder="e.g. TX"
-                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                            />
-                        </div>
-                        <div className="space-y-2 col-span-2 md:col-span-1">
-                            <label className="text-xs font-medium text-slate-400">Zip Code</label>
-                            <input
-                                name="homeZipcode"
-                                value={homeZipcode}
-                                onChange={(e) => setHomeZipcode(e.target.value)}
-                                placeholder="e.g. 78701"
-                                className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                            />
+                    <div className="space-y-4">
+                        <LocationSearch
+                            onSelect={handleLocationSelect}
+                            initialValue={homeCity && homeState ? `${homeCity}, ${homeState}` : homeZipcode}
+                            placeholder="Enter City or Zip Code..."
+                        />
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 opacity-70">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">City</label>
+                                <input
+                                    name="homeCity"
+                                    value={homeCity}
+                                    readOnly
+                                    className="w-full bg-slate-900/30 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-400 focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">State</label>
+                                <input
+                                    name="homeState"
+                                    value={homeState}
+                                    readOnly
+                                    className="w-full bg-slate-900/30 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-400 focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Zip Code</label>
+                                <input
+                                    name="homeZipcode"
+                                    value={homeZipcode}
+                                    readOnly
+                                    className="w-full bg-slate-900/30 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-400 focus:outline-none"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

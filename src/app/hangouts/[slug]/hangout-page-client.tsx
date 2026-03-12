@@ -136,6 +136,7 @@ export function HangoutPageClient({
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [guestsToInvite, setGuestsToInvite] = useState<{ name: string, phone?: string }[]>([]);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+    const [activeInviteUrl, setActiveInviteUrl] = useState("");
 
     const handleGenerateInvite = async () => {
         setIsGeneratingLink(true);
@@ -148,6 +149,9 @@ export function HangoutPageClient({
             if (res.ok) {
                 const data = await res.json();
                 setGuestsToInvite([{ name: data.guest.displayName }]);
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                const inviteUrl = `${origin}/join/${hangout.inviteToken}?guestToken=${data.guest.token}`;
+                setActiveInviteUrl(inviteUrl);
                 setIsInviteModalOpen(true);
             } else {
                 toast.error("Failed to generate invite link");
@@ -214,8 +218,41 @@ export function HangoutPageClient({
         </button>
     );
 
+    const isPlaceholderGuest = currentUserParticipant?.guest?.displayName === "Guest";
+    const showJoinForm = !currentUserParticipant || isPlaceholderGuest;
+
     return (
-        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+        <div className="min-h-screen bg-slate-950 text-slate-200">
+            {showJoinForm && (
+                <div className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-black/60 backdrop-blur-[20px] overflow-y-auto px-4 py-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="w-full max-w-md flex flex-col items-center"
+                    >
+                        <div className="text-center mb-10 w-full">
+                            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-2xl leading-tight">
+                                {hangout.title}
+                            </h2>
+                            {hangout.scheduledFor && (
+                                <p className="text-white/90 font-medium text-lg drop-shadow-md flex items-center justify-center gap-2 bg-black/20 py-2 px-4 rounded-full border border-white/10 w-fit mx-auto">
+                                    <Calendar className="w-5 h-5 text-primary" />
+                                    {format(new Date(hangout.scheduledFor), "EEEE, MMM do @ h:mm a")}
+                                </p>
+                            )}
+                        </div>
+                        <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(212,163,115,0.3)' }}>
+                            <GuestJoinForm
+                                hangoutId={hangout.id}
+                                guestsToClaim={guestsToClaim}
+                                currentGuest={currentUserParticipant?.guest}
+                            />
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             {/* Hero Header */}
             <div className="relative h-[65vh] min-h-[500px] w-full overflow-hidden group">
                 <div className="absolute inset-0 bg-slate-950">
@@ -259,7 +296,7 @@ export function HangoutPageClient({
                 )}
 
                 {/* Advanced Gradient Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/40 to-transparent z-10" />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent z-10" />
                 <div className="absolute inset-0 bg-primary/5 mix-blend-overlay z-10" />
 
@@ -305,13 +342,22 @@ export function HangoutPageClient({
                             className="flex flex-wrap items-center gap-4 text-sm md:text-base text-white/90 font-medium"
                         >
                             {hangout.scheduledFor && (
-                                <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl hover:bg-white/10 transition-colors cursor-default">
-                                    <Calendar className="w-4 h-4 text-primary" />
-                                    <span className="tracking-tight">
-                                        {format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}
-                                        {hangout.endDate && ` - ${format(new Date(hangout.endDate), "EEE, MMM do @ h:mm a")}`}
-                                    </span>
-                                </div>
+                                <>
+                                    <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl hover:bg-white/10 transition-colors cursor-default">
+                                        <Calendar className="w-4 h-4 text-primary" />
+                                        <span className="tracking-tight">
+                                            {format(new Date(hangout.scheduledFor), "EEE, MMM do @ h:mm a")}
+                                            {hangout.endDate && ` - ${format(new Date(hangout.endDate), "EEE, MMM do @ h:mm a")}`}
+                                        </span>
+                                    </div>
+                                    <AddToCalendar
+                                        title={`Plans: ${hangout.title}`}
+                                        description={hangout.description || `Hangout at ${hangout.finalActivity?.name || hangout.activityOptions?.[0]?.cachedEvent?.name}`}
+                                        location={hangout.finalActivity?.name ? `${hangout.finalActivity.name}, ${hangout.finalActivity.address}` : (hangout.activityOptions?.[0]?.cachedEvent ? `${hangout.activityOptions[0].cachedEvent.name}, ${hangout.activityOptions[0].cachedEvent.address}` : "")}
+                                        startTime={new Date(hangout.scheduledFor)}
+                                        variant="dropdown"
+                                    />
+                                </>
                             )}
                             {(hangout.finalActivity || (hangout.activityOptions?.[0]?.cachedEvent)) && hangout.status !== "VOTING" && (
                                 <a
@@ -331,38 +377,73 @@ export function HangoutPageClient({
                                 </div>
                             )}
                         </motion.div>
+
+                        {/* RSVP Buttons in Hero */}
+                        {currentUserParticipant && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.8, delay: 0.8 }}
+                                className="mt-8 max-w-sm"
+                            >
+                                <RsvpButtons 
+                                    hangoutId={hangout.id} 
+                                    currentStatus={currentUserParticipant.rsvpStatus} 
+                                    variant="hero"
+                                />
+                            </motion.div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {!currentUserParticipant && (
-                <div className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-black/60 backdrop-blur-[20px] overflow-y-auto px-4 py-12">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="w-full max-w-md flex flex-col items-center"
-                    >
-                        <div className="text-center mb-10 w-full">
-                            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-2xl leading-tight">
-                                {hangout.title}
-                            </h2>
-                            {hangout.scheduledFor && (
-                                <p className="text-white/90 font-medium text-lg drop-shadow-md flex items-center justify-center gap-2 bg-black/20 py-2 px-4 rounded-full border border-white/10 w-fit mx-auto">
-                                    <Calendar className="w-5 h-5 text-primary" />
-                                    {format(new Date(hangout.scheduledFor), "EEEE, MMM do @ h:mm a")}
-                                </p>
-                            )}
-                        </div>
-                        <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(212,163,115,0.3)' }}>
-                            <GuestJoinForm hangoutId={hangout.id} guestsToClaim={guestsToClaim} />
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-
             <div className={cn("container mx-auto max-w-2xl p-6 space-y-8 relative", !currentUserParticipant && "pointer-events-none select-none blur-[10px] opacity-30 h-[70vh] overflow-hidden")}>
-                {/* Participants */}
+
+                {/* 1. Progress / Decisions / Voting */}
+                {(hangout.status === "PLANNING" || hangout.status === "VOTING") && hangout.activityOptions.length > 1 && (
+                    <div className="space-y-8">
+                        <HangoutVoting
+                            hangoutId={hangout.id}
+                            currentUserIds={profile ? [profile.id] : currentUserParticipant?.guestId ? [currentUserParticipant.guestId] : []}
+                            options={hangout.activityOptions.map((opt: any) => ({
+                                id: opt.id,
+                                activity: {
+                                    id: opt.cachedEvent.id,
+                                    name: opt.cachedEvent.name,
+                                    category: opt.cachedEvent.category,
+                                    rating: opt.cachedEvent.rating,
+                                    address: opt.cachedEvent.address,
+                                    imageUrl: opt.cachedEvent.imageUrl
+                                },
+                                votes: opt.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value })),
+                                userVote: opt.votes.find((v: any) => v.profileId === profile?.id || (currentUserParticipant && v.guestId === currentUserParticipant.guestId))?.value || 0
+                            }))}
+                            allowParticipantSuggestions={allowParticipantSuggestions}
+                            votingEndsAt={hangout.votingEndsAt}
+                            isCreator={userId === hangout.creator.clerkId}
+                            initialThreshold={hangout.consensusThreshold}
+                            totalParticipants={participants.length}
+                        />
+
+                        {hangout.timeOptions.length > 0 && (
+                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                                <TimeVoting
+                                    hangoutId={hangout.id}
+                                    isParticipant={!!currentUserParticipant}
+                                    currentUserId={currentUserParticipant?.profileId || currentUserParticipant?.guestId}
+                                    options={hangout.timeOptions.map((t: any) => ({
+                                        id: t.id,
+                                        startTime: t.startTime,
+                                        endTime: t.endTime || null,
+                                        votes: t.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value }))
+                                    }))}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 2. Participants (Social Context) */}
                 <div className="glass-card p-6 rounded-2xl">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
@@ -446,58 +527,8 @@ export function HangoutPageClient({
                     </div>
                 </div>
 
-                {/* Activity Details & Voting */}
-                {(hangout.status === "PLANNING" || hangout.status === "VOTING") && hangout.activityOptions.length > 1 ? (
-                    <div className="space-y-8">
-                        {currentUserParticipant && (
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <h3 className="text-sm font-bold text-slate-400 mb-3">Your Response</h3>
-                                <div className="flex gap-4">
-                                    <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />
-                                </div>
-                            </div>
-                        )}
-
-                        <HangoutVoting
-                            hangoutId={hangout.id}
-                            currentUserIds={profile ? [profile.id] : currentUserParticipant?.guestId ? [currentUserParticipant.guestId] : []}
-                            options={hangout.activityOptions.map((opt: any) => ({
-                                id: opt.id,
-                                activity: {
-                                    id: opt.cachedEvent.id,
-                                    name: opt.cachedEvent.name,
-                                    category: opt.cachedEvent.category,
-                                    rating: opt.cachedEvent.rating,
-                                    address: opt.cachedEvent.address,
-                                    imageUrl: opt.cachedEvent.imageUrl
-                                },
-                                votes: opt.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value })),
-                                userVote: opt.votes.find((v: any) => v.profileId === profile?.id || (currentUserParticipant && v.guestId === currentUserParticipant.guestId))?.value || 0
-                            }))}
-                            allowParticipantSuggestions={allowParticipantSuggestions}
-                            votingEndsAt={hangout.votingEndsAt}
-                            isCreator={userId === hangout.creator.clerkId}
-                            initialThreshold={hangout.consensusThreshold}
-                            totalParticipants={participants.length}
-                        />
-
-                        {hangout.timeOptions.length > 0 && (
-                            <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
-                                <TimeVoting
-                                    hangoutId={hangout.id}
-                                    isParticipant={!!currentUserParticipant}
-                                    currentUserId={currentUserParticipant?.profileId || currentUserParticipant?.guestId}
-                                    options={hangout.timeOptions.map((t: any) => ({
-                                        id: t.id,
-                                        startTime: t.startTime,
-                                        endTime: t.endTime || null,
-                                        votes: t.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value }))
-                                    }))}
-                                />
-                            </div>
-                        )}
-                    </div>
-                ) : (hangout.finalActivity || (hangout.activityOptions.length === 1 && hangout.activityOptions[0].cachedEvent)) && (
+                {/* 3. Itinerary Dashboard (if available) */}
+                {hangout.finalActivity && (
                     <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-white">The Plan</h2>
@@ -544,32 +575,10 @@ export function HangoutPageClient({
                                                 {act.category}
                                             </span>
                                         </div>
-                                        {/* Add to Calendar */}
-                                        {hangout.scheduledFor && (
-                                            <div className="mt-4">
-                                                <AddToCalendar
-                                                    title={`Plans: ${hangout.title}`}
-                                                    description={hangout.description || `Hangout at ${act.name}`}
-                                                    location={`${act.name}, ${act.address}`}
-                                                    startTime={new Date(hangout.scheduledFor)}
-                                                    compact={true}
-                                                />
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             );
                         })()}
-
-                        {/* RSVP INTEGRATED INTO PLAN */}
-                        {currentUserParticipant && (
-                            <div className="mt-6 pt-6 border-t border-white/10">
-                                <h3 className="text-sm font-bold text-slate-400 mb-3">Your Response</h3>
-                                <div className="flex gap-4">
-                                    <RsvpButtons hangoutId={hangout.id} currentStatus={currentUserParticipant?.rsvpStatus} />
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -864,7 +873,7 @@ export function HangoutPageClient({
             <InviteModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                inviteUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/hangouts/${hangout.slug}`}
+                inviteUrl={activeInviteUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${hangout.inviteToken}`}
                 guests={guestsToInvite}
                 onDone={() => {
                     setIsInviteModalOpen(false);

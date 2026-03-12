@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProfile } from "@/lib/profile-utils";
+import { sendPushToUser } from "@/lib/push/send-push";
 
 type RouteContext = { params: Promise<{ conversationId: string }> };
 
@@ -135,6 +136,12 @@ export async function POST(request: Request, context: RouteContext) {
                 content: `${profile.displayName || "Someone"}: ${content.trim().substring(0, 80)}`,
                 link: `/messages/${conversationId}`,
             },
+        });
+
+        await sendPushToUser(recipientId, {
+            title: `New message from ${profile.displayName || "Someone"}`,
+            body: content.trim().substring(0, 80),
+            url: `/messages/${conversationId}`,
         });
 
         return NextResponse.json({ message });

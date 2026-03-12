@@ -40,8 +40,9 @@ export async function generateMetadata({ params }: JoinPageProps): Promise<Metad
     };
 }
 
-export default async function JoinPage({ params }: JoinPageProps) {
-    const { token } = await params;
+export default async function JoinPage(props: JoinPageProps & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const { token } = await props.params;
+    const searchParams = await props.searchParams;
     const { userId } = await auth();
 
     // Find hangout by invite token
@@ -79,6 +80,10 @@ export default async function JoinPage({ params }: JoinPageProps) {
             }
         }
     }
+
+    // View Hangout Button
+    const searchString = new URLSearchParams(searchParams as Record<string, string>).toString();
+    const hangoutUrl = `/hangouts/${hangout.slug}${searchString ? `?${searchString}` : ''}`;
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-6">
@@ -139,7 +144,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
                     {/* View Hangout Button */}
                     <div className="space-y-3">
                         <Link
-                            href={`/hangouts/${hangout.slug}`}
+                            href={hangoutUrl}
                             className="w-full py-3 px-4 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             View Hangout & RSVP

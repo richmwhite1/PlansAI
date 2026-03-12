@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Download, ExternalLink, ArrowRight } from "lucide-react";
+import { Download, ExternalLink, ArrowRight, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CalendarIcon } from "@/components/ui/calendar-icon";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,8 @@ interface AddToCalendarProps {
     startTime: Date;
     endTime?: Date;
     compact?: boolean;
+    variant?: "default" | "compact" | "dropdown";
+    className?: string;
 }
 
 export function AddToCalendar({
@@ -21,7 +24,9 @@ export function AddToCalendar({
     location,
     startTime,
     endTime,
-    compact = false
+    compact = false,
+    variant = "default",
+    className
 }: AddToCalendarProps) {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -95,9 +100,75 @@ export function AddToCalendar({
         }
     };
 
-    if (compact) {
+    if (variant === "dropdown") {
         return (
-            <div className="flex flex-col gap-3">
+            <div className={cn("relative", className)}>
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white text-xs font-bold transition-all group backdrop-blur-md shadow-xl"
+                >
+                    <CalendarIcon date={startTime} className="w-4 h-4" />
+                    <span>Add to Calendar</span>
+                    <ChevronRight className={cn("w-3 h-3 text-slate-500 transition-transform", isOpen && "rotate-90")} />
+                </button>
+
+                <AnimatePresence>
+                    {isOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-40"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute top-full left-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl p-1"
+                            >
+                                <a
+                                    href={googleUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setIsOpen(false)}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                                        <CalendarIcon date={startTime} className="w-8 h-8" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-white">Google</span>
+                                        <span className="text-[9px] text-slate-500 uppercase tracking-tighter">Web Calendar</span>
+                                    </div>
+                                </a>
+                                <button
+                                    onClick={() => {
+                                        handleCalendarAdd();
+                                        setIsOpen(false);
+                                    }}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group w-full text-left"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
+                                        <Download className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-white">Apple / Outlook</span>
+                                        <span className="text-[9px] text-slate-500 uppercase tracking-tighter">Download .ics</span>
+                                    </div>
+                                </button>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
+
+    if (compact || variant === "compact") {
+        return (
+            <div className={cn("flex flex-col gap-3", className)}>
                 <a
                     href={googleUrl}
                     target="_blank"
