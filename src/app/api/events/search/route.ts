@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchCachedEvents } from "@/lib/cache/event-cache";
-import { calculateTrustScore } from "@/lib/ai/trust-score";
+import { calculateTrustScoresBulk } from "@/lib/ai/trust-score";
 
 export async function POST(req: NextRequest) {
     try {
@@ -53,16 +53,12 @@ export async function POST(req: NextRequest) {
         }));
 
         if (friendIds && friendIds.length > 0) {
-            const scored = await Promise.all(candidates.map(async (event) => {
-                const { score, reason } = await calculateTrustScore(event, friendIds);
-                return {
-                    ...event,
-                    matchPercentage: Math.round(score * 100),
-                    reason
-                };
-            }));
-            // Sort by trust score
-            results = scored.sort((a, b) => b.matchPercentage - a.matchPercentage);
+            const scores = await calculateTrustScoresBulk(candidates as any[], friendIds);
+            results = candidates.map((event, i) => ({
+                ...event,
+                matchPercentage: Math.round(scores[i].score * 100),
+                reason: scores[i].reason,
+            })).sort((a, b) => b.matchPercentage - a.matchPercentage);
         }
 
         return NextResponse.json({

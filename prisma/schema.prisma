@@ -54,6 +54,8 @@ model Profile {
   zelleHandle         String?
   cashappHandle       String?
   applePayHandle      String?
+  availableStatus     String?
+  availableUntil      DateTime?
   conversationsA      Conversation[]         @relation("ConversationA")
   conversationsB      Conversation[]         @relation("ConversationB")
   directMessages      DirectMessage[]
@@ -239,6 +241,8 @@ model HangoutActivityOption {
   hangoutId       String
   cachedEventId   String
   groupTrustScore Float       @default(0.5)
+  matchScore      Int?
+  matchReasoning  String?
   displayOrder    Int         @default(0)
   createdAt       DateTime    @default(now())
   cachedEvent     CachedEvent @relation(fields: [cachedEventId], references: [id])

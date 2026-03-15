@@ -7,11 +7,13 @@ import { auth } from "@clerk/nextjs/server";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { query, latitude, longitude, targetDate, radiusMiles = 50, scenario = null } = body;
+        const { query, latitude, longitude, radiusMiles = 50, scenario = null } = body;
+        // Default targetDate to today if not provided
+        const targetDate: string = body.targetDate || new Date().toISOString().split("T")[0];
 
-        if (!query || !latitude || !longitude || !targetDate) {
+        if (!query || !latitude || !longitude) {
             return NextResponse.json(
-                { error: "query, latitude, longitude, and targetDate are required" },
+                { error: "query, latitude, and longitude are required" },
                 { status: 400 }
             );
         }
@@ -59,13 +61,26 @@ export async function POST(req: NextRequest) {
             performers: e.performers || [],
             matchPercentage: 95,
             reason: "AI identified this activity for you",
+            searchLinks: e.searchLinks || null,
+            isSuggested: !!e.searchLinks, // true = AI suggestion (not verified real-time), false = grounded result
         }));
+
+        // Always include platform links so users can find verified real-time events
+        const hasSuggested = formatted.some(e => e.isSuggested);
+        const platformLinks = {
+            eventbrite: `https://www.eventbrite.com/d/--/${encodeURIComponent(query)}/?start_date=${targetDate}`,
+            google: `https://www.google.com/search?q=${encodeURIComponent(query + " events " + targetDate)}`,
+            ticketmaster: `https://www.ticketmaster.com/search?q=${encodeURIComponent(query)}`,
+            facebook: `https://www.facebook.com/events/search/?q=${encodeURIComponent(query)}`,
+        };
 
         return NextResponse.json({
             events: formatted,
             count: formatted.length,
             query,
             targetDate,
+            hasSuggested,
+            platformLinks,
         });
 
     } catch (error) {

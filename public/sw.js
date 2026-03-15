@@ -1,5 +1,5 @@
 // Plans App — Service Worker
-const CACHE_NAME = "plans-v1";
+const CACHE_NAME = "plans-v2";
 const PRECACHE_URLS = [
     "/",
     "/manifest.json",
@@ -55,10 +55,6 @@ self.addEventListener("fetch", (event) => {
 
 // Push Notification Handler
 self.addEventListener("push", (event) => {
-    if (navigator.setAppBadge) {
-        navigator.setAppBadge().catch(console.error);
-    }
-
     const defaultData = {
         title: "Plans",
         body: "You have a new update",
@@ -83,8 +79,10 @@ self.addEventListener("push", (event) => {
             badge: data.badge,
             data: { url: data.url },
             vibrate: [100, 50, 100],
+            tag: data.url,    // collapse duplicate notifications for the same page
+            renotify: true,
             actions: [
-                { action: "open", title: "Open" },
+                { action: "open",    title: "Open" },
                 { action: "dismiss", title: "Dismiss" },
             ],
         })

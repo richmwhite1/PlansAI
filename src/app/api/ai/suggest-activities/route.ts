@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedEvents } from "@/lib/cache/event-cache";
 import { prisma } from "@/lib/prisma";
-import { calculateTrustScore } from "@/lib/ai/trust-score";
+import { calculateTrustScoresBulk } from "@/lib/ai/trust-score";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { hangoutId, latitude, longitude, radius = 5000, friendIds, targetDate, scenario } = body;
+        const { hangoutId, latitude, longitude, radius = 5000, friendIds, targetDate, scenario, persistScores } = body;
 
         if (!latitude || !longitude) {
             return NextResponse.json({ error: "Location required" }, { status: 400 });
@@ -55,38 +55,45 @@ export async function POST(req: NextRequest) {
             candidates = [...candidates, ...newFallback];
         }
 
-        // 2. Calculate Trust Scores
-        // In real implementation: Fetch participant profiles -> Calculate overlap
-
-        const candidatesWithScores = await Promise.all(candidates.map(async (event) => {
-            try {
-                // In the future, pass fullContextString into calculateTrustScore or similar
-                const { score, reason } = await calculateTrustScore(event, friendIds || []);
-
-                // Score logic removed as scenario is gone
-                let finalScore = score;
-                let finalReason = reason;
-
-                return {
-                    ...event,
-                    matchPercentage: Math.round(finalScore * 100),
-                    reason: finalReason
-                };
-            } catch (err) {
-                console.error(`Error calculating score for event ${event.id}:`, err);
-                return {
-                    ...event,
-                    matchPercentage: 70, // Default safe score
-                    reason: "Popular Global Option"
-                };
-            }
-        }));
+        // 2. Calculate Trust Scores — single DB fetch for all candidates
+        let candidatesWithScores: any[];
+        try {
+            const scores = await calculateTrustScoresBulk(candidates as any[], friendIds || []);
+            candidatesWithScores = candidates.map((event, i) => ({
+                ...event,
+                matchPercentage: Math.round(scores[i].score * 100),
+                reason: scores[i].reason,
+            }));
+        } catch (err) {
+            console.error("Bulk trust score error:", err);
+            candidatesWithScores = candidates.map((event) => ({
+                ...event,
+                matchPercentage: 70,
+                reason: "Popular nearby",
+            }));
+        }
 
         // 3. Sort by score
         const sorted = candidatesWithScores.sort((a, b) => b.matchPercentage - a.matchPercentage);
+        const top5 = sorted.slice(0, 5);
+
+        // 4. If a hangoutId is provided and persistScores is requested, back-fill match scores
+        if (hangoutId && persistScores) {
+            await Promise.allSettled(
+                top5.map(activity =>
+                    prisma.hangoutActivityOption.updateMany({
+                        where: { hangoutId, cachedEventId: activity.id },
+                        data: {
+                            matchScore: activity.matchPercentage,
+                            matchReasoning: activity.reason ?? null,
+                        },
+                    })
+                )
+            );
+        }
 
         return NextResponse.json({
-            activities: sorted.slice(0, 5) // Return top 5
+            activities: top5
         });
 
     } catch (error) {

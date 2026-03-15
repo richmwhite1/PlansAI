@@ -245,6 +245,7 @@ export function HangoutPageClient({
                         <div className="w-full pointer-events-auto transform transition-all duration-500 rounded-3xl" style={{ boxShadow: '0 0 80px -20px rgba(212,163,115,0.3)' }}>
                             <GuestJoinForm
                                 hangoutId={hangout.id}
+                                hangoutSlug={hangout.slug}
                                 guestsToClaim={guestsToClaim}
                                 currentGuest={currentUserParticipant?.guest}
                             />
@@ -415,6 +416,8 @@ export function HangoutPageClient({
                                     address: opt.cachedEvent.address,
                                     imageUrl: opt.cachedEvent.imageUrl
                                 },
+                                matchScore: opt.matchScore ?? null,
+                                matchReasoning: opt.matchReasoning ?? null,
                                 votes: opt.votes.map((v: any) => ({ userId: v.profileId || v.guestId || "unknown", value: v.value })),
                                 userVote: opt.votes.find((v: any) => v.profileId === profile?.id || (currentUserParticipant && v.guestId === currentUserParticipant.guestId))?.value || 0
                             }))}

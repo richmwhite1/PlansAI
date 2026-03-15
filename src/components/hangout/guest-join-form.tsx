@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowRight, User, Check } from "lucide-react";
+import { Loader2, ArrowRight, User, Check, CalendarDays, Bell, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { setGuestCookie } from "@/app/actions/guest-actions";
@@ -13,11 +13,13 @@ interface Guest {
 
 interface GuestJoinFormProps {
     hangoutId: string;
+    hangoutSlug?: string;
     guestsToClaim?: Guest[];
     currentGuest?: any;
 }
 
-export function GuestJoinForm({ hangoutId, guestsToClaim = [], currentGuest }: GuestJoinFormProps) {
+export function GuestJoinForm({ hangoutId, hangoutSlug, guestsToClaim = [], currentGuest }: GuestJoinFormProps) {
+    const redirectPath = `/hangouts/${hangoutSlug ?? hangoutId}`;
     const router = useRouter();
     const [name, setName] = useState("");
     const [isJoining, setIsJoining] = useState(false);
@@ -211,21 +213,39 @@ export function GuestJoinForm({ hangoutId, guestsToClaim = [], currentGuest }: G
                 </button>
             </form>
 
-            <div className="relative mt-8">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/10" />
+            {/* Conversion card */}
+            <div className="mt-6 bg-white/[0.03] border border-white/8 rounded-2xl p-5 space-y-4">
+                <div className="space-y-1">
+                    <p className="text-sm font-bold text-white">Make it your home base</p>
+                    <p className="text-xs text-slate-500">Free account — takes 30 seconds</p>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or</span>
+                <ul className="space-y-2.5">
+                    {[
+                        { Icon: CalendarDays, text: "See all your upcoming plans in one place" },
+                        { Icon: Bell, text: "Get notified when votes close or plans change" },
+                        { Icon: Users, text: "Coordinate with your whole circle effortlessly" },
+                    ].map(({ Icon, text }) => (
+                        <li key={text} className="flex items-center gap-2.5 text-xs text-slate-400">
+                            <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                            {text}
+                        </li>
+                    ))}
+                </ul>
+                <div className="flex flex-col gap-2 pt-1">
+                    <a
+                        href={`/sign-up?redirect_url=${redirectPath}`}
+                        className="w-full py-2.5 rounded-xl bg-primary text-black text-sm font-bold text-center hover:bg-primary/90 transition-colors"
+                    >
+                        Create free account
+                    </a>
+                    <a
+                        href={`/sign-in?redirect_url=${redirectPath}`}
+                        className="w-full py-2.5 rounded-xl border border-white/10 text-slate-400 text-sm font-medium text-center hover:bg-white/5 transition-colors"
+                    >
+                        Sign in
+                    </a>
                 </div>
             </div>
-
-            <a
-                href="/sign-in"
-                className="block mt-4 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
-            >
-                Sign in to Plans
-            </a>
         </div>
     );
 }

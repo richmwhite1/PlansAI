@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
         const latDegrees = radiusMiles / 69.0;
         const lngDegrees = radiusMiles / (69.0 * Math.cos(lat * (Math.PI / 180)));
 
+        // Evergreen places (isTimeBound: false) don't expire — skip global expiresAt filter
         const baseWhere: any = {
             latitude: { gte: lat - latDegrees, lte: lat + latDegrees },
             longitude: { gte: lng - lngDegrees, lte: lng + lngDegrees },
-            expiresAt: { gt: new Date() },
         };
 
         if (targetDate) {
@@ -78,14 +78,18 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             activities: trending.map((a: any) => ({
                 id: a.id,
+                name: a.name,
                 title: a.name,
                 type: a.category,
-                matchPercentage: 90, // Static for trending
-                reason: trendingCount > 0 ? "Trending in your area" : "Global Trending",
+                category: a.category,
+                matchPercentage: 90,
+                reason: trendingCount > 0 ? "Popular in your area" : "Popular globally",
                 imageUrl: a.imageUrl,
                 rating: a.rating,
                 address: a.address,
-                timesSelected: a.timesSelected
+                latitude: a.latitude,
+                longitude: a.longitude,
+                timesSelected: a.timesSelected,
             }))
         });
 

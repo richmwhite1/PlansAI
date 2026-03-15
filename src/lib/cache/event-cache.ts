@@ -18,10 +18,10 @@ export async function getCachedEvents(
     const minLng = longitude - lngDegrees;
     const maxLng = longitude + lngDegrees;
 
+    // Evergreen places (isTimeBound: false) don't expire — skip global expiresAt filter
     const baseWhere: any = {
         latitude: { gte: minLat, lte: maxLat },
         longitude: { gte: minLng, lte: maxLng },
-        expiresAt: { gt: new Date() }, // Not expired
     };
 
     if (targetDate) {
@@ -83,33 +83,27 @@ export async function getCachedEvents(
 }
 
 async function saveGooglePlacesToCache(googlePlaces: GooglePlace[]): Promise<CachedEvent[]> {
-    const newEvents: CachedEvent[] = [];
+    if (googlePlaces.length === 0) return [];
 
-    for (const place of googlePlaces) {
-        // Skip if already exists (by googlePlaceId)
-        const existing = await prisma.cachedEvent.findUnique({
-            where: { googlePlaceId: place.id },
-        });
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    const staleAt = new Date();
+    staleAt.setDate(staleAt.getDate() + 7);
 
-        if (existing) {
-            newEvents.push(existing);
-            continue;
-        }
-
-        // Map Google types to our simple category
-        const category = mapGoogleTypeToCategory(place.types);
-
-        // Calculate expiration (e.g., 30 days for places)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-
-        // Stale in 7 days
-        const staleAt = new Date();
-        staleAt.setDate(staleAt.getDate() + 7);
-
-        try {
-            const savedEvent = await prisma.cachedEvent.create({
-                data: {
+    const results = await Promise.allSettled(
+        googlePlaces.map(async (place) => {
+            // Upsert — handles duplicates and races gracefully
+            const category = mapGoogleTypeToCategory(place.types);
+            return prisma.cachedEvent.upsert({
+                where: { googlePlaceId: place.id },
+                update: {
+                    // Refresh stale fields on re-fetch
+                    rating: place.rating,
+                    reviewCount: place.userRatingCount,
+                    staleAt,
+                    expiresAt,
+                },
+                create: {
                     googlePlaceId: place.id,
                     name: (place as any).displayName?.text || place.name || "Unknown Place",
                     description: (place as any).editorialSummary?.text || (place.types ? place.types.join(", ") : ""),
@@ -124,15 +118,17 @@ async function saveGooglePlacesToCache(googlePlaces: GooglePlace[]): Promise<Cac
                     expiresAt,
                     staleAt,
                     vibes: mapTypesToVibes(place.types || []),
-                    imageUrl: (place.photos && place.photos.length > 0) ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.GOOGLE_API_KEY}` : undefined,
+                    imageUrl: (place.photos && place.photos.length > 0)
+                        ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.GOOGLE_API_KEY}`
+                        : undefined,
                 },
             });
-            newEvents.push(savedEvent);
-        } catch (err) {
-            console.error(`Failed to cache place ${place.id}:`, err);
-        }
-    }
-    return newEvents;
+        })
+    );
+
+    return results
+        .filter((r): r is PromiseFulfilledResult<CachedEvent> => r.status === "fulfilled")
+        .map((r) => r.value);
 }
 
 export async function searchCachedEvents(
@@ -148,6 +144,7 @@ export async function searchCachedEvents(
     const lngDegrees = radiusMeters / (111000 * Math.cos(latitude * (Math.PI / 180)));
 
     // Base conditions for all searches
+    // Note: expiresAt is NOT applied globally — evergreen places (isTimeBound: false) never expire
     const baseWhere: any = {
         OR: [
             { name: { contains: query, mode: 'insensitive' } },
@@ -156,7 +153,6 @@ export async function searchCachedEvents(
         ],
         latitude: { gte: latitude - latDegrees, lte: latitude + latDegrees },
         longitude: { gte: longitude - lngDegrees, lte: longitude + lngDegrees },
-        expiresAt: { gt: new Date() },
     };
 
     // If there's a specific target date requested, we need to filter timebound events

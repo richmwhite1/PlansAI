@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { useState, useEffect } from "react";
-import { ThumbsUp, ThumbsDown, Share2, MapPin, Star, MoreVertical, Plus, Search, Zap, Trash2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MapPin, Star, Plus, Zap, Trash2, Info } from "lucide-react";
 import { ShareButton } from "./share-button";
 import { ActivitySuggestions } from "../dashboard/activity-suggestions";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,9 @@ interface VotingOption {
         address: string | null;
         imageUrl: string | null;
     };
-    votes: { userId: string; value: number }[]; // Simplification for now
+    matchScore?: number | null;    // 0-100, e.g. 87
+    matchReasoning?: string | null; // e.g. "Matches everyone's shared interest in food"
+    votes: { userId: string; value: number }[];
     userVote?: number; // 1 = Yes, -1 = No, 0 = Neutral
 }
 
@@ -332,12 +334,17 @@ export function HangoutVoting({
                                         >
                                             {option.activity.name}
                                         </a>
-                                        {option.activity.rating && (
-                                            <div className="flex items-center gap-1 text-primary text-xs font-bold bg-primary/10 px-1.5 py-0.5 rounded">
-                                                <Star className="w-3 h-3 fill-current" />
-                                                {option.activity.rating}
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            {option.activity.rating && (
+                                                <div className="flex items-center gap-1 text-primary text-xs font-bold bg-primary/10 px-1.5 py-0.5 rounded">
+                                                    <Star className="w-3 h-3 fill-current" />
+                                                    {option.activity.rating}
+                                                </div>
+                                            )}
+                                            {option.matchScore != null && (
+                                                <MatchScoreBadge score={option.matchScore} reason={option.matchReasoning} />
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <p className="text-xs text-muted-foreground mb-3 truncate pr-4">{option.activity.address}</p>
@@ -413,6 +420,41 @@ export function HangoutVoting({
                     );
                 })}
             </div>
+        </div>
+    );
+}
+
+function MatchScoreBadge({ score, reason }: { score: number; reason?: string | null }) {
+    const [showTip, setShowTip] = useState(false);
+
+    // Color ramp: red → amber → emerald
+    const colorClass =
+        score >= 80 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" :
+        score >= 60 ? "bg-amber-500/20 text-amber-300 border-amber-500/30" :
+                      "bg-slate-700/40 text-slate-400 border-slate-600/30";
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onMouseEnter={() => setShowTip(true)}
+                onMouseLeave={() => setShowTip(false)}
+                onFocus={() => setShowTip(true)}
+                onBlur={() => setShowTip(false)}
+                className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border transition-colors",
+                    colorClass
+                )}
+            >
+                {score}% match
+                {reason && <Info className="w-2.5 h-2.5 opacity-60" />}
+            </button>
+            {showTip && reason && (
+                <div className="absolute right-0 top-full mt-1.5 z-20 w-52 rounded-xl bg-slate-900 border border-white/10 p-3 shadow-2xl text-xs text-slate-300 leading-relaxed pointer-events-none">
+                    <p className="font-semibold text-white mb-1">Why this score?</p>
+                    <p>{reason}</p>
+                </div>
+            )}
         </div>
     );
 }

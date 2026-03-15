@@ -1,42 +1,52 @@
 {
-    "name": "Plans - Social Coordination Engine",
+    "name": "Plans",
     "short_name": "Plans",
-    "description": "AI-powered social gathering coordination",
+    "description": "Coordinate plans with friends — no more group text chaos.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0A0A0A",
-    "theme_color": "#0A0A0A",
+    "background_color": "#0D0D0D",
+    "theme_color": "#0D0D0D",
     "orientation": "portrait",
     "scope": "/",
-    "categories": [
-        "social",
-        "lifestyle"
-    ],
+    "categories": ["social", "lifestyle"],
     "icons": [
         {
             "src": "/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
         },
         {
             "src": "/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
-        }
-    ],
-    "screenshots": [],
-    "shortcuts": [
-        {
-            "name": "Discover Places",
-            "url": "/discover",
-            "description": "Find new activities and hangout spots"
+            "purpose": "any"
         },
         {
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
             "name": "My Plans",
-            "url": "/plans",
-            "description": "View your upcoming hangouts"
+            "url": "/",
+            "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }],
+            "description": "View your upcoming plans"
+        },
+        {
+            "name": "Discover",
+            "url": "/discover",
+            "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }],
+            "description": "Find new activities nearby"
         }
     ]
 }

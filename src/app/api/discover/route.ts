@@ -44,9 +44,8 @@ export async function GET(req: NextRequest) {
         }
 
         if (type === "all" || type === "activities") {
-            const activityWhere: any = {
-                expiresAt: { gt: new Date() },
-            };
+            // Evergreen places (isTimeBound: false) don't need an expiry filter
+            const activityWhere: any = {};
             if (category && category !== "all") {
                 activityWhere.category = category;
             }

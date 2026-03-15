@@ -15,13 +15,11 @@ import { useLocation } from "@/hooks/use-location";
 import { useProfile } from "@/hooks/use-profile";
 import { cn } from "@/lib/utils";
 
-export function DashboardEngine() {
-    const router = useRouter();
-    const { isSignedIn } = useUser();
-    const location = useLocation();
-    const { profile } = useProfile();
+export function DashboardEngine({ onCreated }: { onCreated?: () => void } = {}) {
+    const { isSignedIn, isLoaded } = useUser();
 
-    // Auth guard — shouldn't render for unauthenticated users
+    if (!isLoaded) return null;
+
     if (!isSignedIn) {
         return (
             <div className="glass p-8 rounded-[24px] text-center space-y-4">
@@ -34,6 +32,14 @@ export function DashboardEngine() {
             </div>
         );
     }
+
+    return <DashboardEngineInner onCreated={onCreated} />;
+}
+
+function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
+    const router = useRouter();
+    const location = useLocation();
+    const { profile } = useProfile();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [isMultiDay, setIsMultiDay] = useState(false);
@@ -71,7 +77,7 @@ export function DashboardEngine() {
     const [description, setDescription] = useState("");
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [datePickerValue, setDatePickerValue] = useState("");
-    const [selectionMode, setSelectionMode] = useState<'tonight' | 'tomorrow' | 'custom' | null>(null);
+    const [selectionMode, setSelectionMode] = useState<'tonight' | 'tomorrow' | 'fri' | 'sat' | 'sun' | 'custom' | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
@@ -98,7 +104,7 @@ export function DashboardEngine() {
         });
     };
 
-    const handleDateSelect = (mode: 'tonight' | 'tomorrow' | string) => {
+    const handleDateSelect = (mode: 'tonight' | 'tomorrow' | 'fri' | 'sat' | 'sun' | string) => {
         let actualDate: Date;
         if (mode === 'tonight') {
             actualDate = new Date();
@@ -113,6 +119,16 @@ export function DashboardEngine() {
             actualDate.setDate(actualDate.getDate() + 1);
             actualDate.setHours(19, 0, 0, 0);
             setSelectionMode('tomorrow');
+        } else if (mode === 'fri' || mode === 'sat' || mode === 'sun') {
+            const targetDay = { fri: 5, sat: 6, sun: 0 }[mode];
+            actualDate = new Date();
+            const current = actualDate.getDay();
+            // Days until target (always go forward, skip today if same day)
+            let diff = (targetDay - current + 7) % 7;
+            if (diff === 0) diff = 7; // if today is the target day, go to next week
+            actualDate.setDate(actualDate.getDate() + diff);
+            actualDate.setHours(19, 0, 0, 0);
+            setSelectionMode(mode);
         } else {
             actualDate = new Date(mode);
             setSelectionMode('custom');
@@ -177,6 +193,7 @@ export function DashboardEngine() {
                     toast.success("Hangout created! Invite your guests.");
                 } else {
                     toast.success("Hangout created!");
+                    onCreated?.();
                     router.push(`/hangouts/${data.slug}`);
                 }
             } else {
@@ -447,31 +464,28 @@ export function DashboardEngine() {
                                     </h2>
 
                                     {!isMultiDay && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                onClick={() => handleDateSelect('tonight')}
-                                                className={cn(
-                                                    "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
-                                                    selectionMode === 'tonight'
-                                                        ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
-                                                        : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
-                                                )}
-                                            >
-                                                <Zap className="w-4 h-4" />
-                                                Tonight
-                                            </button>
-                                            <button
-                                                onClick={() => handleDateSelect('tomorrow')}
-                                                className={cn(
-                                                    "p-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border shadow-lg",
-                                                    selectionMode === 'tomorrow'
-                                                        ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
-                                                        : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
-                                                )}
-                                            >
-                                                <Calendar className="w-4 h-4" />
-                                                Tomorrow
-                                            </button>
+                                        <div className="flex gap-2">
+                                            {([
+                                                { mode: 'tonight', label: 'Tonight', Icon: Zap },
+                                                { mode: 'tomorrow', label: 'Tmrw', Icon: Calendar },
+                                                { mode: 'fri', label: 'Fri', Icon: Calendar },
+                                                { mode: 'sat', label: 'Sat', Icon: Calendar },
+                                                { mode: 'sun', label: 'Sun', Icon: Calendar },
+                                            ] as const).map(({ mode, label, Icon }) => (
+                                                <button
+                                                    key={mode}
+                                                    onClick={() => handleDateSelect(mode)}
+                                                    className={cn(
+                                                        "flex-1 py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 border",
+                                                        selectionMode === mode
+                                                            ? "bg-primary text-black border-primary shadow-primary/20 scale-[1.02]"
+                                                            : "bg-slate-800/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10 hover:text-white"
+                                                    )}
+                                                >
+                                                    <Icon className="w-3 h-3" />
+                                                    {label}
+                                                </button>
+                                            ))}
                                         </div>
                                     )}
 

@@ -1,266 +1,156 @@
-"use client";
-
-import { useUser, SignInButton } from "@clerk/nextjs";
-import { motion } from "framer-motion";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { isFuture } from "date-fns";
+import { HomeFeed } from "@/components/dashboard/home-feed";
+import { LandingPage } from "@/components/dashboard/landing-page";
 import { DashboardEngine } from "@/components/dashboard/dashboard-engine";
-import { ArrowRight, Calendar, Download } from "lucide-react";
-import { AnimatedBackground } from "@/components/ui/animated-background";
-import { SpotlightCard } from "@/components/ui/spotlight-card";
 
-export default function Home() {
-  const { isSignedIn, isLoaded } = useUser();
+export default async function Home() {
+    const { userId } = await auth();
 
-  // Show nothing while Clerk loads to avoid flash
-  if (!isLoaded) {
+    // ── Unauthenticated ─────────────────────────────────────────────────────
+    if (!userId) {
+        return <LandingPage />;
+    }
+
+    // ── Authenticated: fetch plans ───────────────────────────────────────────
+    const profile = await prisma.profile.findUnique({ where: { clerkId: userId } });
+
+    // No profile yet (first ever visit before creating one) — show creation form
+    if (!profile) {
+        return (
+            <main className="min-h-screen bg-background p-4 pb-24 md:p-8">
+                <div className="max-w-md mx-auto mt-8">
+                    <DashboardEngine />
+                </div>
+            </main>
+        );
+    }
+
+    const now = new Date();
+
+    const [participations, userVotes, friendships] = await Promise.all([
+        prisma.hangoutParticipant.findMany({
+            where: { profileId: profile.id },
+            include: {
+                hangout: {
+                    include: {
+                        creator: true,
+                        participants: {
+                            take: 5,
+                            include: {
+                                profile: { select: { id: true, displayName: true, avatarUrl: true } },
+                                guest: { select: { id: true, displayName: true } },
+                            },
+                        },
+                        finalActivity: { select: { id: true, name: true, imageUrl: true, address: true } },
+                        activityOptions: {
+                            take: 1,
+                            include: {
+                                cachedEvent: { select: { id: true, name: true, imageUrl: true } },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { hangout: { updatedAt: "desc" } },
+            take: 30,
+        }),
+        prisma.vote.findMany({
+            where: { profileId: profile.id },
+            select: { hangoutId: true },
+            distinct: ["hangoutId"],
+        }),
+        prisma.friendship.findMany({
+            where: {
+                OR: [{ profileAId: profile.id }, { profileBId: profile.id }],
+                status: "ACCEPTED",
+            },
+            include: {
+                profileA: { select: { id: true, displayName: true, avatarUrl: true, availableStatus: true, availableUntil: true } },
+                profileB: { select: { id: true, displayName: true, avatarUrl: true, availableStatus: true, availableUntil: true } },
+            },
+            orderBy: { sharedHangoutCount: "asc" },
+        }),
+    ]);
+
+    const votedHangoutIds = new Set(userVotes.map((v) => v.hangoutId));
+
+    // Deduplicate (same hangout can appear via multiple participant records)
+    const seen = new Set<string>();
+    const hangouts = participations
+        .filter((p) => {
+            if (seen.has(p.hangout.id)) return false;
+            seen.add(p.hangout.id);
+            return true;
+        })
+        .map((p) => ({
+            ...p.hangout,
+            myRole: p.role,
+            myRsvp: p.rsvpStatus,
+            hasVoted: votedHangoutIds.has(p.hangout.id),
+            isCreator: p.hangout.creatorId === profile.id,
+            activity:
+                p.hangout.finalActivity ??
+                (p.hangout.activityOptions[0]?.cachedEvent
+                    ? { name: p.hangout.activityOptions[0].cachedEvent.name, image: p.hangout.activityOptions[0].cachedEvent.imageUrl }
+                    : null),
+        }))
+        .filter((h) => h.status !== "CANCELLED")
+        .sort((a, b) => {
+            const aFuture = a.scheduledFor ? isFuture(new Date(a.scheduledFor)) : false;
+            const bFuture = b.scheduledFor ? isFuture(new Date(b.scheduledFor)) : false;
+            if (aFuture && !bFuture) return -1;
+            if (!aFuture && bFuture) return 1;
+            const aDate = a.scheduledFor ? new Date(a.scheduledFor).getTime() : new Date(a.updatedAt).getTime();
+            const bDate = b.scheduledFor ? new Date(b.scheduledFor).getTime() : new Date(b.updatedAt).getTime();
+            return aDate - bDate;
+        });
+
+    // ── Build circle feed data ───────────────────────────────────────────────
+    const friends = friendships.map((f) => {
+        const other = f.profileAId === profile.id ? f.profileB : f.profileA;
+        const isActive = other.availableStatus && other.availableUntil && new Date(other.availableUntil) > now;
+        return {
+            id: other.id,
+            displayName: other.displayName,
+            avatarUrl: other.avatarUrl,
+            availableStatus: isActive ? other.availableStatus : null,
+        };
+    });
+
+    // Drift: friends not in any upcoming plan with this user
+    const activeHangoutIds = hangouts
+        .filter((h) => h.status !== "COMPLETED" && h.status !== "CANCELLED")
+        .map((h) => h.id);
+
+    let inPlansSet = new Set<string>();
+    if (activeHangoutIds.length > 0) {
+        const coParticipants = await prisma.hangoutParticipant.findMany({
+            where: {
+                hangoutId: { in: activeHangoutIds },
+                profileId: { in: friends.map((f) => f.id) },
+            },
+            select: { profileId: true },
+            distinct: ["profileId"],
+        });
+        inPlansSet = new Set(coParticipants.map((p) => p.profileId!));
+    }
+
+    const driftFriends = friends
+        .filter((f) => !inPlansSet.has(f.id))
+        .slice(0, 3)
+        .map((f) => ({ id: f.id, displayName: f.displayName, avatarUrl: f.avatarUrl }));
+
+    const myStatus = profile.availableStatus && profile.availableUntil && new Date(profile.availableUntil) > now
+        ? profile.availableStatus
+        : null;
+
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </main>
+        <HomeFeed
+            hangouts={hangouts}
+            displayName={profile.displayName}
+            socialFeed={{ friends, driftFriends, myStatus }}
+        />
     );
-  }
-
-  // ─── Authenticated: Show Dashboard Engine ───
-  if (isSignedIn) {
-    return (
-      <main className="min-h-screen bg-background p-4 pb-24 md:p-8">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="max-w-md mx-auto space-y-8 mt-4 mb-20 md:mt-12"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-2"
-          >
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">
-              Gather
-              <span className="bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
-                {" "}better
-              </span>
-              .
-            </h2>
-            <p className="text-slate-400 text-lg">
-              Coordinate plans without the group chat chaos.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <DashboardEngine />
-          </motion.div>
-        </motion.div>
-      </main>
-    );
-  }
-
-  // ─── Unauthenticated: Landing Page ───
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.12, delayChildren: 0.1 },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 30 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
-  };
-
-  const features = [
-    {
-      title: "AI-Powered Ideas",
-      description: "Get personalized activity suggestions based on who's coming, where you are, and the vibe you want.",
-      gradient: "from-amber-500/20 to-orange-500/20",
-    },
-    {
-      title: "Democratic Voting",
-      description: "Stop the endless debate. Everyone swipes on options, and the best plan wins automatically.",
-      gradient: "from-primary/20 to-primary/5",
-    },
-    {
-      title: "Instant Invites",
-      description: "No app required for friends. Send a link, they vote or RSVP in seconds.",
-      gradient: "from-emerald-500/20 to-teal-500/20",
-    },
-  ];
-
-  return (
-    <main className="min-h-screen bg-background overflow-hidden">
-      {/* Ambient background gradients */}
-      <AnimatedBackground />
-
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="relative max-w-lg mx-auto px-6 pt-20 pb-16 space-y-16"
-      >
-        {/* ── Hero ── */}
-        <motion.section variants={item} className="text-center space-y-6">
-          {/* Logo mark */}
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="inline-flex items-center justify-center"
-          >
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-amber-300 flex items-center justify-center shadow-2xl shadow-primary/30">
-              <span className="font-serif font-bold text-black text-3xl italic leading-none pt-1 pr-0.5">
-                P
-              </span>
-            </div>
-          </motion.div>
-
-          <div className="space-y-4">
-            <h1 className="text-5xl md:text-6xl font-serif font-bold text-white leading-tight">
-              Gather
-              <span className="bg-gradient-to-r from-primary to-amber-300 bg-clip-text text-transparent">
-                {" "}better
-              </span>
-              .
-            </h1>
-            <p className="text-lg md:text-xl text-slate-400 max-w-sm mx-auto leading-relaxed">
-              Stop texting back and forth. Start making plans that actually happen.
-            </p>
-          </div>
-
-          {/* Primary CTA */}
-          <div className="flex flex-col items-center gap-3 pt-2">
-            <SignInButton mode="modal">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="relative w-full max-w-xs py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 group animate-glow overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                <span className="relative z-10 flex items-center gap-3">
-                  Get Started
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </motion.button>
-            </SignInButton>
-
-            <button
-              onClick={() => (window as any).triggerInstallPrompt?.()}
-              className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-2 pt-2"
-            >
-              <Download className="w-4 h-4" /> Download App
-            </button>
-
-            <p className="text-sm text-slate-500 mt-2">
-              Free to use · No credit card needed
-            </p>
-          </div>
-        </motion.section>
-
-        {/* ── How it works ── */}
-        <motion.section variants={item} className="space-y-6">
-          <div className="text-center">
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">How it works</p>
-            <h2 className="text-2xl font-serif font-bold text-white">
-              Three steps. Zero chaos.
-            </h2>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-4 pt-4">
-            {[
-              { step: "01", label: "Pick your crew", desc: "Select friends or groups instantly." },
-              { step: "02", label: "Choose an activity", desc: "AI suggests the perfect spot." },
-              { step: "03", label: "Send invites", desc: "One link. No app needed to RSVP." },
-            ].map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-                className="flex-1 text-center space-y-3 relative"
-              >
-                <div className="text-4xl font-serif font-bold text-white/10 select-none">
-                  {s.step}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">{s.label}</h3>
-                  <p className="text-sm text-slate-400 max-w-[200px] mx-auto">{s.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* ── Feature Cards ── */}
-        <motion.section variants={item} className="grid md:grid-cols-1 gap-6">
-          {features.map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
-            >
-              <SpotlightCard className="group p-8" gradient={feature.gradient}>
-                <div className="relative space-y-3">
-                  <h3 className="text-xl font-serif font-bold text-white tracking-wide">
-                    {feature.title}
-                  </h3>
-                  <p className="text-base text-slate-400 leading-relaxed max-w-md">
-                    {feature.description}
-                  </p>
-                </div>
-              </SpotlightCard>
-            </motion.div>
-          ))}
-        </motion.section>
-
-        {/* ── Social proof ── */}
-        <motion.section variants={item} className="text-center space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { value: "10k+", label: "Plans created" },
-              { value: "50k+", label: "Friends invited" },
-              { value: "98%", label: "Show-up rate" },
-            ].map((stat) => (
-              <div key={stat.label} className="space-y-1">
-                <p className="text-2xl font-bold text-white font-serif">{stat.value}</p>
-                <p className="text-xs text-slate-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* ── Bottom CTA ── */}
-        <motion.section variants={item} className="text-center space-y-6 pb-8">
-          <div className="space-y-3">
-            <h2 className="text-3xl font-serif font-bold text-white">
-              Ready to stop planning in group chats?
-            </h2>
-            <p className="text-slate-400">
-              Your friends are waiting.
-            </p>
-          </div>
-
-          <SignInButton mode="modal">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="relative w-full max-w-xs mx-auto py-4 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 group animate-glow overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-              <span className="relative z-10 flex items-center gap-3">
-                Create Your First Plan
-                <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </span>
-            </motion.button>
-          </SignInButton>
-
-          <p className="text-xs text-slate-600 pt-4">
-            Already invited to a plan? Check the link your friend sent you.
-          </p>
-        </motion.section>
-      </motion.div>
-    </main>
-  );
 }

@@ -20,63 +20,68 @@ export interface TrustScoreResult {
 }
 
 /**
- * Calculates the Trust Score for an activity given a group of participants.
- * 
- * Formula:
- * TrustScore = (
- *   0.35 * ParticipantOverlapScore +
- *   0.25 * PreferenceMatchScore +
- *   0.20 * VibeHistoryScore +
- *   0.15 * VenueQualityScore +
- *   0.05 * RecencyBoost
- * )
+ * Fetches participant profiles once, then scores all activities in a single pass.
+ * Use this when scoring multiple activities to avoid N+1 DB queries.
+ */
+export async function calculateTrustScoresBulk(
+    activities: CachedEvent[],
+    participantIds: string[]
+): Promise<TrustScoreResult[]> {
+    if (participantIds.length === 0) {
+        return activities.map(() => ({
+            score: 0.5,
+            breakdown: { overlap: 0.5, preferences: 0.5, vibes: 0.5, quality: 0.5, recency: 0.5 },
+            reason: "Popular nearby",
+        }));
+    }
+
+    // Single DB fetch for all participants
+    const participants = await prisma.profile.findMany({
+        where: { id: { in: participantIds } },
+        include: { friendshipsA: true, friendshipsB: true },
+    });
+
+    return activities.map((activity) => {
+        if (participants.length === 0) {
+            return { score: 0.5, breakdown: { overlap: 0.5, preferences: 0.5, vibes: 0.5, quality: 0.5, recency: 0.5 }, reason: "No participants" };
+        }
+        const overlapScore = calculateParticipantOverlap(participants, activity);
+        const preferenceScore = calculatePreferenceMatch(participants, activity);
+        const vibeScore = calculateVibeHistory(participants, activity);
+        const qualityScore = calculateVenueQuality(activity);
+        const recencyScore = 1.0; // MVP placeholder
+
+        const totalScore =
+            (0.35 * overlapScore) +
+            (0.25 * preferenceScore) +
+            (0.20 * vibeScore) +
+            (0.15 * qualityScore) +
+            (0.05 * recencyScore);
+
+        return {
+            score: parseFloat(totalScore.toFixed(2)),
+            breakdown: {
+                overlap: parseFloat(overlapScore.toFixed(2)),
+                preferences: parseFloat(preferenceScore.toFixed(2)),
+                vibes: parseFloat(vibeScore.toFixed(2)),
+                quality: parseFloat(qualityScore.toFixed(2)),
+                recency: parseFloat(recencyScore.toFixed(2)),
+            },
+            reason: generateReason(preferenceScore, vibeScore, qualityScore, activity, participants),
+        };
+    });
+}
+
+/**
+ * Calculates the Trust Score for a single activity.
+ * Prefer calculateTrustScoresBulk when scoring multiple activities.
  */
 export async function calculateTrustScore(
     activity: CachedEvent,
     participantIds: string[]
 ): Promise<TrustScoreResult> {
-    // 1. Fetch Participant Data (Profiles + Friendships)
-    const participants = await prisma.profile.findMany({
-        where: { id: { in: participantIds } },
-        include: {
-            friendshipsA: true,
-            friendshipsB: true,
-        },
-    });
-
-    if (participants.length === 0) {
-        return { score: 0.5, breakdown: { overlap: 0.5, preferences: 0.5, vibes: 0.5, quality: 0.5, recency: 0.5 }, reason: "No participants" };
-    }
-
-    // 2. Calculate Component Scores
-    const overlapScore = calculateParticipantOverlap(participants, activity);
-    const preferenceScore = calculatePreferenceMatch(participants, activity);
-    const vibeScore = calculateVibeHistory(participants, activity);
-    const qualityScore = calculateVenueQuality(activity);
-    const recencyScore = await calculateRecencyBoost(participants, activity);
-
-    // 3. Weighted Sum
-    const totalScore =
-        (0.35 * overlapScore) +
-        (0.25 * preferenceScore) +
-        (0.20 * vibeScore) +
-        (0.15 * qualityScore) +
-        (0.05 * recencyScore);
-
-    // 4. Generate Reason
-    const reason = generateReason(preferenceScore, vibeScore, qualityScore, activity);
-
-    return {
-        score: parseFloat(totalScore.toFixed(2)),
-        breakdown: {
-            overlap: parseFloat(overlapScore.toFixed(2)),
-            preferences: parseFloat(preferenceScore.toFixed(2)),
-            vibes: parseFloat(vibeScore.toFixed(2)),
-            quality: parseFloat(qualityScore.toFixed(2)),
-            recency: parseFloat(recencyScore.toFixed(2)),
-        },
-        reason
-    };
+    const results = await calculateTrustScoresBulk([activity], participantIds);
+    return results[0];
 }
 
 // --- Helper Functions ---
@@ -171,9 +176,23 @@ async function calculateRecencyBoost(participants: any[], activity: any): Promis
     return 1.0;
 }
 
-function generateReason(pref: number, vibe: number, quality: number, activity: any): string {
-    if (pref > 0.8) return `Matches group interests in ${activity.category}`;
-    if (quality > 0.8) return `Highly rated ${activity.category}`;
-    if (vibe > 0.7) return `Fits the group's vibe`;
-    return `Popular ${activity.category} nearby`;
+function generateReason(pref: number, vibe: number, quality: number, activity: any, participants?: any[]): string {
+    const name = activity.name || activity.category;
+    const category = (activity.category || "option").toLowerCase();
+
+    // Gather shared dietary flags from participants for more specific messaging
+    const allDietary = participants?.flatMap(p => {
+        const prefs = p.preferences as any || {};
+        return prefs.dietary || p.dietaryPreferences || [];
+    }) ?? [];
+    const dietaryNote = allDietary.length > 0 ? ` — ${[...new Set(allDietary)].slice(0, 2).join(" & ")} friendly` : "";
+
+    if (pref > 0.8 && participants && participants.length > 1) {
+        return `Matches everyone's shared interest in ${category}${dietaryNote}`;
+    }
+    if (pref > 0.8) return `Matches your interest in ${category}`;
+    if (quality > 0.85 && activity.rating) return `Top-rated ${category} (${activity.rating}★)`;
+    if (vibe > 0.75) return `Fits the group vibe${dietaryNote}`;
+    if (quality > 0.7) return `Well-rated ${category} nearby`;
+    return `Popular ${category} in the area`;
 }

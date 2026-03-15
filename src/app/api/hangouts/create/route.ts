@@ -141,12 +141,14 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Generate Smart Title
+        const creatorFirstName = user?.firstName || creator.displayName?.split(" ")[0] || "Someone";
+
         let title = "New Hangout";
         if (activityNames.length === 1) {
             title = activityNames[0];
         } else if (activityNames.length > 1) {
-            title = `${activityNames[0]} or ${activityNames[1]}`;
-            if (activityNames.length > 2) title += "...";
+            // Multiple options → voting mode; use human-readable phrasing
+            title = `Voting on what to do with ${creatorFirstName}`;
         }
 
         if (participantProfileIds.length > 0) {
@@ -159,13 +161,17 @@ export async function POST(req: NextRequest) {
                 .map(p => p.displayName?.split(" ")[0])
                 .filter(Boolean);
 
-            if (friendNames.length === 1) {
-                title = `${title} with ${friendNames[0]}`;
-            } else if (friendNames.length === 2) {
-                title = `${title} with ${friendNames[0]} & ${friendNames[1]}`;
-            } else if (friendNames.length > 2) {
-                title = `${title} with ${friendNames[0]} & ${friendNames.length - 1} others`;
+            if (activityNames.length === 1) {
+                // Single activity — append friend names as before
+                if (friendNames.length === 1) {
+                    title = `${title} with ${friendNames[0]}`;
+                } else if (friendNames.length === 2) {
+                    title = `${title} with ${friendNames[0]} & ${friendNames[1]}`;
+                } else if (friendNames.length > 2) {
+                    title = `${title} with ${friendNames[0]} & ${friendNames.length - 1} others`;
+                }
             }
+            // For multi-activity voting titles the "with [Organizer]" is already included
         }
 
         // 3a. Handle Guests

@@ -2,8 +2,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as crypto from "crypto";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Gemini uses its own API key from Google AI Studio (aistudio.google.com)
+// Falls back to GOOGLE_API_KEY if GEMINI_API_KEY is not set (may not have grounding)
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+const genAI = new GoogleGenerativeAI(geminiApiKey);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 function hashQuery(query: string, lat: number, lng: number): string {
     return crypto.createHash("md5").update(`${query}:${lat.toFixed(2)}:${lng.toFixed(2)}`).digest("hex");
@@ -83,25 +86,30 @@ export async function findPlacesWithAI(query: string, lat: number, lng: number, 
  * events happening on a specific date near a given location.
  * Results are cached aggressively so one search serves all users in the area.
  */
+function buildEventSearchLinks(query: string, lat: number, lng: number, targetDate: string) {
+    const encoded = encodeURIComponent(query);
+    const dateFormatted = targetDate; // YYYY-MM-DD
+    return {
+        eventbrite: `https://www.eventbrite.com/d/--/${encoded}/?start_date=${dateFormatted}`,
+        google: `https://www.google.com/search?q=${encoded}+events+near+me+${dateFormatted}`,
+        ticketmaster: `https://www.ticketmaster.com/search?q=${encoded}`,
+        facebook: `https://www.facebook.com/events/search/?q=${encoded}`,
+    };
+}
+
 export async function findEventsWithAI(
     query: string,
     lat: number,
     lng: number,
-    targetDate: string, // ISO date string like "2026-02-26"
+    targetDate: string,
     radiusMiles: number = 50,
     userContext?: string
 ): Promise<any[]> {
-    // Use Gemini with Google Search grounding to find real events
-    const searchModel = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
-        tools: [{ googleSearch: {} } as any],
-    });
-
     const contextBlock = userContext ? `\nThe user/group has these preferences: ${userContext}\nPrioritize events that align with these preferences when possible.\n` : "";
 
-    const prompt = `Find real events matching "${query}" happening on or around ${targetDate} within ${radiusMiles} miles of coordinates ${lat}, ${lng}.
+    const eventPrompt = `Find real events matching "${query}" happening on or around ${targetDate} within ${radiusMiles} miles of coordinates ${lat}, ${lng}.
 ${contextBlock}
-I need REAL events that are actually scheduled — concerts, festivals, shows, sports games, community events, workshops, etc.
+I need events that are actually scheduled — concerts, festivals, shows, sports games, community events, workshops, etc.
 
 Return a JSON array of up to 8 events. Each event object must have:
 - "name": The event name (string)
@@ -117,49 +125,83 @@ Return a JSON array of up to 8 events. Each event object must have:
 - "lat": Approximate latitude (number)
 - "lng": Approximate longitude (number)
 
-CRITICAL: Only include events you can verify are real and actually happening. Do NOT make up events.
 Return JSON array only. No markdown, no explanation.`;
 
-    try {
-        console.log(`[EventSearch] Searching for "${query}" on ${targetDate} near ${lat},${lng}...`);
-        const result = await searchModel.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-
-        let events: any[] = [];
+    const parseEvents = (text: string, source: string): any[] => {
         try {
-            events = JSON.parse(text);
-            if (!Array.isArray(events)) events = [];
-        } catch (parseErr) {
-            console.error("[EventSearch] Failed to parse AI response:", text.substring(0, 200));
+            const events = JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+            if (!Array.isArray(events)) return [];
+            console.log(`[EventSearch] Found ${events.length} events via ${source}`);
+            return events.map((e: any, i: number) => ({
+                id: `ai_event_${Date.now()}_${i}`,
+                name: e.name || "Unknown Event",
+                description: e.description || "",
+                category: e.category || "Other",
+                subcategory: e.venue || "",
+                address: e.address || "",
+                latitude: e.lat || lat,
+                longitude: e.lng || lng,
+                source: "AI_EPHEMERAL",
+                isTimeBound: true,
+                startsAt: new Date(e.date || targetDate),
+                endsAt: (() => { const d = new Date(e.date || targetDate); d.setHours(23, 59, 59, 999); return d; })(),
+                ticketUrl: e.ticketUrl || null,
+                eventUrl: e.ticketUrl || null,
+                priceRange: e.priceRange || null,
+                performers: e.performers || [],
+                rating: null,
+                searchLinks: source === "fallback" ? buildEventSearchLinks(query, lat, lng, targetDate) : undefined,
+            }));
+        } catch {
             return [];
         }
+    };
 
-        console.log(`[EventSearch] Found ${events.length} events for "${query}" on ${targetDate}`);
+    // 1. Try Gemini with Google Search grounding (requires GEMINI_API_KEY or GCP project with grounding enabled)
+    try {
+        console.log(`[EventSearch] Trying grounded search for "${query}" on ${targetDate}...`);
+        const searchModel = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash",
+            tools: [{ googleSearch: {} } as any],
+        });
+        const result = await searchModel.generateContent(eventPrompt);
+        const text = result.response.text();
+        const events = parseEvents(text, "grounded");
+        if (events.length > 0) return events;
+    } catch (groundingError: any) {
+        const isDisabled = groundingError?.message?.includes("SERVICE_DISABLED") || groundingError?.status === 403;
+        console.warn(`[EventSearch] Grounded search ${isDisabled ? "API disabled" : "failed"} — trying base model fallback`);
+    }
 
-        // Return ephemeral results (not cached — only seeded when user selects for a hangout)
-        return events.map((e: any, i: number) => ({
-            id: `ai_event_${Date.now()}_${i}`,
-            name: e.name || "Unknown Event",
-            description: e.description || "",
-            category: e.category || "Other",
-            subcategory: e.venue || "",
-            address: e.address || "",
-            latitude: e.lat || lat,
-            longitude: e.lng || lng,
-            source: "AI_EPHEMERAL",
-            isTimeBound: true,
-            startsAt: new Date(e.date || targetDate),
-            endsAt: (() => { const d = new Date(e.date || targetDate); d.setHours(23, 59, 59, 999); return d; })(),
-            ticketUrl: e.ticketUrl || null,
-            eventUrl: e.ticketUrl || null,
-            priceRange: e.priceRange || null,
-            performers: e.performers || [],
-            rating: null,
-        }));
+    // 2. Fallback: base Gemini model (no real-time web, but knows about recurring/typical events)
+    try {
+        console.log(`[EventSearch] Base model fallback for "${query}" on ${targetDate}...`);
+        const fallbackPrompt = `You are a local events assistant. Based on your knowledge, suggest ${query} events that TYPICALLY happen in or near coordinates ${lat}, ${lng} (approximately ${radiusMiles} miles radius) on weekends and evenings. The target date is ${targetDate}.
 
-    } catch (error) {
-        console.error("[EventSearch] Gemini event search failed:", error);
+Focus on recurring venues, clubs, theaters, stadiums that regularly host this type of event. Include the most well-known venues for "${query}" in this area.
+
+Return a JSON array of up to 6 suggestions. Include:
+- "name": Event/show name or "Comedy Night at [Venue]" style
+- "venue": The venue name
+- "address": Approximate address
+- "date": "${targetDate}"
+- "time": Typical show time (e.g. "8:00 PM") or null
+- "description": 1-2 sentence description
+- "category": Category string
+- "ticketUrl": Venue website or ticketing page URL if you know it
+- "priceRange": Typical price range or null
+- "performers": Array of typical performers (can be empty)
+- "lat": Venue latitude
+- "lng": Venue longitude
+
+Return JSON array only. No markdown.`;
+
+        const result = await model.generateContent(fallbackPrompt);
+        const text = result.response.text();
+        const events = parseEvents(text, "fallback");
+        return events;
+    } catch (fallbackError) {
+        console.error("[EventSearch] Both grounded and fallback searches failed:", fallbackError);
         return [];
     }
 }

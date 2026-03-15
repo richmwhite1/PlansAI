@@ -151,11 +151,20 @@ export default async function JoinPage(props: JoinPageProps & { searchParams: Pr
                         </Link>
                     </div>
 
-                    {/* Sign In Prompt */}
+                    {/* Conversion banner — shown to guests only */}
                     {!userId && (
-                        <p className="text-xs text-slate-500">
-                            <Link href="/sign-in" className="text-primary hover:underline">Sign in</Link> to sync with your account
-                        </p>
+                        <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-left space-y-1">
+                            <p className="text-sm font-medium text-white">Save your RSVP & get reminders</p>
+                            <p className="text-xs text-slate-400">
+                                Your response is saved for now, but creating a free account keeps your history and sends you updates.
+                            </p>
+                            <Link
+                                href={`/sign-up?redirect_url=/hangouts/${hangout.slug}`}
+                                className="inline-block mt-1 text-xs font-semibold text-primary hover:underline"
+                            >
+                                Create free account →
+                            </Link>
+                        </div>
                     )}
                 </div>
 

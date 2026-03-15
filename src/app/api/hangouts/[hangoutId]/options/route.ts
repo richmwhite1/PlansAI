@@ -13,7 +13,7 @@ export async function POST(
         }
 
         const { hangoutId } = await context.params;
-        const { cachedEventId } = await req.json();
+        const { cachedEventId, matchScore, matchReasoning } = await req.json();
 
         if (!cachedEventId) {
             return NextResponse.json({ error: "Missing cachedEventId" }, { status: 400 });
@@ -38,7 +38,9 @@ export async function POST(
             data: {
                 hangoutId,
                 cachedEventId,
-                displayOrder: 99 // Add to end
+                displayOrder: 99, // Add to end
+                matchScore: matchScore ?? null,
+                matchReasoning: matchReasoning ?? null,
             },
             include: {
                 cachedEvent: true

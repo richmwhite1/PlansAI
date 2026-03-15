@@ -4,9 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BrainCircuit, Star, MapPin, Search, X, Loader2, Check, Plus, Link, Users } from "lucide-react";
 import { cn, calculateDistance } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import debounce from "lodash.debounce";
+
+// Module-level cache: survives component remounts within same session
+// Key: "query|lat|lng|distMiles" → Activity[]
+const searchCache = new Map<string, Activity[]>();
+const CACHE_MAX = 50; // evict oldest entries after this limit
 
 interface Activity {
     id: string;
@@ -162,7 +166,7 @@ export function ActivitySuggestions({
         setIsAddingCustom(false);
     };
 
-    // Unified Search Handler (DB + Google)
+    // Unified Search Handler (DB + Google) with client-side cache
     const handleSearch = async (query: string) => {
         setSearchQuery(query);
         if (!query.trim()) {
@@ -171,13 +175,21 @@ export function ActivitySuggestions({
             return;
         }
 
-        setIsSearchingApi(true);
         setHasSearched(true);
-        debouncedFetch(query, location, distanceFilter, friendIds, targetDate);
+
+        // Show cached results immediately (stale-while-revalidate)
+        const cacheKey = `${query.toLowerCase().trim()}|${location.lat.toFixed(3)}|${location.lng.toFixed(3)}|${distanceFilter}`;
+        const cached = searchCache.get(cacheKey);
+        if (cached) {
+            setSearchResults(cached);
+        }
+
+        setIsSearchingApi(true);
+        debouncedFetch(query, location, distanceFilter, friendIds, targetDate, cacheKey);
     };
 
     const debouncedFetch = useCallback(
-        debounce(async (q: string, loc: any, dist: number, fIds: string[], date: Date | undefined) => {
+        debounce(async (q: string, loc: any, dist: number, fIds: string[], date: Date | undefined, cacheKey: string) => {
             try {
                 const res = await fetch("/api/events/search", {
                     method: "POST",
@@ -193,7 +205,7 @@ export function ActivitySuggestions({
                 });
                 const data = await res.json();
                 if (data.activities) {
-                    setSearchResults(data.activities.map((a: any) => ({
+                    const mapped = data.activities.map((a: any) => ({
                         id: a.id,
                         title: a.name,
                         type: a.category,
@@ -203,15 +215,22 @@ export function ActivitySuggestions({
                         rating: a.rating,
                         address: a.address,
                         latitude: a.latitude,
-                        longitude: a.longitude
-                    })));
+                        longitude: a.longitude,
+                        timesSelected: a.timesSelected,
+                    }));
+                    // Save to module-level cache
+                    if (searchCache.size >= CACHE_MAX) {
+                        searchCache.delete(searchCache.keys().next().value!);
+                    }
+                    searchCache.set(cacheKey, mapped);
+                    setSearchResults(mapped);
                 }
             } catch (err) {
                 console.error("Search failed:", err);
             } finally {
                 setIsSearchingApi(false);
             }
-        }, 800),
+        }, 600),
         []
     );
 
@@ -527,10 +546,20 @@ export function ActivitySuggestions({
             </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                {isThinking && !hasSearched ? (
-                    <div className="py-12 flex flex-col items-center justify-center gap-3">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-xs text-muted-foreground">Consulting AI experts...</p>
+                {isThinking && !hasSearched && filteredOptions.length === 0 ? (
+                    // Skeleton loading — less disorienting than a blank spinner
+                    <div className="space-y-2">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5 animate-pulse">
+                                <div className="w-20 h-20 rounded-xl bg-white/5 shrink-0" />
+                                <div className="flex-1 space-y-2 py-1">
+                                    <div className="h-4 bg-white/5 rounded-lg w-3/4" />
+                                    <div className="h-3 bg-white/5 rounded-lg w-1/2" />
+                                    <div className="h-3 bg-white/5 rounded-lg w-2/3" />
+                                </div>
+                            </div>
+                        ))}
+                        <p className="text-center text-[10px] font-medium text-slate-600 pt-1">Finding what's nearby...</p>
                     </div>
                 ) : filteredOptions.length > 0 ? (
                     filteredOptions.map((activity, i) => {
