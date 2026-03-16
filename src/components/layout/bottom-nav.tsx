@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Compass, Calendar, Users, User, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -16,8 +16,28 @@ const DashboardEngine = dynamic(
 
 export function BottomNav() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const { isSignedIn, isLoaded } = useUser();
     const [showCreate, setShowCreate] = useState(false);
+    const [preselectedFriend, setPreselectedFriend] = useState<{ id: string; name: string; avatar: string } | null>(null);
+
+    // Auto-open create sheet when arriving via ?with= deep link
+    useEffect(() => {
+        const withId = searchParams?.get("with");
+        const wname = searchParams?.get("wname");
+        const wavatar = searchParams?.get("wavatar");
+        if (withId && isSignedIn) {
+            setPreselectedFriend({ id: withId, name: decodeURIComponent(wname ?? ""), avatar: decodeURIComponent(wavatar ?? "") });
+            setShowCreate(true);
+            // Clean up URL without re-render
+            const url = new URL(window.location.href);
+            url.searchParams.delete("with");
+            url.searchParams.delete("wname");
+            url.searchParams.delete("wavatar");
+            router.replace(url.pathname + (url.search || ""));
+        }
+    }, [searchParams, isSignedIn]);
 
     // Hide bottom nav for unauthenticated users
     if (!isLoaded || !isSignedIn) return null;
@@ -131,7 +151,7 @@ export function BottomNav() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-                            onClick={() => setShowCreate(false)}
+                            onClick={() => { setShowCreate(false); setPreselectedFriend(null); }}
                         />
                         <motion.div
                             key="sheet"
@@ -144,14 +164,17 @@ export function BottomNav() {
                             <div className="sticky top-0 flex items-center justify-between px-6 py-4 bg-[#0D0D0D] border-b border-white/5 z-10">
                                 <h2 className="text-lg font-serif font-bold text-white">New Plan</h2>
                                 <button
-                                    onClick={() => setShowCreate(false)}
+                                    onClick={() => { setShowCreate(false); setPreselectedFriend(null); }}
                                     className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
                                 >
                                     <X className="w-4 h-4 text-white/60" />
                                 </button>
                             </div>
                             <div className="p-4 pb-10">
-                                <DashboardEngine onCreated={() => setShowCreate(false)} />
+                                <DashboardEngine
+                                    onCreated={() => { setShowCreate(false); setPreselectedFriend(null); }}
+                                    initialFriend={preselectedFriend ?? undefined}
+                                />
                             </div>
                         </motion.div>
                     </>

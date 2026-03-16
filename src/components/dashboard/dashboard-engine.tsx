@@ -15,7 +15,7 @@ import { useLocation } from "@/hooks/use-location";
 import { useProfile } from "@/hooks/use-profile";
 import { cn } from "@/lib/utils";
 
-export function DashboardEngine({ onCreated }: { onCreated?: () => void } = {}) {
+export function DashboardEngine({ onCreated, initialFriend }: { onCreated?: () => void; initialFriend?: { id: string; name: string; avatar: string } } = {}) {
     const { isSignedIn, isLoaded } = useUser();
 
     if (!isLoaded) return null;
@@ -33,10 +33,10 @@ export function DashboardEngine({ onCreated }: { onCreated?: () => void } = {}) 
         );
     }
 
-    return <DashboardEngineInner onCreated={onCreated} />;
+    return <DashboardEngineInner onCreated={onCreated} initialFriend={initialFriend} />;
 }
 
-function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
+function DashboardEngineInner({ onCreated, initialFriend }: { onCreated?: () => void; initialFriend?: { id: string; name: string; avatar: string } }) {
     const router = useRouter();
     const location = useLocation();
     const { profile } = useProfile();
@@ -69,7 +69,9 @@ function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
         setIsEditingZip(false);
     };
 
-    const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+    const [selectedFriends, setSelectedFriends] = useState<any[]>(
+        initialFriend ? [{ id: initialFriend.id, name: initialFriend.name, avatar: initialFriend.avatar, isGuest: false }] : []
+    );
     const [allowGuestsToInvite, setAllowGuestsToInvite] = useState(false);
     const [isPublic, setIsPublic] = useState(false);
     const [selectedActivities, setSelectedActivities] = useState<any[]>([]);

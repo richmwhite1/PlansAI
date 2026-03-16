@@ -492,7 +492,7 @@ export default function FriendsPage() {
                                         </div>
                                     </Link>
                                     <a
-                                        href={`/?with=${friend.id}`}
+                                        href={`/?with=${friend.id}&wname=${encodeURIComponent(friend.name)}&wavatar=${encodeURIComponent(friend.avatar)}`}
                                         className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/25 transition-colors opacity-0 group-hover:opacity-100"
                                         title="Plan something together"
                                     >

@@ -201,13 +201,21 @@ export function HangoutCard({ hangout, variant, onRsvpChange }: HangoutCardProps
                             {status.label}
                         </span>
 
-                        {/* Going count badge */}
-                        {goingCount > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold text-slate-400 bg-white/5 border border-white/5">
-                                <Users className="w-3 h-3" />
-                                {goingCount} going
-                            </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                            {/* Recurring badge */}
+                            {hangout.recurrenceRule && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20">
+                                    ↻ {hangout.recurrenceRule === "WEEKLY" ? "Weekly" : hangout.recurrenceRule === "BIWEEKLY" ? "Biweekly" : "Monthly"}
+                                </span>
+                            )}
+                            {/* Going count badge */}
+                            {goingCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold text-slate-400 bg-white/5 border border-white/5">
+                                    <Users className="w-3 h-3" />
+                                    {goingCount} going
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* TITLE */}
