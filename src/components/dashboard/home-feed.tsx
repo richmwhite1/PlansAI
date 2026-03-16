@@ -143,7 +143,6 @@ function MiniCalendar({
 
 export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [showPast, setShowPast] = useState(false);
     const feedRef = useRef<HTMLDivElement>(null);
 
     // When a date is selected, scroll the feed into view smoothly
@@ -163,6 +162,18 @@ export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
         if (h.status === "PLANNING" || h.status === "VOTING") return false;
         return isPast(new Date(h.scheduledFor));
     }), [hangouts]);
+
+    const pendingRecapCount = useMemo(() =>
+        pastHangouts.filter((h) => !h.hasFeedback && h.isParticipant).length,
+    [pastHangouts]);
+
+    // Auto-expand past section when any events need a recap
+    const [showPast, setShowPast] = useState(() =>
+        hangouts.some((h) => {
+            if (!h.scheduledFor || h.status === "PLANNING" || h.status === "VOTING") return false;
+            return isPast(new Date(h.scheduledFor)) && !h.hasFeedback && h.isParticipant;
+        })
+    );
 
     const activeHangouts = useMemo(() => hangouts.filter((h) => !pastHangouts.includes(h)), [hangouts, pastHangouts]);
 
@@ -345,6 +356,12 @@ export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
                                     )}
                                 />
                                 Past ({pastHangouts.length})
+                                {pendingRecapCount > 0 && (
+                                    <span className="flex items-center gap-1 ml-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                                        {pendingRecapCount} recap{pendingRecapCount > 1 ? "s" : ""} needed
+                                    </span>
+                                )}
                             </button>
                             <AnimatePresence>
                                 {showPast && (

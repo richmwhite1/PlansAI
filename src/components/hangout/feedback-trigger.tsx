@@ -14,15 +14,16 @@ interface FeedbackTriggerProps {
 
 export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, isParticipant }: FeedbackTriggerProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [done, setDone] = useState(hasFeedback);
 
     // Auto-open 1.5 s after landing so the user sees the page first
     useEffect(() => {
-        if (!isParticipant || hasFeedback || !isPast) return;
+        if (!isParticipant || done || !isPast) return;
         const t = setTimeout(() => setIsOpen(true), 1500);
         return () => clearTimeout(t);
-    }, [isParticipant, hasFeedback, isPast]);
+    }, [isParticipant, done, isPast]);
 
-    if (!isParticipant || hasFeedback || !isPast) return null;
+    if (!isParticipant || done || !isPast) return null;
 
     return (
         <>
@@ -50,6 +51,7 @@ export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, 
                 hangoutTitle={hangoutTitle}
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
+                onComplete={() => setDone(true)}
             />
         </>
     );

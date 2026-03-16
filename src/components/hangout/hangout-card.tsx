@@ -2,10 +2,11 @@
 
 import NextLink from "next/link";
 import { format, formatDistanceToNow, isFuture } from "date-fns";
-import { MapPin, Clock, Check, X, Zap, Users, CalendarPlus } from "lucide-react";
+import { MapPin, Clock, Check, X, Zap, Users, CalendarPlus, Camera, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { FeedbackModal } from "./feedback-modal";
 
 interface HangoutCardProps {
     hangout: any;
@@ -45,6 +46,8 @@ export function HangoutCard({ hangout, variant, onRsvpChange }: HangoutCardProps
     const [myRsvp, setMyRsvp] = useState<string>(hangout.myRsvp ?? "PENDING");
     const [hasVoted, setHasVoted] = useState<boolean>(hangout.hasVoted ?? false);
     const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+    const [recapOpen, setRecapOpen] = useState(false);
+    const [recapDone, setRecapDone] = useState(hangout.hasFeedback ?? false);
 
     const heroImage =
         hangout.finalActivity?.imageUrl ||
@@ -111,6 +114,118 @@ export function HangoutCard({ hangout, variant, onRsvpChange }: HangoutCardProps
     const goingCount = hangout.participants?.filter(
         (p: any) => p.rsvpStatus === "GOING"
     ).length ?? 0;
+
+    // ── Compact "memory" card for past events ──────────────────────────────
+    if (variant === "past") {
+        const pastDate = hangout.scheduledFor ? new Date(hangout.scheduledFor) : null;
+        const needsRecap = !recapDone && (hangout.isParticipant !== false);
+
+        return (
+            <>
+                <motion.div
+                    whileTap={{ scale: 0.99 }}
+                    transition={{ duration: 0.12 }}
+                    className="relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.025]"
+                >
+                    {/* Subtle background */}
+                    <div className={cn("absolute inset-0 bg-gradient-to-br opacity-20", gradient)} />
+                    {heroImage && (
+                        <img
+                            src={heroImage}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover opacity-[0.07]"
+                        />
+                    )}
+
+                    {/* Main row — tappable, goes to detail */}
+                    <NextLink href={`/hangouts/${hangout.slug}`} className="relative flex items-center gap-3 p-4">
+                        {/* Date block */}
+                        {pastDate ? (
+                            <div className="shrink-0 w-10 text-center">
+                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                                    {format(pastDate, "MMM")}
+                                </p>
+                                <p className="text-2xl font-black text-slate-300 leading-none">
+                                    {format(pastDate, "d")}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="shrink-0 w-10" />
+                        )}
+
+                        {/* Divider */}
+                        <div className="shrink-0 w-px h-8 bg-white/8" />
+
+                        {/* Title + location */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                            <h3 className="font-bold text-slate-200 text-sm leading-snug truncate">
+                                {hangout.title}
+                            </h3>
+                            {activityName && (
+                                <p className="text-[11px] text-slate-500 flex items-center gap-1 truncate">
+                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                    {activityName}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Participant avatars */}
+                        {hangout.participants && hangout.participants.length > 0 && (
+                            <div className="flex -space-x-1.5 shrink-0">
+                                {hangout.participants.slice(0, 4).map((p: any) => {
+                                    const name = p.profile?.displayName || p.guest?.displayName || "?";
+                                    const avatar = p.profile?.avatarUrl;
+                                    return (
+                                        <div
+                                            key={p.id}
+                                            className="w-6 h-6 rounded-full ring-1 ring-background overflow-hidden bg-slate-700 shrink-0"
+                                        >
+                                            {avatar ? (
+                                                <img src={avatar} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-300 bg-slate-800">
+                                                    {name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {hangout.participants.length > 4 && (
+                                    <div className="w-6 h-6 rounded-full ring-1 ring-background bg-slate-800 flex items-center justify-center text-[8px] text-slate-400 font-bold">
+                                        +{hangout.participants.length - 4}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </NextLink>
+
+                    {/* Recap CTA — amber band at bottom */}
+                    {needsRecap && (
+                        <button
+                            onClick={() => setRecapOpen(true)}
+                            className="relative w-full flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border-t border-amber-500/20 hover:bg-amber-500/15 transition-colors"
+                        >
+                            <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="text-xs font-bold text-amber-300 flex-1 text-left">
+                                Add your recap · photos &amp; reflection
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-amber-500/60" />
+                        </button>
+                    )}
+                </motion.div>
+
+                {recapOpen && (
+                    <FeedbackModal
+                        hangoutId={hangout.id}
+                        hangoutTitle={hangout.title}
+                        isOpen={recapOpen}
+                        onClose={() => setRecapOpen(false)}
+                        onComplete={() => setRecapDone(true)}
+                    />
+                )}
+            </>
+        );
+    }
 
     return (
         <NextLink href={`/hangouts/${hangout.slug}`} className="block group">

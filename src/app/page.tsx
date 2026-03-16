@@ -50,6 +50,10 @@ export default async function Home() {
                                 cachedEvent: { select: { id: true, name: true, imageUrl: true } },
                             },
                         },
+                        feedbacks: {
+                            where: { profileId: profile.id },
+                            select: { id: true },
+                        },
                     },
                 },
             },
@@ -90,6 +94,8 @@ export default async function Home() {
             myRsvp: p.rsvpStatus,
             hasVoted: votedHangoutIds.has(p.hangout.id),
             isCreator: p.hangout.creatorId === profile.id,
+            hasFeedback: p.hangout.feedbacks.length > 0,
+            isParticipant: p.rsvpStatus !== "NOT_GOING",
             activity:
                 p.hangout.finalActivity ??
                 (p.hangout.activityOptions[0]?.cachedEvent
