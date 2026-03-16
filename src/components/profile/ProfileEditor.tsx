@@ -131,6 +131,36 @@ export function ProfileEditor({ initialData }: ProfileEditorProps) {
                     onEdit={() => setIsEditing(true)}
                 />
 
+                {/* Profile completeness banner */}
+                {completeness < 100 && (
+                    <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-white">
+                                Profile {completeness}% complete
+                            </p>
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                            >
+                                Complete it →
+                            </button>
+                        </div>
+                        <div className="w-full h-2 bg-white/8 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-primary rounded-full transition-all duration-700"
+                                style={{ width: `${completeness}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500">
+                            {completeness < 40
+                                ? "A fuller profile helps Plans match you with better activities and friends."
+                                : completeness < 80
+                                ? "Almost there — add your vibe tags and preferences."
+                                : "Just a few more fields to reach 100%."}
+                        </p>
+                    </div>
+                )}
+
                 {/* Summary Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, MessageCircle, Loader2, Check, LogOut, User, Download } from "lucide-react";
+import { Bell, MessageCircle, Loader2, Check, LogOut, User, Download, CalendarDays, Zap, DollarSign, UserPlus, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -95,6 +95,19 @@ function MessagesBadge() {
             )}
         </Link>
     );
+}
+
+function NotifIcon({ type }: { type: string }) {
+    const base = "w-3.5 h-3.5 shrink-0";
+    if (type === "HANGOUT_INVITE" || type === "HANGOUT_UPDATE" || type === "HANGOUT_REMINDER")
+        return <CalendarDays className={cn(base, "text-primary")} />;
+    if (type === "FRIEND_REQUEST" || type === "FRIEND_ACCEPTED")
+        return <UserPlus className={cn(base, "text-emerald-400")} />;
+    if (type === "PAYMENT_RECEIVED" || type === "PAYMENT_CONFIRMED")
+        return <DollarSign className={cn(base, "text-amber-400")} />;
+    if (type === "SYSTEM")
+        return <Zap className={cn(base, "text-primary")} />;
+    return <Bell className={cn(base, "text-slate-400")} />;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -231,26 +244,29 @@ function NotificationsDropdown() {
                                         )}
                                     >
                                         <div className="flex gap-3">
-                                            <div className="flex-1 space-y-1">
+                                            <div className="w-7 h-7 rounded-full bg-white/5 border border-white/8 flex items-center justify-center shrink-0 mt-0.5">
+                                                <NotifIcon type={n.type} />
+                                            </div>
+                                            <div className="flex-1 space-y-0.5 min-w-0">
                                                 {n.link ? (
                                                     <Link
                                                         href={n.link}
                                                         onClick={() => markAsRead(n.id, n.link)}
-                                                        className="text-sm text-slate-200 hover:text-primary block"
+                                                        className="text-sm text-slate-200 hover:text-primary block leading-snug"
                                                     >
                                                         {n.content}
                                                     </Link>
                                                 ) : (
-                                                    <p className="text-sm text-slate-200">{n.content}</p>
+                                                    <p className="text-sm text-slate-200 leading-snug">{n.content}</p>
                                                 )}
-                                                <p className="text-[10px] text-slate-500">
+                                                <p className="text-[10px] text-slate-600">
                                                     {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                                                 </p>
                                             </div>
                                             {!n.isRead && (
                                                 <button
                                                     onClick={() => markAsRead(n.id)}
-                                                    className="self-center p-1 text-primary hover:bg-primary/20 rounded-full"
+                                                    className="self-start mt-1.5 p-1 text-primary hover:bg-primary/20 rounded-full shrink-0"
                                                 >
                                                     <div className="w-2 h-2 rounded-full bg-primary" />
                                                 </button>
