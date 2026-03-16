@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Zap, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, MessageSquare } from "lucide-react";
 import { FeedbackModal } from "./feedback-modal";
 
 interface FeedbackTriggerProps {
@@ -15,31 +15,35 @@ interface FeedbackTriggerProps {
 export function FeedbackTrigger({ hangoutId, hangoutTitle, hasFeedback, isPast, isParticipant }: FeedbackTriggerProps) {
     const [isOpen, setIsOpen] = useState(false);
 
+    // Auto-open 1.5 s after landing so the user sees the page first
+    useEffect(() => {
+        if (!isParticipant || hasFeedback || !isPast) return;
+        const t = setTimeout(() => setIsOpen(true), 1500);
+        return () => clearTimeout(t);
+    }, [isParticipant, hasFeedback, isPast]);
+
     if (!isParticipant || hasFeedback || !isPast) return null;
 
     return (
         <>
-            <div className="glass p-6 rounded-2xl border border-primary/30 bg-primary/5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Zap className="w-12 h-12 text-primary" />
+            <button
+                onClick={() => setIsOpen(true)}
+                className="w-full text-left glass p-5 rounded-2xl border border-primary/30 bg-primary/5 relative overflow-hidden group hover:bg-primary/8 transition-colors"
+            >
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                        <Star className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-white">How was it?</p>
+                        <p className="text-xs text-slate-400">Rate this hangout · 30 seconds</p>
+                    </div>
                 </div>
-
-                <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-primary" />
-                    How was the Activity?
-                </h2>
-                <p className="text-sm text-slate-400 mb-4 max-w-md">
-                    The hangout is over! Share your reflections to help us personalize your future plans.
-                </p>
-
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
-                >
-                    <MessageSquare className="w-4 h-4" />
-                    Give Feedback
-                </button>
-            </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl w-fit shadow-lg shadow-primary/20">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Leave feedback
+                </div>
+            </button>
 
             <FeedbackModal
                 hangoutId={hangoutId}

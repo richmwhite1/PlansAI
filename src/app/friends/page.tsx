@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { Search, UserPlus, Loader2, Check, ArrowLeft, Users, Share2, Clock } from "lucide-react";
+import { Search, UserPlus, Loader2, Check, ArrowLeft, Users, Share2, Clock, CalendarPlus, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -481,11 +481,24 @@ export default function FriendsPage() {
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-foreground truncate">{friend.name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {friend.sharedHangouts} hangout{friend.sharedHangouts !== 1 ? "s" : ""} together
-                                            </p>
+                                            {(friend.sharedHangouts ?? 0) > 0 ? (
+                                                <p className="text-xs text-primary/70 flex items-center gap-1 mt-0.5">
+                                                    <Zap className="w-3 h-3" />
+                                                    {friend.sharedHangouts} plan{friend.sharedHangouts !== 1 ? "s" : ""} together
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground mt-0.5">No plans yet</p>
+                                            )}
                                         </div>
                                     </Link>
+                                    <a
+                                        href={`/?with=${friend.id}`}
+                                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/25 transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Plan something together"
+                                    >
+                                        <CalendarPlus className="w-3.5 h-3.5" />
+                                        Plan
+                                    </a>
                                 </div>
                             ))}
                         </div>

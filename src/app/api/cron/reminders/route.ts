@@ -155,7 +155,108 @@ export async function GET(request: Request) {
             paymentRemindersSent++;
         }
 
-        return NextResponse.json({ success: true, remindersSent, votingClosed, paymentRemindersSent });
+        // --- Weekend nudge (Thursday/Friday only) ---
+        let weekendNudgesSent = 0;
+        const dayOfWeek = now.getDay(); // 0=Sun ... 4=Thu, 5=Fri
+
+        if (dayOfWeek === 4 || dayOfWeek === 5) {
+            // Compute weekend window (Fri 00:00 → Sun 23:59)
+            const daysUntilFri = dayOfWeek === 5 ? 0 : 1;
+            const weekendStart = new Date(now);
+            weekendStart.setDate(now.getDate() + daysUntilFri);
+            weekendStart.setHours(0, 0, 0, 0);
+
+            const weekendEnd = new Date(weekendStart);
+            weekendEnd.setDate(weekendStart.getDate() + 2); // Fri→Sun
+            weekendEnd.setHours(23, 59, 59, 999);
+
+            // Find profiles with active weekend availability
+            const availableProfiles = await prisma.profile.findMany({
+                where: {
+                    availableStatus: { in: ["WEEKEND", "FRIDAY", "SATURDAY", "SUNDAY"] },
+                    availableUntil: { gte: now },
+                },
+                select: { id: true, displayName: true },
+            });
+
+            if (availableProfiles.length > 0) {
+                const availableIds = availableProfiles.map((p) => p.id);
+
+                // Find all accepted friendships involving available profiles
+                const friendships = await prisma.friendship.findMany({
+                    where: {
+                        status: "ACCEPTED",
+                        OR: [
+                            { profileAId: { in: availableIds } },
+                            { profileBId: { in: availableIds } },
+                        ],
+                    },
+                    select: { profileAId: true, profileBId: true },
+                });
+
+                // Collect friends-of-available who are NOT themselves already available
+                const idsToNudge = new Set<string>();
+                for (const f of friendships) {
+                    if (availableIds.includes(f.profileAId)) idsToNudge.add(f.profileBId);
+                    if (availableIds.includes(f.profileBId)) idsToNudge.add(f.profileAId);
+                }
+                for (const id of availableIds) idsToNudge.delete(id);
+
+                for (const userId of idsToNudge) {
+                    // Skip if already has a weekend plan
+                    const hasWeekendPlan = await prisma.hangoutParticipant.findFirst({
+                        where: {
+                            profileId: userId,
+                            rsvpStatus: { in: ["GOING", "MAYBE"] },
+                            hangout: {
+                                status: { notIn: ["CANCELLED", "COMPLETED"] },
+                                scheduledFor: { gte: weekendStart, lte: weekendEnd },
+                            },
+                        },
+                    });
+                    if (hasWeekendPlan) continue;
+
+                    // Which of their friends are available?
+                    const freeFriendIds = friendships
+                        .filter(
+                            (f) =>
+                                (f.profileAId === userId && availableIds.includes(f.profileBId)) ||
+                                (f.profileBId === userId && availableIds.includes(f.profileAId))
+                        )
+                        .map((f) => (f.profileAId === userId ? f.profileBId : f.profileAId));
+
+                    const freeFriends = availableProfiles.filter((p) => freeFriendIds.includes(p.id));
+                    if (freeFriends.length === 0) continue;
+
+                    const names = freeFriends.slice(0, 2).map((f) => f.displayName?.split(" ")[0] ?? "Someone");
+                    const nudgeBody =
+                        freeFriends.length === 1
+                            ? `${names[0]} is free this weekend — nothing on your plans yet`
+                            : `${names[0]} & ${freeFriends.length - 1} other${freeFriends.length > 2 ? "s" : ""} are free this weekend`;
+
+                    await prisma.notification
+                        .create({
+                            data: {
+                                userId,
+                                type: "SYSTEM" as const,
+                                content: nudgeBody,
+                                link: "/",
+                            },
+                        })
+                        .catch(() => {});
+
+                    await sendPushToUser(userId, {
+                        title: "Weekend plans? 🌅",
+                        body: nudgeBody,
+                        url: "/",
+                    });
+
+                    weekendNudgesSent++;
+                }
+            }
+        }
+
+        return NextResponse.json({ success: true, remindersSent, votingClosed, paymentRemindersSent, weekendNudgesSent });
     } catch (error: any) {
         console.error("Failed to run reminders cron:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

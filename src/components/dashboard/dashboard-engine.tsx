@@ -81,6 +81,7 @@ function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
     const [isCreating, setIsCreating] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [createdHangoutData, setCreatedHangoutData] = useState<{ inviteUrl: string; slug: string } | null>(null);
+    const [recurrenceRule, setRecurrenceRule] = useState<string | null>(null);
 
     // Sync voting mode with selection count
     const handleToggleActivity = (activity: any) => {
@@ -174,7 +175,8 @@ function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
                     description,
                     isVotingEnabled,
                     allowGuestsToInvite,
-                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY"
+                    visibility: isPublic ? "PUBLIC" : "FRIENDS_ONLY",
+                    recurrenceRule,
                 }),
             });
 
@@ -522,6 +524,45 @@ function DashboardEngineInner({ onCreated }: { onCreated?: () => void }) {
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
+                                </div>
+
+                                {/* Recurring toggle */}
+                                <div className="flex items-center justify-between bg-slate-900/50 p-3.5 rounded-xl border border-white/5">
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-200">Make this recurring?</p>
+                                        {recurrenceRule && (
+                                            <div className="flex gap-1.5 mt-1.5">
+                                                {["WEEKLY", "BIWEEKLY", "MONTHLY"].map((rule) => (
+                                                    <button
+                                                        key={rule}
+                                                        type="button"
+                                                        onClick={() => setRecurrenceRule(rule)}
+                                                        className={cn(
+                                                            "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                                                            recurrenceRule === rule
+                                                                ? "bg-primary/20 border-primary/40 text-primary"
+                                                                : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10"
+                                                        )}
+                                                    >
+                                                        {rule === "BIWEEKLY" ? "Every 2 wks" : rule === "WEEKLY" ? "Weekly" : "Monthly"}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRecurrenceRule(prev => prev ? null : "WEEKLY")}
+                                        className={cn(
+                                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4",
+                                            recurrenceRule ? "bg-primary" : "bg-slate-700"
+                                        )}
+                                    >
+                                        <span className={cn(
+                                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                            recurrenceRule ? "translate-x-6" : "translate-x-1"
+                                        )} />
+                                    </button>
                                 </div>
 
                                 <button

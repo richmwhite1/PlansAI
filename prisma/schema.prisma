@@ -142,6 +142,7 @@ model Hangout {
   isVotingEnabled             Boolean                 @default(false)
   allowGuestsToInvite         Boolean                 @default(false)
   isMultiDay                  Boolean                 @default(false)
+  recurrenceRule              String?
   discoverable                DiscoverableHangout?
   creator                     Profile                 @relation("HangoutCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   finalActivity               CachedEvent?            @relation(fields: [finalActivityId], references: [id])

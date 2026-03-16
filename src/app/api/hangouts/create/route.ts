@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
             allowParticipantSuggestions, // Added
             endDate, // Added for Phase 9
             isMultiDay, // Events feature
+            recurrenceRule, // Recurring plans
         } = body;
 
         const effectiveVisibility = visibility === "PUBLIC" ? "PUBLIC" : "FRIENDS_ONLY";
@@ -210,6 +211,7 @@ export async function POST(req: NextRequest) {
                 // @ts-ignore - Prisma cache issue
                 endDate: endDate ? new Date(endDate) : undefined,
                 isMultiDay: isMultiDay || false,
+                recurrenceRule: recurrenceRule || null,
                 votingEndsAt: effectiveVotingEnabled ? (
                     effectiveWhen
                         ? new Date(new Date(effectiveWhen).getTime() - 1000 * 60 * 60 * 2) // 2 hours before event
