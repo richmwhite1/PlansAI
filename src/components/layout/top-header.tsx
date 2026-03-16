@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, MessageCircle, Loader2, Check, LogOut, User, Download, CalendarDays, Zap, DollarSign, UserPlus, Send } from "lucide-react";
+import { Bell, MessageCircle, Loader2, Check, LogOut, User, Download, CalendarDays, Zap, DollarSign, UserPlus, Send, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -355,6 +355,14 @@ function UserMenu() {
                                 <Download className="w-4 h-4" />
                                 Download App
                             </button>
+                            <Link
+                                href="/settings"
+                                onClick={() => setIsOpen(false)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                            >
+                                <Settings className="w-4 h-4" />
+                                Settings
+                            </Link>
                             <button
                                 onClick={() => signOut({ redirectUrl: "/" })}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"

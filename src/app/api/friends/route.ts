@@ -62,6 +62,37 @@ export async function GET(req: NextRequest) {
         });
         console.log("Friends API: Found", friendships.length, "friendships");
 
+        // Compute per-friend last shared hangout date (2-query approach)
+        const friendProfileIds = friendships
+            .map((f: any) => f.profileAId === profile.id ? f.profileBId : f.profileAId)
+            .filter(Boolean);
+
+        const myParticipations = await prisma.hangoutParticipant.findMany({
+            where: { profileId: profile.id },
+            select: { hangoutId: true },
+        });
+        const myHangoutIds = myParticipations.map((p: any) => p.hangoutId);
+
+        const sharedParticipations = myHangoutIds.length > 0 && friendProfileIds.length > 0
+            ? await prisma.hangoutParticipant.findMany({
+                where: {
+                    profileId: { in: friendProfileIds },
+                    hangoutId: { in: myHangoutIds },
+                },
+                include: {
+                    hangout: { select: { scheduledFor: true } },
+                },
+                orderBy: { hangout: { scheduledFor: 'desc' } },
+            })
+            : [];
+
+        const lastHangoutMap = new Map<string, Date>();
+        for (const p of sharedParticipations) {
+            if (p.profileId && p.hangout?.scheduledFor && !lastHangoutMap.has(p.profileId)) {
+                lastHangoutMap.set(p.profileId, new Date(p.hangout.scheduledFor));
+            }
+        }
+
         // Extract friend profiles
         console.log("Friends API: Formatting friends list...");
         const friends = friendships.map((f: any) => {
@@ -70,13 +101,16 @@ export async function GET(req: NextRequest) {
                 console.log("Friends API: WARNING - Friend profile is null for friendship", f.id);
                 return null;
             }
+            const friendId: string = friend.id;
             return {
-                id: friend.id,
+                id: friendId,
                 name: friend.displayName || friend.email || "Unknown",
-                avatar: friend.avatarUrl || `https://i.pravatar.cc/150?u=${friend.id}`,
+                avatar: friend.avatarUrl || `https://i.pravatar.cc/150?u=${friendId}`,
                 sharedHangouts: f.sharedHangoutCount,
                 status: f.status,
-                isRequester: f.profileAId === profile.id
+                isRequester: f.profileAId === profile.id,
+                createdAt: f.createdAt,
+                lastHangoutAt: lastHangoutMap.get(friendId)?.toISOString() || null,
             };
         }).filter(Boolean);
 

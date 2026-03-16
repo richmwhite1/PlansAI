@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { Search, UserPlus, Loader2, Check, ArrowLeft, Users, Share2, Clock, CalendarPlus, Zap } from "lucide-react";
+import { Search, UserPlus, Loader2, Check, Clock, Users, Share2, CalendarPlus, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 interface User {
     id: string;
@@ -21,6 +22,73 @@ interface User {
 
 interface Friend extends User {
     sharedHangouts?: number;
+    lastHangoutAt?: string | null;
+    createdAt?: string;
+}
+
+function getRelationshipHealth(friend: Friend): {
+    label: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    ringColor: string;
+    score: number;
+} {
+    const count = friend.sharedHangouts ?? 0;
+    const lastDate = friend.lastHangoutAt ? new Date(friend.lastHangoutAt) : null;
+    const daysSinceLast = lastDate
+        ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+
+    if (count === 0) {
+        return {
+            label: "New friend",
+            color: "text-slate-400",
+            bgColor: "bg-slate-500/10",
+            borderColor: "border-slate-500/20",
+            ringColor: "ring-slate-500/30",
+            score: 10,
+        };
+    }
+    if (daysSinceLast !== null && daysSinceLast <= 30) {
+        const isStreak = count >= 3;
+        return {
+            label: isStreak ? "On a streak" : "Active",
+            color: "text-emerald-400",
+            bgColor: "bg-emerald-500/10",
+            borderColor: "border-emerald-500/20",
+            ringColor: "ring-emerald-500/40",
+            score: 90,
+        };
+    }
+    if (daysSinceLast !== null && daysSinceLast <= 90) {
+        return {
+            label: "Cooling",
+            color: "text-amber-400",
+            bgColor: "bg-amber-500/10",
+            borderColor: "border-amber-500/20",
+            ringColor: "ring-amber-500/30",
+            score: 50,
+        };
+    }
+    if (daysSinceLast !== null && daysSinceLast > 90) {
+        return {
+            label: "Drifting",
+            color: "text-rose-400",
+            bgColor: "bg-rose-500/10",
+            borderColor: "border-rose-500/20",
+            ringColor: "ring-rose-500/30",
+            score: 20,
+        };
+    }
+    return {
+        label: "Friends",
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        borderColor: "border-primary/20",
+        ringColor: "ring-primary/30",
+        score: 60,
+    };
 }
 
 export default function FriendsPage() {
@@ -109,11 +177,9 @@ export default function FriendsPage() {
             });
 
             if (res.ok) {
-                // Remove from requests
                 const request = requests.find(r => r.id === friendId);
                 setRequests(prev => prev.filter(r => r.id !== friendId));
 
-                // If accepted, add to friends
                 if (action === "ACCEPT" && request) {
                     setFriends(prev => [request, ...prev]);
                     setAddedUsers(prev => new Set([...prev, friendId]));
@@ -129,7 +195,6 @@ export default function FriendsPage() {
             toast.error("Something went wrong");
         }
     };
-
 
     // Search users as you type
     useEffect(() => {
@@ -168,21 +233,14 @@ export default function FriendsPage() {
 
         if (navigator.share) {
             try {
-                // Try sharing with both text and URL
-                await navigator.share({
-                    title,
-                    text,
-                    url,
-                });
+                await navigator.share({ title, text, url });
             } catch (err) {
                 if ((err as Error).name !== 'AbortError') {
-                    // Fallback to clipboard if share failed for other reasons
                     await navigator.clipboard.writeText(fullMessage);
                     toast.success("Link & message copied to clipboard");
                 }
             }
         } else {
-            // Fallback for browsers that don't support share API
             await navigator.clipboard.writeText(fullMessage);
             toast.success("Link & message copied to clipboard");
         }
@@ -206,16 +264,13 @@ export default function FriendsPage() {
             const data = await res.json();
 
             if (res.ok) {
-                // Update local state to reflect SENT status immediately
                 setSentRequests(prev => {
                     const next = new Set(prev);
                     next.add(user.id);
                     return next;
                 });
-
                 toast.success(`Friend request sent to ${user.name}`);
             } else if (res.status === 409) {
-                // Already sent or already friends
                 setSentRequests(prev => {
                     const next = new Set(prev);
                     next.add(user.id);
@@ -422,7 +477,6 @@ export default function FriendsPage() {
                         </h2>
                         <div className="space-y-2">
                             {Array.from(sentRequests).map(id => {
-                                // Try to find user info in suggested or friends or results
                                 const user = suggested.find(u => u.id === id) ||
                                     searchResults.find(u => u.id === id) ||
                                     { id, name: "Pending User", avatar: "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" };
@@ -468,39 +522,80 @@ export default function FriendsPage() {
                         </div>
                     ) : friends.length > 0 ? (
                         <div className="space-y-2">
-                            {friends.map(friend => (
-                                <div
-                                    key={friend.id}
-                                    className="flex items-center gap-3 p-3 bg-card/50 rounded-xl border border-white/5 group"
-                                >
-                                    <Link href={`/profile/${friend.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                                        <img
-                                            src={friend.avatar}
-                                            alt={friend.name}
-                                            className="w-10 h-10 rounded-full bg-slate-800 ring-2 ring-white/5"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-foreground truncate">{friend.name}</p>
-                                            {(friend.sharedHangouts ?? 0) > 0 ? (
-                                                <p className="text-xs text-primary/70 flex items-center gap-1 mt-0.5">
-                                                    <Zap className="w-3 h-3" />
-                                                    {friend.sharedHangouts} plan{friend.sharedHangouts !== 1 ? "s" : ""} together
-                                                </p>
-                                            ) : (
-                                                <p className="text-xs text-muted-foreground mt-0.5">No plans yet</p>
-                                            )}
-                                        </div>
-                                    </Link>
-                                    <a
-                                        href={`/?with=${friend.id}&wname=${encodeURIComponent(friend.name)}&wavatar=${encodeURIComponent(friend.avatar)}`}
-                                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/25 transition-colors opacity-0 group-hover:opacity-100"
-                                        title="Plan something together"
+                            {friends.map(friend => {
+                                const health = getRelationshipHealth(friend);
+                                const isDrifting = health.score < 30 && (friend.sharedHangouts ?? 0) > 0;
+                                const isStreak = health.score >= 70 && (friend.sharedHangouts ?? 0) >= 3;
+
+                                return (
+                                    <div
+                                        key={friend.id}
+                                        className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-xl border border-white/5"
                                     >
-                                        <CalendarPlus className="w-3.5 h-3.5" />
-                                        Plan
-                                    </a>
-                                </div>
-                            ))}
+                                        <Link href={`/profile/${friend.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                                            <img
+                                                src={friend.avatar}
+                                                alt={friend.name}
+                                                className={cn(
+                                                    "w-11 h-11 rounded-full bg-slate-800 ring-2 shrink-0",
+                                                    health.ringColor
+                                                )}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <p className="font-medium text-foreground truncate">{friend.name}</p>
+                                                    <span className={cn(
+                                                        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider shrink-0",
+                                                        health.bgColor,
+                                                        health.color,
+                                                        health.borderColor
+                                                    )}>
+                                                        {isStreak && <span>🔥</span>}
+                                                        {health.label}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-0.5 bg-white/5 rounded-full mt-1.5">
+                                                    <div
+                                                        className={cn(
+                                                            "h-full rounded-full transition-all",
+                                                            health.score >= 70 ? "bg-emerald-500" : health.score >= 40 ? "bg-amber-500" : "bg-rose-500"
+                                                        )}
+                                                        style={{ width: `${health.score}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {(friend.sharedHangouts ?? 0) > 0 ? (
+                                                        <p className="text-xs text-slate-400 flex items-center gap-1">
+                                                            <Zap className="w-3 h-3 text-primary/60" />
+                                                            {friend.sharedHangouts} plan{friend.sharedHangouts !== 1 ? "s" : ""} together
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-500">No hangouts yet</p>
+                                                    )}
+                                                    {friend.lastHangoutAt && (
+                                                        <p className="text-[10px] text-slate-600">
+                                                            · Last {formatDistanceToNow(new Date(friend.lastHangoutAt), { addSuffix: true })}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Link>
+                                        <a
+                                            href={`/?with=${friend.id}&wname=${encodeURIComponent(friend.name)}&wavatar=${encodeURIComponent(friend.avatar)}`}
+                                            className={cn(
+                                                "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors",
+                                                isDrifting
+                                                    ? "bg-amber-500/15 border border-amber-500/30 text-amber-400 hover:bg-amber-500/25"
+                                                    : "bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25"
+                                            )}
+                                            title="Plan something together"
+                                        >
+                                            <CalendarPlus className="w-3.5 h-3.5" />
+                                            {isDrifting ? "Reconnect" : "Plan"}
+                                        </a>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/5">
