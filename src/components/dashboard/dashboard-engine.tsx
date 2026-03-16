@@ -41,7 +41,6 @@ function DashboardEngineInner({ onCreated, initialFriend }: { onCreated?: () => 
     const location = useLocation();
     const { profile } = useProfile();
 
-    const [currentStep, setCurrentStep] = useState(1);
     const [isMultiDay, setIsMultiDay] = useState(false);
     const [endDatePickerValue, setEndDatePickerValue] = useState("");
 
@@ -72,6 +71,8 @@ function DashboardEngineInner({ onCreated, initialFriend }: { onCreated?: () => 
     const [selectedFriends, setSelectedFriends] = useState<any[]>(
         initialFriend ? [{ id: initialFriend.id, name: initialFriend.name, avatar: initialFriend.avatar, isGuest: false }] : []
     );
+    // Auto-advance past "Who?" step when a friend is pre-selected
+    const [currentStep, setCurrentStep] = useState(initialFriend ? 2 : 1);
     const [allowGuestsToInvite, setAllowGuestsToInvite] = useState(false);
     const [isPublic, setIsPublic] = useState(false);
     const [selectedActivities, setSelectedActivities] = useState<any[]>([]);
