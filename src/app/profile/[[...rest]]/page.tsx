@@ -29,7 +29,18 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
             redirect("/profile");
         }
 
-        const targetProfile = await getProfileById(targetProfileId);
+        const [targetProfile, friendship] = await Promise.all([
+            getProfileById(targetProfileId),
+            prisma.friendship.findFirst({
+                where: {
+                    OR: [
+                        { profileAId: myProfile.id, profileBId: targetProfileId },
+                        { profileBId: myProfile.id, profileAId: targetProfileId },
+                    ],
+                },
+                select: { status: true, profileAId: true },
+            }),
+        ]);
 
         if (!targetProfile) {
             return (
@@ -46,10 +57,24 @@ export default async function ProfilePage(props: { params: Promise<{ rest?: stri
             );
         }
 
+        // Derive friendship state from the viewer's perspective
+        let friendshipStatus: "FRIEND" | "SENT" | "RECEIVED" | "NONE" = "NONE";
+        if (friendship) {
+            if (friendship.status === "ACCEPTED") friendshipStatus = "FRIEND";
+            else if (friendship.status === "PENDING") {
+                // SENT if I am profileA (requester), RECEIVED if I am profileB
+                friendshipStatus = friendship.profileAId === myProfile.id ? "SENT" : "RECEIVED";
+            }
+        }
+
         return (
             <div className="min-h-screen p-4 pb-24 max-w-4xl mx-auto">
                 <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <ProfileViewer profile={targetProfile as ExtendedProfile} />
+                    <ProfileViewer
+                        profile={targetProfile as ExtendedProfile}
+                        friendshipStatus={friendshipStatus}
+                        myProfileId={myProfile.id}
+                    />
                 </section>
             </div>
         );

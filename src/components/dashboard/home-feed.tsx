@@ -275,17 +275,48 @@ export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-center space-y-4 py-12"
                         >
                             {selectedDate ? (
-                                <>
+                                <div className="text-center space-y-4 py-12">
                                     <p className="text-4xl">📅</p>
                                     <p className="text-slate-400 text-sm">
                                         No plans on {format(selectedDate, "MMMM d")}.
                                     </p>
-                                </>
+                                </div>
+                            ) : hangouts.length === 0 && (socialFeed?.friends.length ?? 0) === 0 ? (
+                                /* First-run onboarding card */
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-6 space-y-5">
+                                    <div className="text-center space-y-1">
+                                        <p className="text-2xl">👋</p>
+                                        <h3 className="text-lg font-bold text-white">Welcome to Plans</h3>
+                                        <p className="text-slate-500 text-sm">Three steps to your first hangout</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {[
+                                            { step: "1", icon: "🔍", title: "Find your friends", desc: "Search by name and add the people you hang with", href: "/friends", cta: "Find friends" },
+                                            { step: "2", icon: "✨", title: "Create a plan", desc: "Pick an activity, set a date, invite your crew", href: null, cta: "Tap + below" },
+                                            { step: "3", icon: "🔗", title: "Share the link", desc: "Anyone can RSVP — no account needed", href: null, cta: null },
+                                        ].map(({ step, icon, title, desc, href, cta }) => (
+                                            <div key={step} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                                <span className="w-7 h-7 rounded-full bg-primary/15 text-primary text-xs font-black flex items-center justify-center shrink-0 mt-0.5">{step}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-white">{icon} {title}</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                                                </div>
+                                                {href && cta && (
+                                                    <a href={href} className="shrink-0 px-3 py-1.5 rounded-lg bg-primary text-black text-xs font-bold hover:bg-primary/90 transition-colors">
+                                                        {cta}
+                                                    </a>
+                                                )}
+                                                {!href && cta && (
+                                                    <span className="shrink-0 px-3 py-1.5 rounded-lg bg-white/8 border border-white/10 text-slate-400 text-xs font-bold">{cta}</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             ) : (
-                                <>
+                                <div className="text-center space-y-4 py-12">
                                     <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto">
                                         <span className="font-serif font-bold text-primary text-3xl italic">P</span>
                                     </div>
@@ -295,7 +326,7 @@ export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
                                             Tap the <span className="text-primary font-bold">+</span> button to create your first plan.
                                         </p>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </motion.div>
                     )}

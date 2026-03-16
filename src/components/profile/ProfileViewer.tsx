@@ -4,15 +4,18 @@
 import { ProfileHero } from "./ProfileHero";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign, Calendar } from "lucide-react";
+import { Zap, Star, Clock, ShieldAlert, MessageCircle, ArrowLeft, Send, MapPin, Utensils, DollarSign, Calendar, UserPlus, Check, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
 import { ExtendedProfile } from "@/lib/profile-utils";
+import { toast } from "sonner";
 
 interface ProfileViewerProps {
     profile: NonNullable<ExtendedProfile>;
+    friendshipStatus?: "FRIEND" | "SENT" | "RECEIVED" | "NONE";
+    myProfileId?: string;
 }
 
 interface HangoutHistoryItem {
@@ -35,10 +38,12 @@ interface HangoutHistoryItem {
 const ENERGY_LABELS = ["🐢 Very Introverted", "🌿 Introverted", "⚖️ Ambivert", "🌟 Extroverted", "🔥 Very Extroverted"];
 const BUDGET_LABELS = ["$ Free/Cheap", "$$ Moderate", "$$$ Nice", "$$$$ Luxury"];
 
-export function ProfileViewer({ profile }: ProfileViewerProps) {
+export function ProfileViewer({ profile, friendshipStatus: initialStatus = "NONE", myProfileId }: ProfileViewerProps) {
     const { user } = useUser();
     const router = useRouter();
     const [hangoutHistory, setHangoutHistory] = useState<HangoutHistoryItem[]>([]);
+    const [fsStatus, setFsStatus] = useState(initialStatus);
+    const [fsLoading, setFsLoading] = useState(false);
 
     useEffect(() => {
         fetch(`/api/users/${profile.id}/hangout-history`)
@@ -65,6 +70,38 @@ export function ProfileViewer({ profile }: ProfileViewerProps) {
         }
     };
 
+    const handleAddFriend = async () => {
+        setFsLoading(true);
+        try {
+            const res = await fetch("/api/friends/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ friendId: profile.id }),
+            });
+            if (res.ok) {
+                setFsStatus("SENT");
+                toast.success("Friend request sent!");
+            } else {
+                const d = await res.json();
+                toast.error(d.error || "Failed to send request");
+            }
+        } catch { toast.error("Something went wrong"); }
+        finally { setFsLoading(false); }
+    };
+
+    const handleAccept = async () => {
+        setFsLoading(true);
+        try {
+            const res = await fetch("/api/friends/respond", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ friendId: profile.id, action: "ACCEPT" }),
+            });
+            if (res.ok) { setFsStatus("FRIEND"); toast.success("You're now friends!"); }
+        } catch { toast.error("Something went wrong"); }
+        finally { setFsLoading(false); }
+    };
+
     return (
         <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 delay-150 pb-32">
             {/* Header / Nav */}
@@ -80,8 +117,44 @@ export function ProfileViewer({ profile }: ProfileViewerProps) {
                 <ProfileHero
                     profile={profile}
                     isOwner={false}
-                    onMessage={handleMessage}
                 />
+            </div>
+
+            {/* Action bar */}
+            <div className="flex gap-3">
+                {fsStatus === "FRIEND" ? (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold">
+                        <Check className="w-4 h-4" /> Friends
+                    </div>
+                ) : fsStatus === "SENT" ? (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-sm font-bold">
+                        Request sent
+                    </div>
+                ) : fsStatus === "RECEIVED" ? (
+                    <button onClick={handleAccept} disabled={fsLoading}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-black text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-50">
+                        <Check className="w-4 h-4" /> Accept Request
+                    </button>
+                ) : (
+                    <button onClick={handleAddFriend} disabled={fsLoading}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/8 border border-white/10 text-slate-200 text-sm font-bold hover:bg-white/15 transition-colors disabled:opacity-50">
+                        <UserPlus className="w-4 h-4" /> Add Friend
+                    </button>
+                )}
+
+                {fsStatus === "FRIEND" && (
+                    <a
+                        href={`/?with=${profile.id}&wname=${encodeURIComponent(profile.displayName ?? "")}&wavatar=${encodeURIComponent(profile.avatarUrl ?? "")}`}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-bold hover:bg-primary/25 transition-colors"
+                    >
+                        <CalendarPlus className="w-4 h-4" /> Plan Together
+                    </a>
+                )}
+
+                <button onClick={handleMessage}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-slate-400 text-sm font-bold hover:bg-white/10 transition-colors ml-auto">
+                    <MessageCircle className="w-4 h-4" /> Message
+                </button>
             </div>
 
             {/* Summary Grid */}
