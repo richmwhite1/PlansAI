@@ -546,10 +546,28 @@ export default function DiscoverPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-2xl bg-white/3 border border-dashed border-white/8 py-10 text-center">
-                                <MapPin className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                                <p className="text-sm text-slate-400">No places cached for this area yet</p>
-                                <p className="text-xs text-slate-600 mt-1">Search for places above to discover them</p>
+                            <div className="space-y-4">
+                                <p className="text-xs text-slate-500 text-center">No places cached yet — tap a category to explore</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {[
+                                        { emoji: "🍽️", label: "Dinner", category: "restaurant" },
+                                        { emoji: "🎭", label: "Events", category: "activity" },
+                                        { emoji: "🌿", label: "Outdoors", category: "activity" },
+                                    ].map(({ emoji, label, category }) => (
+                                        <button
+                                            key={label}
+                                            onClick={() => {
+                                                setPlaceCategory(category);
+                                                setSearchQuery(label.toLowerCase());
+                                                handleSearch(label.toLowerCase());
+                                            }}
+                                            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-white/5 border border-white/8 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95"
+                                        >
+                                            <span className="text-2xl">{emoji}</span>
+                                            <span className="text-xs font-semibold text-slate-300">{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </section>

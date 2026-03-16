@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 
 const DashboardEngine = dynamic(
     () => import("@/components/dashboard/dashboard-engine").then((m) => m.DashboardEngine),
@@ -172,7 +173,14 @@ export function BottomNav() {
                             </div>
                             <div className="p-4 pb-10">
                                 <DashboardEngine
-                                    onCreated={() => { setShowCreate(false); setPreselectedFriend(null); }}
+                                    onCreated={() => {
+                                        setShowCreate(false);
+                                        setPreselectedFriend(null);
+                                        toast.success("Plan created! 🎉", {
+                                            description: "Share the link with friends to invite them.",
+                                            duration: 4000,
+                                        });
+                                    }}
                                     initialFriend={preselectedFriend ?? undefined}
                                 />
                             </div>

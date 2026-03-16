@@ -276,6 +276,13 @@ function NotificationsDropdown() {
                                 ))
                             )}
                         </div>
+                        <Link
+                            href="/notifications"
+                            onClick={() => setIsOpen(false)}
+                            className="block text-center py-2 text-xs text-primary hover:text-primary/80 font-medium border-t border-white/5 transition-colors"
+                        >
+                            See all notifications →
+                        </Link>
                     </motion.div>
                 )}
             </AnimatePresence>
