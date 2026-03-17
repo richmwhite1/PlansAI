@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Clock, Check, Star } from "lucide-react";
+import { CalendarAvailability } from "./calendar-availability";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +109,8 @@ export function TimeVoting({ hangoutId, options, isParticipant, currentUserId }:
                     );
                 })}
             </div>
+
+            <CalendarAvailability hangoutId={hangoutId} />
         </div>
     );
 }

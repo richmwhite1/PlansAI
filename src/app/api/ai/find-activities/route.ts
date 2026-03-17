@@ -4,6 +4,7 @@ import { searchCachedEvents } from "@/lib/cache/event-cache";
 import { calculateTrustScore } from "@/lib/ai/trust-score";
 import { buildGroupContext, buildHangoutHistoryContext } from "@/lib/ai/user-context";
 import { auth } from "@clerk/nextjs/server";
+import { checkRateLimit, aiRateLimit } from "@/lib/rate-limit";
 
 // In a real app, we'd use an LLM here to expand the query.
 // For now, we'll simulate the "AI Search" by being more aggressive with the search parameters
@@ -11,6 +12,19 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Authentication required for AI features" }, { status: 401 });
+        }
+
+        const rateLimitResult = await checkRateLimit(`ai:${userId}`, aiRateLimit);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "AI usage limit reached. Try again in an hour.", reset: rateLimitResult.reset },
+                { status: 429 }
+            );
+        }
+
         const body = await req.json();
         console.log("AI Find Activities Body:", JSON.stringify(body, null, 2));
 
@@ -34,17 +48,14 @@ export async function POST(req: NextRequest) {
         // Build user/group context for personalized AI fallback
         let userContext = "";
         try {
-            const { userId } = await auth();
-            if (userId) {
-                const profile = await prisma.profile.findUnique({ where: { clerkId: userId }, select: { id: true } });
-                if (profile) {
-                    const allIds = [profile.id, ...(friendIds || [])];
-                    const [groupCtx, historyCtx] = await Promise.all([
-                        buildGroupContext(allIds),
-                        buildHangoutHistoryContext(profile.id),
-                    ]);
-                    userContext = [groupCtx, historyCtx].filter(Boolean).join(" ");
-                }
+            const profile = await prisma.profile.findUnique({ where: { clerkId: userId }, select: { id: true } });
+            if (profile) {
+                const allIds = [profile.id, ...(friendIds || [])];
+                const [groupCtx, historyCtx] = await Promise.all([
+                    buildGroupContext(allIds),
+                    buildHangoutHistoryContext(profile.id),
+                ]);
+                userContext = [groupCtx, historyCtx].filter(Boolean).join(" ");
             }
         } catch (ctxErr) {
             console.error("Failed to build user context (non-fatal):", ctxErr);

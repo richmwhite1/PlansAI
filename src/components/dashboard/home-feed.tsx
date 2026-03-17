@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    ChevronLeft, ChevronRight, ChevronDown,
+    ChevronLeft, ChevronRight, ChevronDown, Zap,
 } from "lucide-react";
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -11,6 +11,8 @@ import {
 } from "date-fns";
 import { HangoutCard } from "@/components/hangout/hangout-card";
 import { CircleFeed } from "@/components/dashboard/circle-feed";
+import { PulseCard } from "@/components/pulse/pulse-card";
+import { CreatePulseModal } from "@/components/pulse/create-pulse-modal";
 import { cn } from "@/lib/utils";
 
 interface SocialFeed {
@@ -19,10 +21,28 @@ interface SocialFeed {
     myStatus: string | null;
 }
 
+interface PulseData {
+    id: string;
+    creatorId: string;
+    creator: { id: string; displayName: string | null; avatarUrl: string | null };
+    targetTime: string;
+    message: string | null;
+    status: string;
+    expiresAt: Date | string;
+    graduateThreshold: number;
+    graduatedToId: string | null;
+    createdAt: Date | string;
+    isCreator: boolean;
+    myAnswer?: "YES" | "MAYBE" | "NO" | null;
+    counts: { YES: number; MAYBE: number; NO: number };
+    hangoutSlug?: string | null;
+}
+
 interface HomeFeedProps {
     hangouts: any[];
     displayName?: string | null;
     socialFeed?: SocialFeed;
+    pulses?: PulseData[];
 }
 
 // Build a Set of "YYYY-MM-DD" strings that have a scheduled hangout
@@ -141,8 +161,10 @@ function MiniCalendar({
     );
 }
 
-export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
+export function HomeFeed({ hangouts, displayName, socialFeed, pulses = [] }: HomeFeedProps) {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [showPulseModal, setShowPulseModal] = useState(false);
+    const [localPulses, setLocalPulses] = useState<PulseData[]>(pulses);
     const feedRef = useRef<HTMLDivElement>(null);
 
     // When a date is selected, scroll the feed into view smoothly
@@ -228,11 +250,51 @@ export function HomeFeed({ hangouts, displayName, socialFeed }: HomeFeedProps) {
                     />
                 )}
 
+                {/* Pulse section */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.15em] flex items-center gap-2">
+                            <Zap className="w-3 h-3 text-primary" />
+                            Pulse
+                        </h2>
+                        <button
+                            onClick={() => setShowPulseModal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/25 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
+                        >
+                            <Zap className="w-3 h-3" />
+                            Who&apos;s free?
+                        </button>
+                    </div>
+
+                    {localPulses.length > 0 && (
+                        <div className="space-y-3">
+                            {localPulses.map((pulse) => (
+                                <PulseCard
+                                    key={pulse.id}
+                                    pulse={pulse}
+                                    isCreator={pulse.isCreator}
+                                    hangoutSlug={pulse.hangoutSlug}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Calendar */}
                 <MiniCalendar
                     hangouts={hangouts}
                     selectedDate={selectedDate}
                     onSelectDate={setSelectedDate}
+                />
+
+                {/* Pulse creation modal */}
+                <CreatePulseModal
+                    isOpen={showPulseModal}
+                    onClose={() => setShowPulseModal(false)}
+                    onSuccess={(pulseId, friendCount) => {
+                        // Optimistically add a placeholder to the pulse list
+                        console.log(`Pulse ${pulseId} sent to ${friendCount} friends`);
+                    }}
                 />
 
                 {/* Feed */}

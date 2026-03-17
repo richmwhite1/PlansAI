@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { checkRateLimit, guestRateLimit, guestCreateRateLimit } from "@/lib/rate-limit";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export async function POST(
     req: NextRequest,
@@ -8,8 +10,40 @@ export async function POST(
 ) {
     try {
         const { hangoutId } = await context.params;
+
+        // Get IP
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+                   req.headers.get("x-real-ip") ??
+                   "unknown";
+
+        // Rate limit: max 10 guest actions per minute per IP
+        const rateLimitResult = await checkRateLimit(`guest:${ip}`, guestRateLimit);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please wait a moment and try again." },
+                { status: 429, headers: { "Retry-After": String(Math.ceil((rateLimitResult.reset - Date.now()) / 1000)) } }
+            );
+        }
+
+        // Rate limit guest creation specifically: max 5 per hour per IP
+        const createLimitResult = await checkRateLimit(`guest-create:${ip}`, guestCreateRateLimit);
+        if (!createLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many guest accounts created from this location." },
+                { status: 429 }
+            );
+        }
+
         const body = await req.json();
-        const { displayName } = body;
+        const { displayName, turnstileToken } = body;
+
+        // Verify Turnstile (gracefully skips if not configured in dev)
+        if (turnstileToken !== undefined) {
+            const turnstileValid = await verifyTurnstile(turnstileToken ?? "");
+            if (!turnstileValid) {
+                return NextResponse.json({ error: "Bot verification failed. Please try again." }, { status: 403 });
+            }
+        }
 
         if (!displayName || displayName.trim().length < 2) {
             return NextResponse.json({ error: "Name is required (min 2 chars)" }, { status: 400 });

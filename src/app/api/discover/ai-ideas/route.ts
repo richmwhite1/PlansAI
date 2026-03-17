@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { auth } from "@clerk/nextjs/server";
+import { checkRateLimit, aiRateLimit } from "@/lib/rate-limit";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function POST(req: NextRequest) {
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Authentication required for AI features" }, { status: 401 });
+        }
+
+        const rateLimitResult = await checkRateLimit(`ai:${userId}`, aiRateLimit);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "AI usage limit reached. Try again in an hour.", reset: rateLimitResult.reset },
+                { status: 429 }
+            );
+        }
+
         const body = await req.json();
         const { prompt, city } = body;
 

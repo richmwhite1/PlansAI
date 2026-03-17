@@ -76,6 +76,9 @@ model Profile {
   votes               Vote[]
   paymentsSent        PaymentTransfer[]      @relation("PaymentSender")
   paymentsReceived    PaymentTransfer[]      @relation("PaymentReceiver")
+  pulsesCreated    Pulse[]
+  pulseResponses   PulseResponse[]
+  calendarToken    GoogleCalendarToken?
 
   @@index([clerkId])
   @@index([homeLatitude, homeLongitude])
@@ -93,6 +96,7 @@ model GuestProfile {
   participants         HangoutParticipant[]
   votes                Vote[]
   timeVotes            TimeVote[]
+  pulseResponses   PulseResponse[]
 
   @@index([token])
   @@index([expiresAt])
@@ -558,6 +562,53 @@ model HangoutBudget {
   hangout   Hangout  @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
 }
 
+model Pulse {
+  id              String          @id @default(cuid())
+  creatorId       String
+  message         String?
+  status          PulseStatus     @default(OPEN)
+  targetTime      String
+  expiresAt       DateTime
+  graduatedToId   String?
+  graduateThreshold Int           @default(2)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  creator         Profile         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  responses       PulseResponse[]
+
+  @@index([creatorId])
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model PulseResponse {
+  id        String        @id @default(cuid())
+  pulseId   String
+  profileId String?
+  guestId   String?
+  answer    PulseAnswer
+  createdAt DateTime      @default(now())
+  pulse     Pulse         @relation(fields: [pulseId], references: [id], onDelete: Cascade)
+  profile   Profile?      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  guest     GuestProfile? @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@unique([pulseId, profileId])
+  @@unique([pulseId, guestId])
+  @@index([pulseId])
+}
+
+model GoogleCalendarToken {
+  id           String   @id @default(cuid())
+  profileId    String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
 enum HangoutType {
   DATE
   GROUP_DINNER
@@ -627,6 +678,8 @@ enum NotificationType {
   NEW_MESSAGE
   PAYMENT_RECEIVED
   PAYMENT_SENT
+  PULSE_RESPONSE
+  PULSE_GRADUATED
 }
 
 enum PaymentStatus {
@@ -639,4 +692,16 @@ enum SocialBattery {
   LOW
   MEDIUM
   HIGH
+}
+
+enum PulseStatus {
+  OPEN
+  GRADUATED
+  EXPIRED
+}
+
+enum PulseAnswer {
+  YES
+  MAYBE
+  NO
 }

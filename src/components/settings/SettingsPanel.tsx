@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Bell, Eye, Info, Loader2, Moon, Radio, Users, Zap } from "lucide-react";
+import { CalendarSection } from "./CalendarSection";
 import { toast } from "sonner";
 
 interface Preferences {
@@ -183,6 +184,9 @@ export function SettingsPanel() {
                     />
                 </div>
             </section>
+
+            {/* Google Calendar */}
+            <CalendarSection />
 
             {/* App Info */}
             <section className="bg-white/[0.03] border border-white/6 rounded-2xl p-4">

@@ -24,6 +24,12 @@ import { ItineraryDashboard } from "@/components/hangout/itinerary-dashboard";
 import { SharedDocuments } from "@/components/hangout/shared-documents";
 import { EventBudget } from "@/components/hangout/event-budget";
 import { InviteModal } from "@/components/dashboard/invite-modal";
+import dynamic from "next/dynamic";
+
+const MidpointPanel = dynamic(
+    () => import("@/components/hangout/midpoint-panel").then((m) => ({ default: m.MidpointPanel })),
+    { ssr: false }
+);
 
 interface HangoutPageClientProps {
     hangout: any;
@@ -794,6 +800,17 @@ export function HangoutPageClient({
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Midpoint Finder */}
+                {currentUserParticipant && (
+                    <div className="glass p-6 rounded-2xl border border-white/5 bg-slate-900/50">
+                        <MidpointPanel
+                            hangoutId={hangout.id}
+                            currentUserParticipantId={currentUserParticipant?.id}
+                            isGuest={!!currentUserParticipant?.guestId}
+                        />
                     </div>
                 )}
 

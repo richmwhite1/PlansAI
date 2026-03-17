@@ -67,6 +67,9 @@ export function CircleFeed({ friends, driftFriends, initialMyStatus }: CircleFee
     const [hoveredFriend, setHoveredFriend] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [pollSent, setPollSent] = useState(false);
+    const [tonightSent, setTonightSent] = useState(false);
+    const [tonightFriendCount, setTonightFriendCount] = useState(0);
+    const [tonightLoading, setTonightLoading] = useState(false);
 
     // If arriving via ?poll= link, auto-open picker pre-selected to that status
     useEffect(() => {
@@ -96,6 +99,27 @@ export function CircleFeed({ friends, driftFriends, initialMyStatus }: CircleFee
             const res = await fetch("/api/availability", { method: "DELETE" });
             if (res.ok) setMyStatus(null);
         } finally { setLoading(false); }
+    };
+
+    const handleTonightMode = async () => {
+        setTonightLoading(true);
+        try {
+            const res = await fetch("/api/pulse/tonight", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({}),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTonightSent(true);
+                setTonightFriendCount(data.friendCount ?? 0);
+                setTimeout(() => setTonightSent(false), 4000);
+            }
+        } catch {
+            // silent fail
+        } finally {
+            setTonightLoading(false);
+        }
     };
 
     const handleSendPoll = async () => {
@@ -221,6 +245,41 @@ export function CircleFeed({ friends, driftFriends, initialMyStatus }: CircleFee
                             </button>
                         </div>
                     )}
+
+                    {/* Tonight Mode blast */}
+                    <AnimatePresence mode="wait">
+                        {tonightSent ? (
+                            <motion.div
+                                key="sent"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center justify-center gap-2 py-2 rounded-xl bg-primary/10 border border-primary/25"
+                            >
+                                <motion.span
+                                    animate={{ scale: [1, 1.3, 1] }}
+                                    transition={{ repeat: 2, duration: 0.4 }}
+                                    className="w-2 h-2 rounded-full bg-primary inline-block"
+                                />
+                                <span className="text-xs font-bold text-primary">
+                                    Sent to {tonightFriendCount} friend{tonightFriendCount !== 1 ? "s" : ""}!
+                                </span>
+                            </motion.div>
+                        ) : (
+                            <motion.button
+                                key="blast"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={handleTonightMode}
+                                disabled={tonightLoading}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-white/8 text-slate-400 text-xs font-bold hover:bg-white/5 hover:text-slate-300 transition-colors disabled:opacity-50"
+                            >
+                                <Zap className="w-3.5 h-3.5" />
+                                {tonightLoading ? "Blasting..." : "Blast to all friends tonight"}
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
 
                     {/* I'm free picker */}
                     <AnimatePresence>

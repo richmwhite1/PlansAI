@@ -29,7 +29,7 @@ export default async function Home() {
 
     const now = new Date();
 
-    const [participations, userVotes, friendships] = await Promise.all([
+    const [participations, userVotes, friendships, rawPulses] = await Promise.all([
         prisma.hangoutParticipant.findMany({
             where: { profileId: profile.id },
             include: {
@@ -75,6 +75,22 @@ export default async function Home() {
                 profileB: { select: { id: true, displayName: true, avatarUrl: true, availableStatus: true, availableUntil: true } },
             },
             orderBy: { sharedHangoutCount: "asc" },
+        }),
+        prisma.pulse.findMany({
+            where: {
+                OR: [
+                    { creatorId: profile.id },
+                    { responses: { some: { profileId: profile.id } } },
+                ],
+                status: "OPEN",
+                expiresAt: { gt: new Date() },
+            },
+            include: {
+                creator: { select: { id: true, displayName: true, avatarUrl: true } },
+                responses: true,
+            },
+            orderBy: { createdAt: "desc" },
+            take: 5,
         }),
     ]);
 
@@ -152,11 +168,36 @@ export default async function Home() {
         ? profile.availableStatus
         : null;
 
+    // Build pulse data with counts
+    const pulses = rawPulses.map((pulse) => {
+        const yesCnt = pulse.responses.filter((r) => r.answer === "YES").length;
+        const maybeCnt = pulse.responses.filter((r) => r.answer === "MAYBE").length;
+        const noCnt = pulse.responses.filter((r) => r.answer === "NO").length;
+        const myResponse = pulse.responses.find((r) => r.profileId === profile.id);
+        return {
+            id: pulse.id,
+            creatorId: pulse.creatorId,
+            creator: pulse.creator,
+            targetTime: pulse.targetTime,
+            message: pulse.message,
+            status: pulse.status,
+            expiresAt: pulse.expiresAt,
+            graduateThreshold: pulse.graduateThreshold,
+            graduatedToId: pulse.graduatedToId,
+            createdAt: pulse.createdAt,
+            isCreator: pulse.creatorId === profile.id,
+            myAnswer: (myResponse?.answer ?? null) as "YES" | "MAYBE" | "NO" | null,
+            counts: { YES: yesCnt, MAYBE: maybeCnt, NO: noCnt },
+            hangoutSlug: null as string | null,
+        };
+    });
+
     return (
         <HomeFeed
             hangouts={hangouts}
             displayName={profile.displayName}
             socialFeed={{ friends, driftFriends, myStatus }}
+            pulses={pulses}
         />
     );
 }

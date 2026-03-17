@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
+import { checkRateLimit, guestRateLimit } from "@/lib/rate-limit";
 
 export async function POST(
     req: NextRequest,
@@ -15,6 +16,15 @@ export async function POST(
 
         if (!userId && !guestToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limit guest RSVP actions by IP
+        if (!userId) {
+            const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+            const rateLimitResult = await checkRateLimit(`rsvp:${ip}`, guestRateLimit);
+            if (!rateLimitResult.success) {
+                return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+            }
         }
 
         const body = await req.json();

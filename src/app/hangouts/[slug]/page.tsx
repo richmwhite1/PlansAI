@@ -28,7 +28,6 @@ export async function generateMetadata(props: HangoutPageProps): Promise<Metadat
 
     const title = hangout.title;
     const description = hangout.description || `Join ${hangout.creator.displayName}'s plan on Plans.`;
-    const imageUrl = hangout.finalActivity?.imageUrl || "/og-invite.png";
 
     return {
         title: title,
@@ -38,7 +37,7 @@ export async function generateMetadata(props: HangoutPageProps): Promise<Metadat
             description: description,
             images: [
                 {
-                    url: imageUrl,
+                    url: `/hangouts/${params.slug}/opengraph-image`,
                     width: 1200,
                     height: 630,
                     alt: title,
@@ -49,7 +48,7 @@ export async function generateMetadata(props: HangoutPageProps): Promise<Metadat
             card: "summary_large_image",
             title: title,
             description: description,
-            images: [imageUrl],
+            images: [`/hangouts/${params.slug}/opengraph-image`],
         },
     };
 }

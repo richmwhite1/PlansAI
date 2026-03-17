@@ -4,6 +4,7 @@ import { Loader2, ArrowRight, User, Check, CalendarDays, Bell, Users } from "luc
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { setGuestCookie } from "@/app/actions/guest-actions";
+import { TurnstileWidget } from "@/components/ui/turnstile-widget";
 
 interface Guest {
     id: string;
@@ -25,6 +26,7 @@ export function GuestJoinForm({ hangoutId, hangoutSlug, guestsToClaim = [], curr
     const [isJoining, setIsJoining] = useState(false);
     const [claimingId, setClaimingId] = useState<string | null>(null);
     const [isClaiming, setIsClaiming] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +55,7 @@ export function GuestJoinForm({ hangoutId, hangoutSlug, guestsToClaim = [], curr
             const res = await fetch(`/api/hangouts/${hangoutId}/join-guest`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ displayName: name })
+                body: JSON.stringify({ displayName: name, turnstileToken })
             });
 
             if (res.ok) {
@@ -194,12 +196,14 @@ export function GuestJoinForm({ hangoutId, hangoutSlug, guestsToClaim = [], curr
                     className="w-full bg-input/50 ring-1 ring-white/10 rounded-xl px-4 py-3 text-center text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary/50 transition-all"
                 />
 
+                <TurnstileWidget onVerify={setTurnstileToken} />
+
                 <button
                     type="submit"
-                    disabled={isJoining || !name.trim() || !!claimingId}
+                    disabled={isJoining || !name.trim() || !!claimingId || !turnstileToken}
                     className={cn(
                         "w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2",
-                        (isJoining || !name.trim() || !!claimingId) && "opacity-50 cursor-not-allowed"
+                        (isJoining || !name.trim() || !!claimingId || !turnstileToken) && "opacity-50 cursor-not-allowed"
                     )}
                 >
                     {isJoining ? (

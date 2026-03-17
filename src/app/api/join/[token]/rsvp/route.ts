@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { checkRateLimit, guestRateLimit } from "@/lib/rate-limit";
 
 export async function POST(
     req: NextRequest,
@@ -8,6 +9,14 @@ export async function POST(
 ) {
     try {
         const { token } = await params;
+
+        // Rate limit by IP — this route is guest-accessible
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        const rateLimitResult = await checkRateLimit(`rsvp:${ip}`, guestRateLimit);
+        if (!rateLimitResult.success) {
+            return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+        }
+
         const formData = await req.formData();
         const status = formData.get("status") as string;
 
