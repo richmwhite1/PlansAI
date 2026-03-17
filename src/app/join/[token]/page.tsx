@@ -20,13 +20,23 @@ export async function generateMetadata({ params }: JoinPageProps): Promise<Metad
 
     if (!hangout) return {};
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://plansai-production.up.railway.app";
+    const ogImageUrl = `${appUrl}/hangouts/${hangout.slug}/opengraph-image`;
+
     return {
         title: `Join "${hangout.title}" on Plans`,
-        description: `You've been invited to ${hangout.title}. RSVP now on Plans AI.`,
+        description: `You've been invited to ${hangout.title}. Vote on the activity, RSVP, and save it to your calendar.`,
         openGraph: {
-            title: hangout.title,
-            description: "Join this hangout on Plans",
-            images: [{ url: `/hangouts/${hangout.slug}/opengraph-image`, width: 1200, height: 630, alt: hangout.title }],
+            title: `You're invited: ${hangout.title}`,
+            description: "Vote on the activity, RSVP, and save it to your calendar — no account needed.",
+            images: [{ url: ogImageUrl, width: 1200, height: 630, alt: hangout.title }],
+            type: "website",
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `You're invited: ${hangout.title}`,
+            description: "Vote on the activity, RSVP, and save it to your calendar.",
+            images: [ogImageUrl],
         },
     };
 }

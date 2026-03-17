@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { MapPin, Calendar, Users, Star, Zap, Camera, Plus, ChevronRight } from "lucide-react";
+import { MapPin, Calendar, Users, Star, Zap, Camera, Plus, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -143,14 +143,17 @@ export function HangoutPageClient({
     const [guestsToInvite, setGuestsToInvite] = useState<{ name: string, phone?: string }[]>([]);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [activeInviteUrl, setActiveInviteUrl] = useState("");
+    const [showGuestNamePrompt, setShowGuestNamePrompt] = useState(false);
+    const [pendingGuestName, setPendingGuestName] = useState("");
 
-    const handleGenerateInvite = async () => {
+    const handleGenerateInvite = async (guestName: string) => {
+        setShowGuestNamePrompt(false);
         setIsGeneratingLink(true);
         try {
             const res = await fetch(`/api/hangouts/${hangout.id}/guests`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: "Guest" }),
+                body: JSON.stringify({ name: guestName.trim() || "Guest" }),
             });
             if (res.ok) {
                 const data = await res.json();
@@ -462,7 +465,7 @@ export function HangoutPageClient({
                         <div className="flex items-center gap-2">
                             {(hangout.visibility === "PUBLIC" || isOrganizer) && (
                                 <button
-                                    onClick={handleGenerateInvite}
+                                    onClick={() => { setPendingGuestName(""); setShowGuestNamePrompt(true); }}
                                     disabled={isGeneratingLink}
                                     className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 transition-colors"
                                 >
@@ -890,10 +893,48 @@ export function HangoutPageClient({
                 )}
             </div>
 
+            {/* Guest Name Prompt */}
+            {showGuestNamePrompt && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowGuestNamePrompt(false)} />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="relative w-full max-w-sm bg-slate-900 border border-primary/20 rounded-2xl shadow-xl p-6 space-y-4"
+                    >
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-white">Add a Guest</h2>
+                                <p className="text-sm text-slate-400 mt-0.5">Enter their name to personalize the invite</p>
+                            </div>
+                            <button onClick={() => setShowGuestNamePrompt(false)} className="p-1 text-slate-500 hover:text-white transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <input
+                            autoFocus
+                            type="text"
+                            value={pendingGuestName}
+                            onChange={e => setPendingGuestName(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") handleGenerateInvite(pendingGuestName); }}
+                            placeholder="e.g. Alex, Jordan..."
+                            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 text-sm"
+                        />
+                        <button
+                            onClick={() => handleGenerateInvite(pendingGuestName)}
+                            className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-all"
+                        >
+                            Generate Invite Link
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+
             <InviteModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
                 inviteUrl={activeInviteUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${hangout.inviteToken}`}
+                hangoutTitle={hangout.title}
                 guests={guestsToInvite}
                 onDone={() => {
                     setIsInviteModalOpen(false);

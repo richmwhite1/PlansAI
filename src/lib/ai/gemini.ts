@@ -176,28 +176,18 @@ Return JSON array only. No markdown, no explanation.`;
     // 2. Fallback: base Gemini model (no real-time web, but knows about recurring/typical events)
     try {
         console.log(`[EventSearch] Base model fallback for "${query}" on ${targetDate}...`);
-        const fallbackPrompt = `You are a local events assistant. Based on your knowledge, suggest ${query} events that TYPICALLY happen in or near coordinates ${lat}, ${lng} (approximately ${radiusMiles} miles radius) on weekends and evenings. The target date is ${targetDate}.
+        const fallbackPrompt = `You are a local events assistant. Suggest events or activities matching "${query}" near coordinates ${lat}, ${lng} (within ${radiusMiles} miles). Target date: ${targetDate}.
 
-Focus on recurring venues, clubs, theaters, stadiums that regularly host this type of event. Include the most well-known venues for "${query}" in this area.
+Focus on real, well-known venues and recurring events in this area. If you know of specific venues that host "${query}" events regularly, list them.
 
-Return a JSON array of up to 6 suggestions. Include:
-- "name": Event/show name or "Comedy Night at [Venue]" style
-- "venue": The venue name
-- "address": Approximate address
-- "date": "${targetDate}"
-- "time": Typical show time (e.g. "8:00 PM") or null
-- "description": 1-2 sentence description
-- "category": Category string
-- "ticketUrl": Venue website or ticketing page URL if you know it
-- "priceRange": Typical price range or null
-- "performers": Array of typical performers (can be empty)
-- "lat": Venue latitude
-- "lng": Venue longitude
+IMPORTANT: Respond with ONLY a valid JSON array. No explanation, no markdown, no code blocks. Start your response with [ and end with ].
 
-Return JSON array only. No markdown.`;
+Array of up to 6 objects, each with exactly these fields:
+{"name":"...","venue":"...","address":"...","date":"${targetDate}","time":"8:00 PM","description":"...","category":"...","ticketUrl":null,"priceRange":null,"performers":[],"lat":${lat},"lng":${lng}}`;
 
         const result = await model.generateContent(fallbackPrompt);
-        const text = result.response.text();
+        const text = result.response.text().trim();
+        console.log(`[EventSearch] Fallback raw response (first 200 chars): ${text.substring(0, 200)}`);
         const events = parseEvents(text, "fallback");
         return events;
     } catch (fallbackError) {
